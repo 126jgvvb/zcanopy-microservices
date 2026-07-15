@@ -1,0 +1,410 @@
+syntax="proto3";
+
+package property.v1;
+
+service PropertyService {
+  rpc CreateProperty (CreatePropertyRequest) returns (CreatePropertyResponse);
+  rpc AddAllowedViewer (AddAllowedViewerRequest) returns (AddAllowedViewerResponse);
+  rpc GetProperties (GetPropertiesRequest) returns (GetPropertiesResponse);
+  rpc GetPropertyLocations (GetPropertyLocationsRequest) returns (GetPropertyLocationsResponse);
+  rpc GetBrokerBookings (GetBrokerBookingsRequest) returns (GetBrokerBookingsResponse);
+  rpc RecordSearch (RecordSearchRequest) returns (RecordSearchResponse);
+  rpc GetRecentSearches (GetRecentSearchesRequest) returns (GetRecentSearchesResponse);
+  rpc FindNearbyProperties (FindNearbyPropertiesRequest) returns (FindNearbyPropertiesResponse);
+  rpc TrackNearbyProperties (TrackNearbyPropertiesRequest) returns (TrackNearbyPropertiesResponse);
+  rpc GetCustomerProperties (GetCustomerPropertiesRequest) returns (GetCustomerPropertiesResponse);
+  rpc InitiatePropertyAccessPayment (InitiatePropertyAccessPaymentRequest) returns (InitiatePropertyAccessPaymentResponse);
+  rpc GetBrokerPropertiesForCustomer (GetBrokerPropertiesForCustomerRequest) returns (GetBrokerPropertiesForCustomerResponse);
+  rpc CreateCustomerBooking (CreateCustomerBookingRequest) returns (CreateCustomerBookingResponse);
+  rpc GetPropertyDetailsForCustomer (GetPropertyDetailsForCustomerRequest) returns (GetPropertyDetailsForCustomerResponse);
+  rpc GetCustomerBookings (GetCustomerBookingsRequest) returns (GetCustomerBookingsResponse);
+  rpc GetBookingByCode (GetBookingByCodeRequest) returns (GetBookingByCodeResponse);
+  rpc GetBookingsByPhone (GetBookingsByPhoneRequest) returns (GetBookingsByPhoneResponse);
+}
+
+message Coordinates {
+  double lat = 1;
+  double lng = 2;
+}
+
+message CreatePropertyRequest {
+  string brokersUniqueCode = 1;
+  string title = 2;
+  string description = 3;
+  string propertyType = 4;
+  repeated string imageUrl = 5;
+  repeated string videoUrl = 6;
+  string location = 7;
+  repeated string allowedViewers = 8;
+  int32 maxProperties = 9;
+  int32 maxPhotosPerProperty = 10;
+  int32 maxVideosPerProperty = 11;
+  int32 maxVideoSizeMB = 12;
+  Coordinates coordinates = 13;
+}
+
+message CreatePropertyResponse {
+  string id = 1;
+  string brokersUniqueCode = 2;
+  string title = 3;
+  bool success = 4;
+  string message = 5;
+}
+
+message AddAllowedViewerRequest {
+  string brokerCode = 1;
+  string customerPhone = 2;
+  string customerName = 3;
+  string transactionCode = 4;
+  double amount = 5;
+  string transactionId = 6;
+  string date = 7;
+}
+
+message AddAllowedViewerResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetPropertiesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string brokerCode = 3;
+  string location = 4;
+  string sortBy = 5;
+  string sortOrder = 6;
+  double minAmount = 7;
+  double maxAmount = 8;
+  string fromDate = 9;
+  string toDate = 10;
+}
+
+message GetPropertiesResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
+message UpdatePropertyRequest {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string location = 4;
+  string propertyType = 5;
+  repeated string imageUrl = 6;
+  repeated string videoUrl = 7;
+  double lat = 8;
+  double lng = 9;
+}
+
+message UpdatePropertyResponse {
+  string id = 1;
+  string brokersUniqueCode = 2;
+  string title = 3;
+  bool success = 4;
+  string message = 5;
+}
+
+message DeletePropertyRequest {
+  string id = 1;
+}
+
+message DeletePropertyResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message BookingState {
+  bool isBooked = 1;
+  int32 bookingCount = 2;
+  string latestBookingDate = 3;
+}
+
+message Property {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string propertyType = 4;
+  repeated string imageUrl = 5;
+  repeated string videoUrl = 6;
+  string location = 7;
+  string brokersUniqueCode = 8;
+  bool isAvailable = 9;
+  string createdAt = 10;
+  string updatedAt = 11;
+  int32 photoCount = 12;
+  int32 videoCount = 13;
+  Coordinates postgisSpatialField = 14;
+  BookingState bookingState = 15;
+}
+
+message GetPropertiesResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
+message GetPropertyLocationsRequest {}
+
+message GetPropertyLocationsResponse {
+  repeated PropertyLocation locations = 1;
+}
+
+message GetBrokerBookingsRequest {
+  string brokerCode = 1;
+}
+
+message GetBrokerBookingsResponse {
+  repeated Booking bookings = 1;
+}
+
+message RecordSearchRequest {
+  string sessionToken = 1;
+  string query = 2;
+  string location = 3;
+  double radius = 4;
+  string propertyType = 5;
+}
+
+message RecordSearchResponse {
+  bool success = 1;
+}
+
+message GetRecentSearchesRequest {
+  string sessionToken = 1;
+  int32 limit = 2;
+}
+
+message GetRecentSearchesResponse {
+  repeated RecentSearch searches = 1;
+}
+
+message RecentSearch {
+  string id = 1;
+  string query = 2;
+  string location = 3;
+  double radius = 4;
+  string propertyType = 5;
+  string createdAt = 6;
+}
+
+message FindNearbyPropertiesRequest {
+  double lat = 1;
+  double lng = 2;
+  double radiusKm = 3;
+  string propertyType = 4;
+  int32 page = 5;
+  int32 limit = 6;
+}
+
+message FindNearbyPropertiesResponse {
+  repeated NearbyProperty properties = 1;
+  int32 total = 2;
+}
+
+message NearbyProperty {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string propertyType = 4;
+  string location = 5;
+  string brokersUniqueCode = 6;
+  bool isAvailable = 7;
+  string createdAt = 8;
+  int32 photoCount = 9;
+  int32 videoCount = 10;
+  Coordinates postgisSpatialField = 11;
+  repeated string imageUrl = 12;
+  repeated string videoUrl = 13;
+  double distanceKm = 14;
+  int32 totalBrokerProperties = 15;
+}
+
+message TrackNearbyPropertiesRequest {
+  string sessionToken = 1;
+  double lat = 2;
+  double lng = 3;
+  double radiusKm = 4;
+  string propertyType = 5;
+}
+
+message TrackNearbyPropertiesResponse {
+  bool success = 1;
+  string channel = 2;
+}
+
+message GetCustomerPropertiesRequest {
+  string sessionToken = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  double lat = 4;
+  double lng = 5;
+  double radiusKm = 6;
+  string propertyType = 7;
+}
+
+message GetCustomerPropertiesResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
+message InitiatePropertyAccessPaymentRequest {
+  string sessionToken = 1;
+  string brokerCode = 2;
+  string propertyId = 3;
+  double amount = 4;
+  string customerEmail = 5;
+  string customerPhone = 6;
+  string customerName = 7;
+  string careerExamples = 8;
+}
+
+message InitiatePropertyAccessPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  string referenceNumber = 3;
+  string transactionId = 4;
+}
+
+message GetBrokerPropertiesForCustomerRequest {
+  string sessionToken = 1;
+  string brokerCode = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message GetBrokerPropertiesForCustomerResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
+message CreateCustomerBookingRequest {
+  string sessionToken = 1;
+  string propertyId = 2;
+  string customerName = 3;
+  string customerPhone = 4;
+  string customerEmail = 5;
+  string date = 6;
+  double amount = 7;
+  string reason = 8;
+  string status = 9;
+}
+
+message CreateCustomerBookingResponse {
+  bool success = 1;
+  string message = 2;
+  string bookingId = 3;
+}
+
+message GetPropertyDetailsForCustomerRequest {
+  string sessionToken = 1;
+  string propertyId = 2;
+}
+
+message GetPropertyDetailsForCustomerResponse {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string propertyType = 4;
+  string location = 5;
+  string brokersUniqueCode = 6;
+  bool isAvailable = 7;
+  string createdAt = 8;
+  string updatedAt = 9;
+  int32 photoCount = 10;
+  int32 videoCount = 11;
+  string postgisSpatialField = 12;
+  repeated string imageUrl = 13;
+  repeated string videoUrl = 14;
+  BookingState bookingState = 15;
+  double amount = 16;
+  string brokerPhone = 17;
+  string brokerName = 18;
+  bool canBook = 19;
+}
+
+message Property {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string propertyType = 4;
+  repeated string imageUrl = 5;
+  repeated string videoUrl = 6;
+  string location = 7;
+  string brokersUniqueCode = 8;
+  bool isAvailable = 9;
+  string createdAt = 10;
+  string updatedAt = 11;
+  int32 photoCount = 12;
+  int32 videoCount = 13;
+  Coordinates postgisSpatialField = 14;
+  BookingState bookingState = 15;
+  double amount = 16;
+  string brokerPhone = 17;
+  int32 totalBrokerProperties = 18;
+}
+
+message PropertyLocation {
+  string propertyId = 1;
+  string title = 2;
+  string location = 3;
+  Coordinates postgisSpatialField = 4;
+  string brokerCode = 5;
+}
+
+message Booking {
+  string id = 1;
+  string propertyId = 2;
+  string propertyTitle = 3;
+  string customerName = 4;
+  string customerPhone = 5;
+  string customerEmail = 6;
+  string date = 7;
+  string status = 8;
+  double amount = 9;
+  string transactionCode = 10;
+  string reason = 11;
+}
+
+message GetCustomerBookingsRequest {
+  string sessionToken = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetCustomerBookingsResponse {
+  repeated CustomerBooking bookings = 1;
+  int32 total = 2;
+}
+
+message GetBookingByCodeRequest {
+  string transactionCode = 1;
+}
+
+message GetBookingByCodeResponse {
+  CustomerBooking booking = 1;
+}
+
+message GetBookingsByPhoneRequest {
+  string customerPhone = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetBookingsByPhoneResponse {
+  repeated CustomerBooking bookings = 1;
+  int32 total = 2;
+}
+
+message CustomerBooking {
+  string id = 1;
+  string propertyId = 2;
+  string propertyTitle = 3;
+  string customerName = 4;
+  string customerPhone = 5;
+  string customerEmail = 6;
+  string date = 7;
+  double amount = 8;
+  string transactionCode = 9;
+  string reason = 10;
+  string status = 11;
+  string location = 12;
+}

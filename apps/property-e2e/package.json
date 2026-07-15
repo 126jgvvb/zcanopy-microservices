@@ -1,0 +1,26 @@
+{
+  "name": "@org/property-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@org/property"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "dependsOn": [
+          "@org/property:build",
+          "@org/property:serve"
+        ],
+        "options": {
+          "jestConfig": "apps/property-e2e/jest.config.cts",
+          "passWithNoTests": true
+        }
+      }
+    }
+  }
+}

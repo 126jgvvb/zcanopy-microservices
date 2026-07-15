@@ -1,0 +1,61 @@
+syntax="proto3";
+
+package auth.v1;
+
+service AuthService {
+  rpc Login (LoginRequest) returns (LoginResponse);
+  rpc RefreshToken (RefreshTokenRequest) returns (LoginResponse);
+  rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
+  rpc IssueCustomerSession (IssueCustomerSessionRequest) returns (IssueCustomerSessionResponse);
+  rpc ValidateCustomerSession (ValidateCustomerSessionRequest) returns (ValidateCustomerSessionResponse);
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string type = 3;
+}
+
+message LoginResponse {
+  string accessToken = 1;
+  string refreshToken = 2;
+  string id = 3;
+  string email = 4;
+  string username = 5;
+  string role = 6;
+  string type = 7;
+}
+
+message RefreshTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string userId = 2;
+  string email = 3;
+  string role = 4;
+  string type = 5;
+}
+
+message IssueCustomerSessionRequest {
+  string sessionId = 1;
+  int32 ttlSeconds = 2;
+}
+
+message IssueCustomerSessionResponse {
+  string sessionToken = 1;
+}
+
+message ValidateCustomerSessionRequest {
+  string sessionToken = 1;
+}
+
+message ValidateCustomerSessionResponse {
+  bool valid = 1;
+  string sessionId = 2;
+}

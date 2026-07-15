@@ -1,0 +1,253 @@
+syntax="proto3";
+
+package broker.v1;
+
+service BrokerService{
+  rpc GetAllBrokers (GetAllBrokersRequest) returns (GetAllBrokersResponse);
+  rpc GetBrokerById (GetBrokerByIdRequest) returns (GetBrokerByIdResponse);
+  rpc ValidateBroker (ValidateBrokerRequest) returns (ValidateBrokerResponse);
+  rpc CreateBroker (CreateBrokerRequest) returns (CreateBrokerResponse);
+  rpc UpdateBroker (UpdateBrokerRequest) returns (UpdateBrokerResponse);
+  rpc DeleteBroker (DeleteBrokerRequest) returns (DeleteBrokerResponse);
+  rpc GetPendingVerifications (GetPendingVerificationsRequest) returns (GetPendingVerificationsResponse);
+  rpc GetRecentSignups (GetRecentSignupsRequest) returns (GetRecentSignupsResponse);
+  rpc EditBrokerTier (EditBrokerTierRequest) returns (EditBrokerTierResponse);
+  rpc GetBrokerDashboard (GetBrokerDashboardRequest) returns (GetBrokerDashboardResponse);
+  rpc CreditWallet (CreditWalletRequest) returns (CreditWalletResponse);
+  rpc DebitWallet (DebitWalletRequest) returns (DebitWalletResponse);
+  rpc GetWalletTransactions (GetWalletTransactionsRequest) returns (GetWalletTransactionsResponse);
+  rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
+  rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
+}
+
+message GetAllBrokersRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message GetAllBrokersResponse {
+  repeated Broker brokers = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message GetBrokerByIdRequest {
+  string id = 1;
+}
+
+message GetBrokerByIdResponse {
+  Broker broker = 1;
+}
+
+message ValidateBrokerRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message ValidateBrokerResponse {
+  Broker broker = 1;
+}
+
+message CreateBrokerRequest {
+  string username = 1;
+  string email = 2;
+  string phoneNumber = 3;
+  string password = 4;
+  string IDFront = 5;
+  string IDBack = 6;
+  string emailOtp = 7;
+  string phoneOtp = 8;
+  string subscriptionTier = 9;
+}
+
+message CreateBrokerResponse {
+  Broker broker = 1;
+}
+
+message UpdateBrokerRequest {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string IDFront = 4;
+  string IDBack = 5;
+}
+
+message UpdateBrokerResponse {
+  Broker broker = 1;
+}
+
+message DeleteBrokerRequest {
+  string id = 1;
+}
+
+message DeleteBrokerResponse {
+  string message = 1;
+}
+
+message GetPendingVerificationsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message GetPendingVerificationsResponse {
+  repeated Broker brokers = 1;
+  int32 total = 2;
+}
+
+message GetRecentSignupsRequest {
+  int32 limit = 1;
+}
+
+message GetRecentSignupsResponse {
+  repeated Broker brokers = 1;
+}
+
+message EditBrokerTierRequest {
+  string id = 1;
+  string subscriptionTier = 2;
+}
+
+message EditBrokerTierResponse {
+  Broker broker = 1;
+}
+
+message GetBrokerDashboardRequest {
+  string brokerId = 1;
+}
+
+message GetBrokerDashboardResponse {
+  Broker broker = 1;
+  repeated BrokerMessage messages = 2;
+  repeated Booking bookings = 3;
+  double walletBalance = 4;
+  repeated WalletTransaction walletTransactions = 5;
+}
+
+message CreditWalletRequest {
+  string brokerId = 1;
+  double amount = 2;
+  string reason = 3;
+  string createdBy = 4;
+  string referenceNumber = 5;
+}
+
+message CreditWalletResponse {
+  double newBalance = 1;
+  string message = 2;
+}
+
+message DebitWalletRequest {
+  string brokerId = 1;
+  double amount = 2;
+  string reason = 3;
+  string createdBy = 4;
+  string referenceNumber = 5;
+}
+
+message DebitWalletResponse {
+  double newBalance = 1;
+  string message = 2;
+}
+
+message GetWalletTransactionsRequest {
+  string brokerId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetWalletTransactionsResponse {
+  repeated WalletTransaction transactions = 1;
+  int32 total = 2;
+}
+
+message WithdrawRequest {
+  double amount = 1;
+  string phoneNumber = 2;
+  string provider = 3;
+  string payeeName = 4;
+  string payeeEmail = 5;
+  string externalId = 6;
+  string payerNote = 7;
+  string payeeNote = 8;
+  string currency = 9;
+  string bankId = 10;
+  string bankIdentificationCode = 11;
+  string bankTransferType = 12;
+  string sendAt = 13;
+}
+
+message WithdrawResponse {
+  bool success = 1;
+  string message = 2;
+  string transactionId = 3;
+  string referenceNumber = 4;
+  string status = 5;
+  double netAmount = 6;
+}
+
+message GetWalletRequest {
+  string walletId = 1;
+}
+
+message GetWalletResponse {
+  double balance = 1;
+  string currency = 2;
+  string walletId = 3;
+  string name = 4;
+}
+
+message Broker {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string phoneNumber = 4;
+  string brokerCode = 5;
+  string subscriptionTier = 6;
+  bool isVerified = 7;
+  bool isEmailVerified = 8;
+  bool isPhoneVerified = 9;
+  string location = 10;
+  string lastLogin = 11;
+  string createdAt = 12;
+  string updatedAt = 13;
+  bool isActive = 14;
+  bool isDeleted = 15;
+  double walletBalance = 16;
+  string subscriptionExpiresAt = 17;
+}
+
+message BrokerMessage {
+  string id = 1;
+  string senderName = 2;
+  string senderPhone = 3;
+  string message = 4;
+  string sentAt = 5;
+  bool read = 6;
+  string type = 7;
+}
+
+message Booking {
+  string id = 1;
+  string propertyId = 2;
+  string propertyTitle = 3;
+  string customerName = 4;
+  string customerPhone = 5;
+  string customerEmail = 6;
+  string date = 7;
+  string status = 8;
+  double amount = 9;
+  string transactionCode = 10;
+}
+
+message WalletTransaction {
+  string id = 1;
+  string type = 2;
+  double amount = 3;
+  double balanceAfter = 4;
+  string reason = 5;
+  string referenceNumber = 6;
+  string transactionCode = 7;
+  string createdBy = 8;
+  string createdAt = 9;
+}

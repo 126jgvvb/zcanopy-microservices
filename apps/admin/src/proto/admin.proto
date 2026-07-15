@@ -1,0 +1,586 @@
+syntax="proto3";
+
+package admin.v1;
+
+service AdminService {
+  rpc GetCommissions (GetCommissionsRequest) returns (GetCommissionsResponse);
+  rpc RegisterAdmin (RegisterAdminRequest) returns (RegisterAdminResponse);
+  rpc LoginAdmin (LoginAdminRequest) returns (LoginAdminResponse);
+  rpc ValidateAdmin (ValidateAdminRequest) returns (ValidateAdminResponse);
+  rpc GetAdminById (GetAdminByIdRequest) returns (GetAdminByIdResponse);
+  rpc GetAllBrokers (GetAllBrokersRequest) returns (GetAllBrokersResponse);
+  rpc GetPendingVerifications (GetPendingVerificationsRequest) returns (GetPendingVerificationsResponse);
+  rpc GetProperties (GetPropertiesRequest) returns (GetPropertiesResponse);
+  rpc GetRecentSignups (GetRecentSignupsRequest) returns (GetRecentSignupsResponse);
+  rpc GetPropertyLocations (GetPropertyLocationsRequest) returns (GetPropertyLocationsResponse);
+  rpc GetAllAdmins (GetAllAdminsRequest) returns (GetAllAdminsResponse);
+  rpc GenerateInvitationCode (GenerateInvitationCodeRequest) returns (GenerateInvitationCodeResponse);
+  rpc GetPendingDocuments (GetPendingDocumentsRequest) returns (GetPendingDocumentsResponse);
+  rpc GetSystemMessages (GetSystemMessagesRequest) returns (GetSystemMessagesResponse);
+  rpc GetClientMessages (GetClientMessagesRequest) returns (GetClientMessagesResponse);
+  rpc GetBrokerDetails (GetBrokerDetailsRequest) returns (GetBrokerDetailsResponse);
+  rpc GetBrokerDetailsFromCache (GetBrokerDetailsFromCacheRequest) returns (GetBrokerDetailsFromCacheResponse);
+  rpc DeleteBroker (DeleteBrokerRequest) returns (DeleteBrokerResponse);
+  rpc EditBrokerTier (EditBrokerTierRequest) returns (EditBrokerTierResponse);
+  rpc GetBrokerProperties (GetBrokerPropertiesRequest) returns (GetBrokerPropertiesResponse);
+  rpc GetMonthlyIncome (GetMonthlyIncomeRequest) returns (GetMonthlyIncomeResponse);
+  rpc GetCurrentCommission (GetCurrentCommissionRequest) returns (GetCurrentCommissionResponse);
+  rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse);
+  rpc UpdateAdminEmail (UpdateAdminEmailRequest) returns (UpdateAdminEmailResponse);
+  rpc UpdateAdminSms (UpdateAdminSmsRequest) returns (UpdateAdminSmsResponse);
+  rpc GetLogs (GetLogsRequest) returns (GetLogsResponse);
+  rpc AddAdmin (AddAdminRequest) returns (AddAdminResponse);
+  rpc DeleteAdmin (DeleteAdminRequest) returns (DeleteAdminResponse);
+  rpc FreezeAdmin (FreezeAdminRequest) returns (FreezeAdminResponse);
+  rpc SendMessage (SendMessageRequest) returns (SendMessageResponse);
+  rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
+  rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
+  rpc GetNotifications (GetNotificationsRequest) returns (GetNotificationsResponse);
+  rpc ApproveBrokerDocument (ApproveBrokerDocumentRequest) returns (ApproveBrokerDocumentResponse);
+}
+
+message GetCommissionsRequest {}
+
+message GetCommissionsResponse {
+  double platformCommission = 1;
+  double bookingCommission = 2;
+  double minimumWithdrawal = 3;
+}
+
+message RegisterAdminRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+  string invitationCode = 4;
+  string role = 5;
+}
+
+message RegisterAdminResponse {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string role = 4;
+  string message = 5;
+}
+
+message LoginAdminRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginAdminResponse {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string role = 4;
+  string token = 5;
+}
+
+message ValidateAdminRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message ValidateAdminResponse {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string role = 4;
+}
+
+message GetAdminByIdRequest {
+  string id = 1;
+}
+
+message GetAdminByIdResponse {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string role = 4;
+}
+
+message GetAllBrokersRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message GetAllBrokersResponse {
+  repeated Broker brokers = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message GetPendingVerificationsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message GetPendingVerificationsResponse {
+  repeated Broker brokers = 1;
+  int32 total = 2;
+}
+
+message GetPropertiesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string brokerCode = 3;
+  string location = 4;
+  string sortBy = 5;
+  string sortOrder = 6;
+  double minAmount = 7;
+  double maxAmount = 8;
+  string fromDate = 9;
+  string toDate = 10;
+}
+
+message GetPropertiesResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
+message GetRecentSignupsRequest {
+  int32 limit = 1;
+}
+
+message GetRecentSignupsResponse {
+  repeated Broker brokers = 1;
+}
+
+message GetPropertyLocationsRequest {}
+
+message GetPropertyLocationsResponse {
+  repeated PropertyLocation locations = 1;
+}
+
+message GetAllAdminsRequest {}
+
+message GetAllAdminsResponse {
+  repeated Admin admins = 1;
+}
+
+message GenerateInvitationCodeRequest {
+  string superAdminId = 1;
+  string role = 2;
+  int32 expiryHours = 3;
+}
+
+message GenerateInvitationCodeResponse {
+  string invitationCode = 1;
+  string role = 2;
+  string expiresAt = 3;
+}
+
+message GetPendingDocumentsRequest {}
+
+message GetPendingDocumentsResponse {
+  repeated PendingDocument documents = 1;
+}
+
+message GetSystemMessagesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message GetSystemMessagesResponse {
+  repeated SystemMessage messages = 1;
+  int32 total = 2;
+}
+
+message GetClientMessagesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message GetClientMessagesResponse {
+  repeated ClientMessage messages = 1;
+  int32 total = 2;
+}
+
+message GetBrokerDetailsRequest {
+  string brokerId = 1;
+}
+
+message GetBrokerDetailsResponse {
+  Broker broker = 1;
+  double walletBalance = 2;
+  repeated DashboardTransaction transactions = 3;
+  repeated BrokerMessage messages = 4;
+  repeated Booking bookings = 5;
+}
+
+message GetBrokerDetailsFromCacheRequest {
+  string brokerId = 1;
+}
+
+message GetBrokerDetailsFromCacheResponse {
+  Broker broker = 1;
+  double walletBalance = 2;
+  repeated DashboardTransaction transactions = 3;
+}
+
+message DeleteBrokerRequest {
+  string brokerId = 1;
+  string adminId = 2;
+}
+
+message DeleteBrokerResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message EditBrokerTierRequest {
+  string brokerId = 1;
+  string tier = 2;
+  string adminId = 3;
+}
+
+message EditBrokerTierResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetBrokerPropertiesRequest {
+  string brokerId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetBrokerPropertiesResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
+message GetMonthlyIncomeRequest {}
+
+message GetMonthlyIncomeResponse {
+  repeated MonthlyIncomeEntry entries = 1;
+}
+
+message GetCurrentCommissionRequest {}
+
+message GetCurrentCommissionResponse {
+  double platformCommission = 1;
+  double bookingCommission = 2;
+  double totalEarnings = 3;
+}
+
+message GetTransactionsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string brokerId = 3;
+  string reason = 4;
+}
+
+message GetTransactionsResponse {
+  repeated DashboardTransaction transactions = 1;
+  int32 total = 2;
+}
+
+message UpdateAdminEmailRequest {
+  string adminId = 1;
+  string email = 2;
+}
+
+message UpdateAdminEmailResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message UpdateAdminSmsRequest {
+  string adminId = 1;
+  string phoneNumber = 2;
+}
+
+message UpdateAdminSmsResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetLogsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string level = 3;
+  string service = 4;
+}
+
+message GetLogsResponse {
+  repeated LogEntry logs = 1;
+  int32 total = 2;
+}
+
+message AddAdminRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+  string role = 4;
+  string createdBy = 5;
+}
+
+message AddAdminResponse {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string role = 4;
+  string message = 5;
+}
+
+message DeleteAdminRequest {
+  string adminId = 1;
+  string deletedBy = 2;
+}
+
+message DeleteAdminResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message FreezeAdminRequest {
+  string adminId = 1;
+  bool freeze = 2;
+  string updatedBy = 3;
+}
+
+message FreezeAdminResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SendMessageRequest {
+  string adminId = 1;
+  string adminUsername = 2;
+  string recipientType = 3;
+  string recipientPhone = 4;
+  string recipientEmail = 5;
+  string recipientName = 6;
+  string messageType = 7;
+  string subject = 8;
+  string body = 9;
+  string channel = 10;
+}
+
+message SendMessageResponse {
+  bool success = 1;
+  string message = 2;
+  string messageId = 3;
+}
+
+message WithdrawRequest {
+  double amount = 1;
+  string phoneNumber = 2;
+  string provider = 3;
+  string payeeName = 4;
+  string payeeEmail = 5;
+  string externalId = 6;
+  string payerNote = 7;
+  string payeeNote = 8;
+  string currency = 9;
+  string bankId = 10;
+  string bankIdentificationCode = 11;
+  string bankTransferType = 12;
+  string sendAt = 13;
+}
+
+message WithdrawResponse {
+  bool success = 1;
+  string message = 2;
+  string transactionId = 3;
+  string referenceNumber = 4;
+  string status = 5;
+  double netAmount = 6;
+}
+
+message GetWalletRequest {
+  string walletId = 1;
+}
+
+message GetWalletResponse {
+  double balance = 1;
+  string currency = 2;
+  string walletId = 3;
+  string name = 4;
+}
+
+message GetNotificationsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string status = 3;
+  string type = 4;
+  string channel = 5;
+}
+
+message NotificationEntry {
+  string id = 1;
+  string type = 2;
+  string channel = 3;
+  string title = 4;
+  string content = 5;
+  string recipient = 6;
+  string status = 7;
+  string providerMessageId = 8;
+  string error = 9;
+  string createdAt = 10;
+  string updatedAt = 11;
+}
+
+message GetNotificationsResponse {
+  repeated NotificationEntry notifications = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message ApproveBrokerDocumentRequest {
+  string brokerId = 1;
+  string adminId = 2;
+  bool namesMatched = 3;
+  string adminNotes = 4;
+}
+
+message ApproveBrokerDocumentResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message Broker {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string phoneNumber = 4;
+  string brokerCode = 5;
+  string subscriptionTier = 6;
+  bool isVerified = 7;
+  bool isEmailVerified = 8;
+  bool isPhoneVerified = 9;
+  string location = 10;
+  string lastLogin = 11;
+  string createdAt = 12;
+  string updatedAt = 13;
+  bool isActive = 14;
+  bool isDeleted = 15;
+  double walletBalance = 16;
+  string subscriptionExpiresAt = 17;
+}
+
+message Property {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string propertyType = 4;
+  repeated string imageUrl = 5;
+  repeated string videoUrl = 6;
+  string location = 7;
+  string brokersUniqueCode = 8;
+  bool isAvailable = 9;
+  string createdAt = 10;
+  int32 photoCount = 11;
+  int32 videoCount = 12;
+  string postgisSpatialField = 13;
+  string bookingState = 14;
+  string updatedAt = 15;
+}
+
+message PropertyLocation {
+  string propertyId = 1;
+  string title = 2;
+  string location = 3;
+  string postgisSpatialField = 4;
+  string brokerCode = 5;
+}
+
+message Admin {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string role = 4;
+  bool isActive = 5;
+  string lastLoggedIn = 6;
+  string createdAt = 7;
+  int32 handledMessages = 8;
+  int32 sentEmails = 9;
+  int32 sentSms = 10;
+}
+
+message PendingDocument {
+  string brokerId = 1;
+  string username = 2;
+  string email = 3;
+  string documentType = 4;
+  string documentUrl = 5;
+  string submittedAt = 6;
+  string idFrontUrl = 7;
+  string idBackUrl = 8;
+}
+
+message SystemMessage {
+  string type = 1;
+  string title = 2;
+  string message = 3;
+  string brokerId = 4;
+  bool read = 5;
+  string createdAt = 6;
+}
+
+message ClientMessage {
+  string id = 1;
+  string senderPhone = 2;
+  string senderName = 3;
+  string message = 4;
+  string sentAt = 5;
+  bool read = 6;
+}
+
+message DashboardTransaction {
+  string id = 1;
+  string type = 2;
+  string date = 3;
+  string reason = 4;
+  string recipientName = 5;
+  string recipientPhone = 6;
+  string recipientEmail = 7;
+  string senderName = 8;
+  string senderPhone = 9;
+  string senderEmail = 10;
+  double amount = 11;
+  string status = 12;
+  string emailStatus = 13;
+  string referenceNumber = 14;
+  string transactionCode = 15;
+}
+
+message MonthlyIncomeEntry {
+  string month = 1;
+  double income = 2;
+}
+
+message LogEntry {
+  string id = 1;
+  string level = 2;
+  string service = 3;
+  string message = 4;
+  string timestamp = 5;
+  string metadata = 6;
+}
+
+message BrokerMessage {
+  string id = 1;
+  string senderName = 2;
+  string senderPhone = 3;
+  string message = 4;
+  string sentAt = 5;
+  bool read = 6;
+  string type = 7;
+}
+
+message Booking {
+  string id = 1;
+  string propertyId = 2;
+  string propertyTitle = 3;
+  string customerName = 4;
+  string customerPhone = 5;
+  string customerEmail = 6;
+  string date = 7;
+  string status = 8;
+  double amount = 9;
+  string transactionCode = 10;
+}

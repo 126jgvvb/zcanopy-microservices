@@ -1,0 +1,114 @@
+syntax="proto3";
+
+package payment.v1;
+
+service PaymentService {
+  rpc ProcessSubscriptionPayment (ProcessSubscriptionPaymentRequest) returns (ProcessSubscriptionPaymentResponse);
+  rpc ProcessPropertyPayment (ProcessPropertyPaymentRequest) returns (ProcessPropertyPaymentResponse);
+  rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
+  rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
+  rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse);
+}
+
+message ProcessSubscriptionPaymentRequest {
+  string phoneNumber = 1;
+  string tier = 2;
+  double amount = 3;
+  string brokerId = 4;
+  string brokerCode = 5;
+}
+
+message ProcessSubscriptionPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  string transactionId = 3;
+  string referenceNumber = 4;
+}
+
+message ProcessPropertyPaymentRequest {
+  string customerPhone = 1;
+  string customerEmail = 2;
+  string customerName = 3;
+  double amount = 4;
+  string reasonForPayment = 5;
+  string propertyId = 6;
+  string brokerCode = 7;
+}
+
+message ProcessPropertyPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  string transactionId = 3;
+  string referenceNumber = 4;
+  string transactionCode = 5;
+  double netAmount = 6;
+  string customerPhone = 7;
+  string customerName = 8;
+  string customerEmail = 9;
+  string date = 10;
+}
+
+message GetTransactionsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string brokerId = 3;
+  string reason = 4;
+}
+
+message GetTransactionsResponse {
+  repeated Transaction transactions = 1;
+  int32 total = 2;
+}
+
+message WithdrawRequest {
+  string walletType = 1;
+  double amount = 2;
+  string phoneNumber = 3;
+  string provider = 4;
+  string payeeName = 5;
+  string payeeEmail = 6;
+  string externalId = 7;
+  string payerNote = 8;
+  string payeeNote = 9;
+  string currency = 10;
+  string bankId = 11;
+  string bankIdentificationCode = 12;
+  string bankTransferType = 13;
+  string sendAt = 14;
+}
+
+message WithdrawResponse {
+  bool success = 1;
+  string message = 2;
+  string transactionId = 3;
+  string referenceNumber = 4;
+  string status = 5;
+  double netAmount = 6;
+}
+
+message GetWalletRequest {
+  string walletType = 1;
+  string walletId = 2;
+}
+
+message GetWalletResponse {
+  double balance = 1;
+  string currency = 2;
+  string walletId = 3;
+  string name = 4;
+}
+
+message Transaction {
+  string id = 1;
+  string propertyId = 2;
+  string clientPhone = 3;
+  double amount = 4;
+  double platformCommission = 5;
+  string paymentStatus = 6;
+  string reasonForPayment = 7;
+  string createdAt = 8;
+  string referenceNumber = 9;
+  string transactionCode = 10;
+  string customerName = 11;
+  string customerEmail = 12;
+}
