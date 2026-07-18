@@ -80,6 +80,7 @@ interface PropertyPaymentInvoice {
 export class NotificationService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificationService.name);
   private subscriber!: Redis;
+  private redis!: Redis;
 
   private brevoApiKey: string;
   private brevoSenderName: string;
@@ -106,6 +107,13 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.subscriber = new Redis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: Number(process.env.REDIS_PORT) || 6379,
+    });
+
+    // Separate connection for regular reads (session lookups). The
+    // `subscriber` connection is in subscribe mode and cannot run GET.
+    this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
       port: Number(process.env.REDIS_PORT) || 6379,
     });
@@ -149,6 +157,43 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     if (this.subscriber) {
       await this.subscriber.quit();
+    }
+    if (this.redis) {
+      await this.redis.quit();
+    }
+  }
+
+  /**
+   * Resolves the authenticated broker's `brokerCode` from a broker session
+   * token (or raw sessionId). The token encodes `sessionId:brokerCode:ts` in
+   * base64 and the session record lives in Redis at `broker:session:{id}`.
+   * Returns null when the session is missing/expired/invalid.
+   */
+  async resolveBrokerCodeFromSession(sessionToken?: string, sessionId?: string): Promise<string | null> {
+    let sid = sessionId;
+    try {
+      if (!sid && sessionToken) {
+        const decoded = Buffer.from(sessionToken, 'base64').toString('utf-8');
+        const [decodedSessionId] = decoded.split(':');
+        sid = decodedSessionId;
+      }
+    } catch {
+      return null;
+    }
+
+    if (!sid) {
+      return null;
+    }
+
+    try {
+      const raw = await this.redis.get(`broker:session:${sid}`);
+      if (!raw) {
+        return null;
+      }
+      const data = JSON.parse(raw);
+      return data.brokerCode || null;
+    } catch {
+      return null;
     }
   }
 
@@ -355,9 +400,10 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Mark one or more notifications as read. Either a single `id`, a list of
-   * `ids`, or all notifications belonging to a `recipient`/`brokerCode` can be
-   * targeted.
+   * Mark one or more notifications as read, always scoped to a single owner
+   * (`recipient` or `brokerCode`). A single `id`, a list of `ids`, or `all` of
+   * the owner's notifications can be targeted. An owner is required so callers
+   * can never mutate notifications they do not own.
    */
   async markAsRead(query: {
     id?: number;
@@ -366,33 +412,47 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     brokerCode?: string;
     all?: boolean;
   }) {
-    const ids: number[] = [];
-    if (query.id) ids.push(Number(query.id));
-    if (Array.isArray(query.ids)) ids.push(...query.ids.map((i) => Number(i)));
+    // Ownership is mandatory: without a recipient/brokerCode we refuse to
+    // mutate anything (prevents cross-account and system-wide updates).
+    if (!query.recipient && !query.brokerCode) {
+      return { success: false, updated: 0, message: 'An owner (recipient or brokerCode) is required' };
+    }
+
+    const ownerWhere: Record<string, unknown> = {};
+    if (query.recipient) ownerWhere.recipient = query.recipient;
+    if (query.brokerCode) ownerWhere.brokerCode = query.brokerCode;
+
+    const rawIds: Array<number | undefined> = [];
+    if (query.id !== undefined && query.id !== null) rawIds.push(Number(query.id));
+    if (Array.isArray(query.ids)) rawIds.push(...query.ids.map((i) => Number(i)));
+    const ids = rawIds.filter((i): i is number => typeof i === 'number' && Number.isInteger(i));
 
     if (ids.length > 0) {
-      await this.notificationRepo
+      // Scope the id-based update to the owner so a caller can only mark their
+      // own notifications, even if they guess another owner's ids.
+      const result = await this.notificationRepo
         .createQueryBuilder()
         .update(NotificationEntity)
         .set({ read: true })
         .whereInIds(ids)
+        .andWhere(
+          query.brokerCode ? 'brokerCode = :brokerCode' : 'recipient = :recipient',
+          query.brokerCode ? { brokerCode: query.brokerCode } : { recipient: query.recipient },
+        )
         .execute();
-      this.logger.log(`Marked ${ids.length} notification(s) as read`);
-      return { success: true, updated: ids.length };
+      const updated = result.affected || 0;
+      this.logger.log(`Marked ${updated} notification(s) as read by id (scoped to owner)`);
+      return { success: true, updated };
     }
 
-    // Bulk mark by owner (recipient or brokerCode).
-    const where: Record<string, unknown> = { read: false };
-    if (query.recipient) where.recipient = query.recipient;
-    if (query.brokerCode) where.brokerCode = query.brokerCode;
-
-    if (!query.recipient && !query.brokerCode && !query.all) {
-      return { success: false, updated: 0, message: 'No target specified' };
+    if (!query.all) {
+      return { success: false, updated: 0, message: 'Provide an id/ids to mark, or set all=true' };
     }
 
-    const result = await this.notificationRepo.update(where, { read: true });
+    // Bulk mark all of this owner's unread notifications.
+    const result = await this.notificationRepo.update({ ...ownerWhere, read: false }, { read: true });
     const updated = result.affected || 0;
-    this.logger.log(`Marked ${updated} notification(s) as read (bulk)`);
+    this.logger.log(`Marked ${updated} notification(s) as read (bulk, scoped to owner)`);
     return { success: true, updated };
   }
 

@@ -10,6 +10,7 @@ function repoMock() {
     create: jest.fn((x: any) => ({ ...x, id: 'gen-id' })),
     save: jest.fn(async (x: any) => ({ ...x, id: x.id || 'gen-id' })),
     findAndCount: jest.fn().mockResolvedValue([[], 0]),
+    count: jest.fn().mockResolvedValue(0),
   } as any;
 }
 

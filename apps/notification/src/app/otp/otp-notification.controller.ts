@@ -217,27 +217,47 @@ export class OtpNotificationController {
 
   @MessagePattern('get_notifications')
   async getNotifications(@Payload() payload: any) {
-    this.logger.log(`Received get_notifications request (brokerCode=${payload?.brokerCode ?? ''}, recipient=${payload?.recipient ?? ''})`);
+    // Derive the owner from the caller's broker session; never trust a
+    // client-supplied brokerCode/recipient for scoping.
+    const brokerCode = await this.notificationService.resolveBrokerCodeFromSession(
+      payload?.sessionToken,
+      payload?.sessionId,
+    );
+
+    if (!brokerCode) {
+      this.logger.warn('Rejected get_notifications: invalid or missing broker session');
+      return { notifications: [], total: 0, page: 1, limit: 20, unreadCount: 0, error: 'UNAUTHORIZED' };
+    }
+
+    this.logger.log(`Received get_notifications request (brokerCode=${brokerCode})`);
     return this.notificationService.getNotifications({
       page: payload?.page,
       limit: payload?.limit,
       status: payload?.status,
       type: payload?.type,
       channel: payload?.channel,
-      recipient: payload?.recipient,
-      brokerCode: payload?.brokerCode,
+      brokerCode,
       read: payload?.read,
     });
   }
 
   @MessagePattern('mark_as_read')
   async markAsRead(@Payload() payload: any) {
-    this.logger.log(`Received mark_as_read request (id=${payload?.id ?? ''}, brokerCode=${payload?.brokerCode ?? ''})`);
+    const brokerCode = await this.notificationService.resolveBrokerCodeFromSession(
+      payload?.sessionToken,
+      payload?.sessionId,
+    );
+
+    if (!brokerCode) {
+      this.logger.warn('Rejected mark_as_read: invalid or missing broker session');
+      return { success: false, updated: 0, error: 'UNAUTHORIZED' };
+    }
+
+    this.logger.log(`Received mark_as_read request (brokerCode=${brokerCode}, id=${payload?.id ?? ''})`);
     return this.notificationService.markAsRead({
       id: payload?.id,
       ids: payload?.ids,
-      recipient: payload?.recipient,
-      brokerCode: payload?.brokerCode,
+      brokerCode,
       all: payload?.all,
     });
   }

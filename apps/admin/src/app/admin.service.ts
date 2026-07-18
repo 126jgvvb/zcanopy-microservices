@@ -206,6 +206,57 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  async getBrokerCommissions() {
+    const [brokersResult, propertiesResult, transactionsResult] = await Promise.all([
+      lastValueFrom(this.brokerClient.send('GetAllBrokers', { page: 1, limit: 1000 })),
+      lastValueFrom(this.propertyClient.send('GetProperties', { page: 1, limit: 1000 })),
+      lastValueFrom(this.paymentClient.send('GetTransactions', { page: 1, limit: 1000 })),
+    ]);
+
+    const brokers = new Map<string, any>();
+    for (const b of brokersResult.brokers ?? []) {
+      brokers.set(b.id, b);
+    }
+
+    const propertyToBroker = new Map<string, string>();
+    for (const p of propertiesResult.properties ?? []) {
+      propertyToBroker.set(p.id, p.brokersUniqueCode);
+    }
+
+    const brokerCommissions = new Map<string, { brokerId: string; brokerCode: string; brokerName: string; tier: string; totalCommission: number; transactionCount: number; totalBookings: number }>();
+
+    for (const t of transactionsResult.transactions ?? []) {
+      const brokerCode = propertyToBroker.get(t.propertyId);
+      if (!brokerCode) continue;
+
+      const broker = Array.from(brokers.values()).find((b: any) => b.brokerCode === brokerCode);
+      if (!broker) continue;
+
+      const key = broker.id;
+      const existing = brokerCommissions.get(key);
+      const commission = t.platformCommission || 0;
+      if (existing) {
+        existing.totalCommission += commission;
+        existing.transactionCount += 1;
+        existing.totalBookings += t.amount || 0;
+      } else {
+        brokerCommissions.set(key, {
+          brokerId: broker.id,
+          brokerCode: broker.brokerCode,
+          brokerName: broker.username,
+          tier: broker.subscriptionTier || 'prop',
+          totalCommission: commission,
+          transactionCount: 1,
+          totalBookings: t.amount || 0,
+        });
+      }
+    }
+
+    return {
+      commissions: Array.from(brokerCommissions.values()).sort((a, b) => b.totalCommission - a.totalCommission),
+    };
+  }
+
   async registerAdmin(dto: { username: string; email: string; password: string; invitationCode: string; role: string }) {
     const existingAdmin = await this.adminRepo.findOne({ where: { email: dto.email } });
     if (existingAdmin) {
@@ -568,6 +619,40 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  async approveAllPendingVerifications(dto: { adminId: string }) {
+    const pendingVerifications = await lastValueFrom(
+      this.brokerClient.send('GetPendingVerifications', { page: 1, limit: 1000 }),
+    );
+
+    const brokers = pendingVerifications.brokers || [];
+    const results: Array<{ brokerId: string; success: boolean; message: string }> = [];
+
+    for (const broker of brokers) {
+      try {
+        this.redisClient.emit('broker_approved', { brokerId: broker.id });
+
+        const dashboard = await this.getOrCreateDashboard();
+        dashboard.systemMessages = (dashboard.systemMessages ?? []).map((m) =>
+          m.brokerId === broker.id && m.type === 'BROKER_SIGNUP' ? { ...m, read: true } : m,
+        );
+        await this.dashboardRepo.save(dashboard);
+
+        results.push({ brokerId: broker.id, success: true, message: 'Approved' });
+        this.logger.log(`Approved broker ${broker.id}`);
+      } catch (err) {
+        results.push({ brokerId: broker.id, success: false, message: (err as Error).message });
+      }
+    }
+
+    return {
+      success: true,
+      totalProcessed: brokers.length,
+      successful: results.filter((r) => r.success).length,
+      failed: results.filter((r) => !r.success).length,
+      results,
+    };
+  }
+
   async approveBrokerDocument(dto: { brokerId: string; adminId: string; namesMatched: boolean; adminNotes?: string }) {
     const admin = await this.adminRepo.findOne({ where: { id: dto.adminId } });
     if (!admin) {
@@ -760,8 +845,85 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  async updateAdminEmail(dto: { adminId: string; email: string }) {
-    const admin = await this.adminRepo.findOne({ where: { id: dto.adminId } });
+  /**
+   * Builds broker billing invoices from subscription payment transactions,
+   * enriched with broker recipient details. Supports status filtering
+   * (paid | pending | overdue) and pagination. An unpaid subscription
+   * transaction whose 14-day due window has elapsed is reported as `overdue`.
+   */
+  async getInvoices(query: { page?: number; limit?: number; status?: string }) {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
+    const statusFilter = (query.status || '').trim().toLowerCase();
+
+    const [transactionsResult, brokersResult] = await Promise.all([
+      lastValueFrom(
+        this.paymentClient.send('GetTransactions', { page: 1, limit: 1000, brokerId: '', reason: '' }),
+      ),
+      lastValueFrom(
+        this.brokerClient.send('GetAllBrokers', { page: 1, limit: 1000 }),
+      ),
+    ]);
+
+    // Index brokers by their code so we can attach recipient details.
+    const brokersByCode = new Map<string, any>();
+    for (const b of brokersResult.brokers ?? []) {
+      if (b.brokerCode) brokersByCode.set(b.brokerCode, b);
+    }
+
+    const DUE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    const allInvoices = (transactionsResult.transactions ?? [])
+      // Only subscription-related payments are billable invoices.
+      .filter((t: any) => typeof t.reasonForPayment === 'string' && t.reasonForPayment.toLowerCase().includes('subscription'))
+      .map((t: any, index: number) => {
+        const broker = brokersByCode.get(t.propertyId) || brokersByCode.get(t.brokerCode);
+        const issueDateMs = t.createdAt ? new Date(t.createdAt).getTime() : now;
+        const dueDateMs = issueDateMs + DUE_WINDOW_MS;
+
+        const rawStatus = String(t.paymentStatus || '').toLowerCase();
+        const isPaid = rawStatus === 'success' || rawStatus === 'paid' || rawStatus === 'completed';
+
+        let status: 'paid' | 'pending' | 'overdue';
+        if (isPaid) {
+          status = 'paid';
+        } else if (now > dueDateMs) {
+          status = 'overdue';
+        } else {
+          status = 'pending';
+        }
+
+        const seq = String(index + 1).padStart(3, '0');
+        const year = new Date(issueDateMs).getFullYear();
+
+        return {
+          id: t.id,
+          invoiceNumber: t.referenceNumber || `INV-${year}-${seq}`,
+          recipientName: t.customerName || broker?.username || 'Unknown Broker',
+          recipientEmail: t.customerEmail || broker?.email || '',
+          brokerCode: broker?.brokerCode || t.brokerCode || '',
+          issueDate: new Date(issueDateMs).toISOString(),
+          dueDate: new Date(dueDateMs).toISOString(),
+          amount: Number(t.amount) || 0,
+          currency: 'UGX',
+          status,
+          description: t.reasonForPayment || 'Broker subscription',
+        };
+      });
+
+    const filtered = statusFilter && statusFilter !== 'all'
+      ? allInvoices.filter((inv: { status: string }) => inv.status === statusFilter)
+      : allInvoices;
+
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    const invoices = filtered.slice(start, start + limit);
+
+    return { invoices, total, page, limit };
+  }
+
+  async updateAdminEmail(dto: { adminId: string; email: string }) {    const admin = await this.adminRepo.findOne({ where: { id: dto.adminId } });
     if (!admin) {
       throw new NotFoundException('Admin not found');
     }

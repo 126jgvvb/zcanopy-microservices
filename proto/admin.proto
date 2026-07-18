@@ -19,6 +19,7 @@ service AdminService {
   rpc GetSystemMessages (GetSystemMessagesRequest) returns (GetSystemMessagesResponse);
   rpc GetClientMessages (GetClientMessagesRequest) returns (GetClientMessagesResponse);
   rpc GetBrokerDetails (GetBrokerDetailsRequest) returns (GetBrokerDetailsResponse);
+  rpc GetBrokerDetailsFromCache (GetBrokerDetailsFromCacheRequest) returns (GetBrokerDetailsFromCacheResponse);
   rpc DeleteBroker (DeleteBrokerRequest) returns (DeleteBrokerResponse);
   rpc EditBrokerTier (EditBrokerTierRequest) returns (EditBrokerTierResponse);
   rpc GetBrokerProperties (GetBrokerPropertiesRequest) returns (GetBrokerPropertiesResponse);
@@ -34,6 +35,10 @@ service AdminService {
   rpc SendMessage (SendMessageRequest) returns (SendMessageResponse);
   rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
   rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
+  rpc GetNotifications (GetNotificationsRequest) returns (GetNotificationsResponse);
+  rpc ApproveBrokerDocument (ApproveBrokerDocumentRequest) returns (ApproveBrokerDocumentResponse);
+  rpc GetActiveCustomerSessions (GetActiveCustomerSessionsRequest) returns (GetActiveCustomerSessionsResponse);
+  rpc GetInvoices (GetInvoicesRequest) returns (GetInvoicesResponse);
 }
 
 message GetCommissionsRequest {}
@@ -204,6 +209,16 @@ message GetBrokerDetailsResponse {
   repeated DashboardTransaction transactions = 3;
   repeated BrokerMessage messages = 4;
   repeated Booking bookings = 5;
+}
+
+message GetBrokerDetailsFromCacheRequest {
+  string brokerId = 1;
+}
+
+message GetBrokerDetailsFromCacheResponse {
+  Broker broker = 1;
+  double walletBalance = 2;
+  repeated DashboardTransaction transactions = 3;
 }
 
 message DeleteBrokerRequest {
@@ -388,6 +403,47 @@ message GetWalletResponse {
   string name = 4;
 }
 
+message GetNotificationsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string status = 3;
+  string type = 4;
+  string channel = 5;
+}
+
+message NotificationEntry {
+  string id = 1;
+  string type = 2;
+  string channel = 3;
+  string title = 4;
+  string content = 5;
+  string recipient = 6;
+  string status = 7;
+  string providerMessageId = 8;
+  string error = 9;
+  string createdAt = 10;
+  string updatedAt = 11;
+}
+
+message GetNotificationsResponse {
+  repeated NotificationEntry notifications = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message ApproveBrokerDocumentRequest {
+  string brokerId = 1;
+  string adminId = 2;
+  bool namesMatched = 3;
+  string adminNotes = 4;
+}
+
+message ApproveBrokerDocumentResponse {
+  bool success = 1;
+  string message = 2;
+}
+
 message Broker {
   string id = 1;
   string username = 2;
@@ -422,6 +478,8 @@ message Property {
   int32 photoCount = 11;
   int32 videoCount = 12;
   string postgisSpatialField = 13;
+  string bookingState = 14;
+  string updatedAt = 15;
 }
 
 message PropertyLocation {
@@ -452,6 +510,8 @@ message PendingDocument {
   string documentType = 4;
   string documentUrl = 5;
   string submittedAt = 6;
+  string idFrontUrl = 7;
+  string idBackUrl = 8;
 }
 
 message SystemMessage {
@@ -525,4 +585,49 @@ message Booking {
   string status = 8;
   double amount = 9;
   string transactionCode = 10;
+}
+
+message GetActiveCustomerSessionsRequest {}
+
+message ActiveCustomerSession {
+  string sessionId = 1;
+  string deviceId = 2;
+  int64 createdAt = 3;
+  int64 lastActivityAt = 4;
+  double locationLat = 5;
+  double locationLng = 6;
+  int64 locationUpdatedAt = 7;
+  int64 ttlSecondsRemaining = 8;
+}
+
+message GetActiveCustomerSessionsResponse {
+  repeated ActiveCustomerSession sessions = 1;
+  int32 total = 2;
+}
+
+message GetInvoicesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string status = 3;
+}
+
+message Invoice {
+  string id = 1;
+  string invoiceNumber = 2;
+  string recipientName = 3;
+  string recipientEmail = 4;
+  string brokerCode = 5;
+  string issueDate = 6;
+  string dueDate = 7;
+  double amount = 8;
+  string currency = 9;
+  string status = 10;
+  string description = 11;
+}
+
+message GetInvoicesResponse {
+  repeated Invoice invoices = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
 }

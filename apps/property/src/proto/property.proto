@@ -280,7 +280,7 @@ message PropertyLocation {
   string propertyId = 1;
   string title = 2;
   string location = 3;
-  Coordinates postgisSpatialField = 4;
+  string postgisSpatialField = 4;
   string brokerCode = 5;
 }
 

@@ -1490,6 +1490,12 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             throw new NotFoundException(`Broker with code ${dto.brokerCode} not found`);
         }
 
+        // Throttle repeated OTP dispatches to avoid inbox spam / OTP resets.
+        const waitSeconds = await this.otpStore.checkAndSetCooldown('email', broker.email);
+        if (waitSeconds > 0) {
+            throw new BadRequestException(`Please wait ${waitSeconds} second(s) before requesting another code`);
+        }
+
         const emailOtp = await this.otpStore.generateAndStore('email', broker.email);
 
         this.redisClient.emit('send_email_otp', {

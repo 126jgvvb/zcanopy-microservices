@@ -16,7 +16,30 @@ export class OtpStoreService {
   /** OTP length in digits. */
   private readonly otpLength = 6;
 
+  /** Minimum seconds a caller must wait between OTP requests for a target. */
+  readonly resendCooldownSeconds = 60;
+
   constructor(@Inject(REDIS_OTP_CLIENT) private readonly redis: Redis) {}
+
+  /**
+   * Enforces a per-destination cooldown between OTP dispatches. Returns the
+   * number of seconds the caller must wait, or 0 when a new OTP may be sent.
+   * Sets the cooldown lock atomically when allowed.
+   */
+  async checkAndSetCooldown(channel: OtpChannel, destination: string): Promise<number> {
+    const key = this.cooldownKey(channel, destination);
+    // NX + EX: only set (and allow) when no active cooldown exists.
+    const acquired = await this.redis.set(key, '1', 'EX', this.resendCooldownSeconds, 'NX');
+    if (acquired === 'OK') {
+      return 0;
+    }
+    const ttl = await this.redis.ttl(key);
+    return ttl > 0 ? ttl : this.resendCooldownSeconds;
+  }
+
+  private cooldownKey(channel: OtpChannel, destination: string): string {
+    return `otp:cooldown:${channel}:${destination}`;
+  }
 
   /**
    * Generates a numeric OTP, stores it in Redis keyed by channel + destination,

@@ -38,6 +38,7 @@ service AdminService {
   rpc GetNotifications (GetNotificationsRequest) returns (GetNotificationsResponse);
   rpc ApproveBrokerDocument (ApproveBrokerDocumentRequest) returns (ApproveBrokerDocumentResponse);
   rpc GetActiveCustomerSessions (GetActiveCustomerSessionsRequest) returns (GetActiveCustomerSessionsResponse);
+  rpc GetInvoices (GetInvoicesRequest) returns (GetInvoicesResponse);
 }
 
 message GetCommissionsRequest {}
@@ -602,4 +603,31 @@ message ActiveCustomerSession {
 message GetActiveCustomerSessionsResponse {
   repeated ActiveCustomerSession sessions = 1;
   int32 total = 2;
+}
+
+message GetInvoicesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string status = 3;
+}
+
+message Invoice {
+  string id = 1;
+  string invoiceNumber = 2;
+  string recipientName = 3;
+  string recipientEmail = 4;
+  string brokerCode = 5;
+  string issueDate = 6;
+  string dueDate = 7;
+  double amount = 8;
+  string currency = 9;
+  string status = 10;
+  string description = 11;
+}
+
+message GetInvoicesResponse {
+  repeated Invoice invoices = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
 }
