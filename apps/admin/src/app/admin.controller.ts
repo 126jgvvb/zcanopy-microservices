@@ -211,4 +211,10 @@ export class AdminController {
     this.logger.log('Received getNotifications request');
     return this.adminService.getNotifications(dto);
   }
+
+  @GrpcMethod('AdminService', 'GetActiveCustomerSessions')
+  async getActiveCustomerSessions() {
+    this.logger.log('Received getActiveCustomerSessions request');
+    return this.adminService.getActiveCustomerSessions();
+  }
 }

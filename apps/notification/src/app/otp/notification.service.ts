@@ -126,6 +126,9 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
             status: data.status,
             type: data.type,
             channel: data.channel,
+            recipient: data.recipient,
+            brokerCode: data.brokerCode,
+            read: data.read,
           });
 
           this.redisClient.emit(data.responseChannel || 'notifications_report', {
@@ -322,6 +325,9 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     status?: string;
     type?: string;
     channel?: string;
+    recipient?: string;
+    brokerCode?: string;
+    read?: boolean;
   }) {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 20;
@@ -330,6 +336,9 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     if (query.status) where.status = query.status;
     if (query.type) where.type = query.type;
     if (query.channel) where.channel = query.channel;
+    if (query.recipient) where.recipient = query.recipient;
+    if (query.brokerCode) where.brokerCode = query.brokerCode;
+    if (typeof query.read === 'boolean') where.read = query.read;
 
     const [notifications, total] = await this.notificationRepo.findAndCount({
       where,
@@ -338,7 +347,53 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       take: limit,
     });
 
-    return { notifications, total, page, limit };
+    const unreadCount = await this.notificationRepo.count({
+      where: { ...where, read: false },
+    });
+
+    return { notifications, total, page, limit, unreadCount };
+  }
+
+  /**
+   * Mark one or more notifications as read. Either a single `id`, a list of
+   * `ids`, or all notifications belonging to a `recipient`/`brokerCode` can be
+   * targeted.
+   */
+  async markAsRead(query: {
+    id?: number;
+    ids?: number[];
+    recipient?: string;
+    brokerCode?: string;
+    all?: boolean;
+  }) {
+    const ids: number[] = [];
+    if (query.id) ids.push(Number(query.id));
+    if (Array.isArray(query.ids)) ids.push(...query.ids.map((i) => Number(i)));
+
+    if (ids.length > 0) {
+      await this.notificationRepo
+        .createQueryBuilder()
+        .update(NotificationEntity)
+        .set({ read: true })
+        .whereInIds(ids)
+        .execute();
+      this.logger.log(`Marked ${ids.length} notification(s) as read`);
+      return { success: true, updated: ids.length };
+    }
+
+    // Bulk mark by owner (recipient or brokerCode).
+    const where: Record<string, unknown> = { read: false };
+    if (query.recipient) where.recipient = query.recipient;
+    if (query.brokerCode) where.brokerCode = query.brokerCode;
+
+    if (!query.recipient && !query.brokerCode && !query.all) {
+      return { success: false, updated: 0, message: 'No target specified' };
+    }
+
+    const result = await this.notificationRepo.update(where, { read: true });
+    const updated = result.affected || 0;
+    this.logger.log(`Marked ${updated} notification(s) as read (bulk)`);
+    return { success: true, updated };
   }
 
   // ---------------------------------------------------------------------------
@@ -444,6 +499,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     content: string;
     recipient: string;
     result: DispatchResult;
+    brokerCode?: string;
   }) {
     const notification = this.notificationRepo.create({
       type: opts.type,
@@ -454,6 +510,8 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       status: opts.result.success ? 'sent' : 'failed',
       providerMessageId: opts.result.messageId,
       error: opts.result.error,
+      brokerCode: opts.brokerCode,
+      read: false,
     });
     const saved = await this.notificationRepo.save(notification);
     this.logger.log(`Saved notification id=${saved.id} type=${opts.type} channel=${opts.channel} status=${saved.status} recipient=${opts.recipient}`);
@@ -463,7 +521,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   // Helpers
   // ---------------------------------------------------------------------------
 
-  private buildMessage(payload: OtpNotificationPayload, channel: OtpChannel): string {
+  private buildMessage(payload: OtpNotificationPayload, _channel: OtpChannel): string {
     const greeting = payload.username ? `Hi ${payload.username}, ` : '';
     const expiry = payload.ttlSeconds
       ? ` It expires in ${Math.round(payload.ttlSeconds / 60)} minute(s).`

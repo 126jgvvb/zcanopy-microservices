@@ -9,7 +9,6 @@ import { LogEntity } from '../entity/log.entity';
 import { AdminMessageEntity } from '../entity/admin-message.entity';
 import { lastValueFrom } from 'rxjs';
 import Redis from 'ioredis';
-import { randomUUID } from 'crypto';
 import { REDIS_CLIENT_PROVIDER } from './app.module';
 
 interface PendingRequest {
@@ -56,6 +55,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     @Inject('BROKER_CLIENT') private readonly brokerClient: ClientProxy,
     @Inject('PROPERTY_CLIENT') private readonly propertyClient: ClientProxy,
     @Inject('PAYMENT_CLIENT') private readonly paymentClient: ClientProxy,
+    @Inject('AUTH_CLIENT') private readonly authClient: ClientProxy,
     @Inject(REDIS_CLIENT_PROVIDER) private readonly redis: Redis,
   ) {}
 
@@ -785,48 +785,28 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getNotifications(query: { page?: number; limit?: number; status?: string; type?: string; channel?: string }) {
-    const requestId = randomUUID();
-    const responseChannel = 'notifications_report';
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
+    const where: Record<string, unknown> = {};
+    if (query.status) where.status = query.status;
+    if (query.type) where.type = query.type;
+    if (query.channel) where.channel = query.channel;
 
-    const response = await new Promise<any>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pendingRequests.delete(requestId);
-        reject(new Error('Timeout waiting for notification service response'));
-      }, 5000);
-
-      this.pendingRequests.set(requestId, { resolve, reject, timer });
-
-      this.redisClient.emit('get_notifications', {
-        requestId,
-        responseChannel,
-        page: Number(query.page) || 1,
-        limit: Number(query.limit) || 20,
-        status: query.status,
-        type: query.type,
-        channel: query.channel,
-      });
+    const [notifications, total] = await this.adminMessageRepo.findAndCount({
+      where,
+      order: { sentAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    const notifications = (response.notifications || []).map((n: any) => ({
-      id: n.id,
-      type: n.type,
-      channel: n.channel,
-      title: n.title,
-      content: n.content,
-      recipient: n.recipient,
-      status: n.status,
-      providerMessageId: n.providerMessageId || '',
-      error: n.error || '',
-      createdAt: n.createdAt,
-      updatedAt: n.updatedAt,
-    }));
+    return { notifications, total, page, limit };
+  }
 
-    return {
-      notifications,
-      total: response.total || 0,
-      page: response.page || 1,
-      limit: response.limit || 20,
-    };
+  async getActiveCustomerSessions(): Promise<{ sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }>; total: number }> {
+    const result = await lastValueFrom(
+      this.authClient.send('GetActiveCustomerSessions', {}),
+    );
+    return result;
   }
 
   async getLogs(query: { page: number; limit: number; level?: string; service?: string }) {

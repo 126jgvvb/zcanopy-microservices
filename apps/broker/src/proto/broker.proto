@@ -28,10 +28,13 @@ service BrokerService{
   rpc GetBrokerByCode (GetBrokerByCodeRequest) returns (GetBrokerByCodeResponse);
   rpc SearchBrokers (SearchBrokersRequest) returns (SearchBrokersResponse);
   rpc GetAvailableTiers (GetAvailableTiersRequest) returns (GetAvailableTiersResponse);
+  rpc ProcessSubscriptionPayment (ProcessSubscriptionPaymentRequest) returns (ProcessSubscriptionPaymentResponse);
   rpc SubmitBrokerFeedback (SubmitBrokerFeedbackRequest) returns (SubmitBrokerFeedbackResponse);
   rpc GetBrokerMessages (GetBrokerMessagesRequest) returns (GetBrokerMessagesResponse);
   rpc LogoutBroker (LogoutBrokerRequest) returns (LogoutBrokerResponse);
+  rpc RequestUnsubscribeOtp (RequestUnsubscribeOtpRequest) returns (RequestUnsubscribeOtpResponse);
   rpc UnsubscribeBroker (UnsubscribeBrokerRequest) returns (UnsubscribeBrokerResponse);
+  rpc SetupBrokerAccount (SetupBrokerAccountRequest) returns (SetupBrokerAccountResponse);
 }
 
 message GetAllBrokersRequest {
@@ -330,6 +333,21 @@ message SubmitBrokerFeedbackResponse {
   string feedbackId = 3;
 }
 
+message ProcessSubscriptionPaymentRequest {
+  string phoneNumber = 1;
+  string tier = 2;
+  string brokerId = 3;
+}
+
+message ProcessSubscriptionPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  string proofCode = 3;
+  string tier = 4;
+  string transactionId = 5;
+  string referenceNumber = 6;
+}
+
 message GetBrokerMessagesRequest {
   string brokerId = 1;
 }
@@ -363,11 +381,39 @@ message UnsubscribeBrokerRequest {
   string password = 2;
   string googleId = 3;
   string sessionId = 4;
+  string emailOtp = 5;
 }
 
 message UnsubscribeBrokerResponse {
   bool success = 1;
   string message = 2;
+}
+
+message RequestUnsubscribeOtpRequest {
+  string brokerCode = 1;
+}
+
+message RequestUnsubscribeOtpResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
+}
+
+message SetupBrokerAccountRequest {
+  string brokerCode = 1;
+  string password = 2;
+  string deviceId = 3;
+}
+
+message SetupBrokerAccountResponse {
+  bool success = 1;
+  string message = 2;
+  Broker broker = 3;
+  string sessionToken = 4;
+  string sessionId = 5;
+  string deviceId = 6;
+  int64 expiresAt = 7;
+  int32 ttlSeconds = 8;
 }
 
 message TierConfig {

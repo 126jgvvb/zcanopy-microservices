@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import axios, { AxiosInstance } from 'axios';
+import axios from 'axios';
 import { DatabaseService } from '../database/database.service';
 import { v4 as uuidv4 } from 'uuid';
 import { NotificationMessage } from '../entities/notification-message.entity';

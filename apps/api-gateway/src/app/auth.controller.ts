@@ -19,6 +19,12 @@ export class AuthController {
     return this.proxyService.forwardToAuth('Login', { ...dto, type: 'broker' });
   }
 
+  @Post('broker/setup')
+  async brokerSetup(@Body() dto: any) {
+    this.logger.log('Broker account setup request via gateway');
+    return this.proxyService.forwardToAuth('SetupBroker', dto);
+  }
+
   @Post('refresh')
   async refresh(@Body() dto: any) {
     this.logger.log('Refresh token request via gateway');

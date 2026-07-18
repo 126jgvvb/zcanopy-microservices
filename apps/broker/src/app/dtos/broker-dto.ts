@@ -72,11 +72,22 @@ export class LogoutBrokerDto {
     sessionId?: string;
 }
 
+export class RequestUnsubscribeOtpDto {
+    brokerCode!: string;
+}
+
 export class UnsubscribeBrokerDto {
     brokerCode!: string;
     password?: string;
     googleId?: string;
     sessionId?: string;
+    emailOtp!: string;
+}
+
+export class SetupBrokerAccountDto {
+    brokerCode!: string;
+    password!: string;
+    deviceId!: string;
 }
 
 export class SearchBrokersDto {

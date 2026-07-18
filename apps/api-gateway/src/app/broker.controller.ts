@@ -65,4 +65,23 @@ export class BrokerController {
   async searchBrokers(@Query('q') q: string) {
     return this.proxyService.forwardToBroker('SearchBrokers', { query: q });
   }
+
+  @Post(':id/subscribe')
+  @ApiOperation({ summary: 'Subscribe broker to a tier via mobile money' })
+  async subscribeBroker(
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.proxyService.forwardToBroker('ProcessSubscriptionPayment', {
+      brokerId: id,
+      tier: body.tier,
+      phoneNumber: body.phoneNumber,
+    });
+  }
+
+  @Post('feedback/submit')
+  @ApiOperation({ summary: 'Submit broker feedback' })
+  async submitFeedback(@Body() body: any) {
+    return this.proxyService.forwardToBroker('SubmitBrokerFeedback', body);
+  }
 }

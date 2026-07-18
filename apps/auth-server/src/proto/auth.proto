@@ -16,6 +16,8 @@ service AuthService {
   rpc ValidateBrokerSession (ValidateBrokerSessionRequest) returns (ValidateBrokerSessionResponse);
   rpc GetBrokerSession (GetBrokerSessionRequest) returns (GetBrokerSessionResponse);
   rpc RevokeBrokerSession (RevokeBrokerSessionRequest) returns (RevokeBrokerSessionResponse);
+  rpc GetActiveCustomerSessions (GetActiveCustomerSessionsRequest) returns (GetActiveCustomerSessionsResponse);
+  rpc SetupBroker (SetupBrokerRequest) returns (SetupBrokerResponse);
 }
 
 message LoginRequest {
@@ -169,4 +171,41 @@ message RevokeBrokerSessionRequest {
 
 message RevokeBrokerSessionResponse {
   bool success = 1;
+}
+
+message GetActiveCustomerSessionsRequest {}
+
+message ActiveCustomerSession {
+  string sessionId = 1;
+  string deviceId = 2;
+  int64 createdAt = 3;
+  int64 lastActivityAt = 4;
+  double locationLat = 5;
+  double locationLng = 6;
+  int64 locationUpdatedAt = 7;
+  int64 ttlSecondsRemaining = 8;
+}
+
+message GetActiveCustomerSessionsResponse {
+  repeated ActiveCustomerSession sessions = 1;
+  int32 total = 2;
+}
+
+message SetupBrokerRequest {
+  string brokerCode = 1;
+  string password = 2;
+  string deviceId = 3;
+}
+
+message SetupBrokerResponse {
+  bool success = 1;
+  string message = 2;
+  string id = 3;
+  string email = 4;
+  string username = 5;
+  string brokerCode = 6;
+  bool isVerified = 7;
+  string sessionToken = 8;
+  string sessionId = 9;
+  string deviceId = 10;
 }

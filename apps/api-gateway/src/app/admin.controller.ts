@@ -137,4 +137,10 @@ export class AdminController {
   async updateAdminSms(@Body() body: any) {
     return this.proxyService.forwardToAdmin('UpdateAdminSms', body);
   }
+
+  @Get('customers/active-sessions')
+  @ApiOperation({ summary: 'Get active customer sessions from Redis' })
+  async getActiveCustomerSessions() {
+    return this.proxyService.forwardToAdmin('GetActiveCustomerSessions', {});
+  }
 }

@@ -32,3 +32,17 @@ export class BrokerLoginDto {
   @IsString()
   googleId?: string;
 }
+
+export class BrokerSetupDto {
+  @IsString()
+  @IsNotEmpty()
+  brokerCode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+
+  @IsString()
+  @IsNotEmpty()
+  deviceId: string;
+}

@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
-import { BrokerDto, RequestOtpDto, ResendOtpDto, LoginBrokerDto, CreateBrokerSessionDto, GetBrokerSessionsDto, RevokeBrokerSessionDto, GetBrokerByCodeDto, UpdateBrokerSettingsDto, GetAvailableTiersDto, SubmitBrokerFeedbackDto, GetBrokerMessagesDto, LogoutBrokerDto, UnsubscribeBrokerDto, SearchBrokersDto } from './dtos/broker-dto';
+import { BrokerDto, RequestOtpDto, ResendOtpDto, LoginBrokerDto, CreateBrokerSessionDto, GetBrokerSessionsDto, RevokeBrokerSessionDto, GetBrokerByCodeDto, UpdateBrokerSettingsDto, GetAvailableTiersDto, SubmitBrokerFeedbackDto, GetBrokerMessagesDto, LogoutBrokerDto, UnsubscribeBrokerDto, RequestUnsubscribeOtpDto, SetupBrokerAccountDto, SearchBrokersDto } from './dtos/broker-dto';
 import { BrokerEntity } from '../entity/broker.entity';
 import { PayoutsEntity } from '../entity/payouts.entity';
 import { BrokerWalletTransactionEntity } from '../entity/broker-wallet-transaction.entity';
@@ -1474,11 +1474,57 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         };
     }
 
+    /**
+     * Step 1 of the unsubscribe flow. Before a broker can unsubscribe/delete
+     * their account we send a one-time code to their registered email. The
+     * broker must confirm this code (via `unsubscribeBroker`) to proceed.
+     */
+    @GrpcMethod('BrokerService', 'RequestUnsubscribeOtp')
+    async requestUnsubscribeOtp(dto: RequestUnsubscribeOtpDto) {
+        if (!dto.brokerCode) {
+            throw new BadRequestException('brokerCode is required');
+        }
+
+        const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+        if (!broker) {
+            throw new NotFoundException(`Broker with code ${dto.brokerCode} not found`);
+        }
+
+        const emailOtp = await this.otpStore.generateAndStore('email', broker.email);
+
+        this.redisClient.emit('send_email_otp', {
+            otp: emailOtp,
+            email: broker.email,
+            username: broker.username,
+            ttlSeconds: this.otpStore.ttlSeconds,
+            purpose: 'broker-unsubscribe',
+        });
+
+        this.logger.log(`Sent unsubscribe OTP to broker ${dto.brokerCode}`);
+
+        return {
+            success: true,
+            message: 'A confirmation code has been sent to your registered email',
+            expiresInSeconds: this.otpStore.ttlSeconds,
+        };
+    }
+
     @GrpcMethod('BrokerService', 'UnsubscribeBroker')
     async unsubscribeBroker(dto: UnsubscribeBrokerDto) {
         const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
         if (!broker) {
             throw new NotFoundException(`Broker with code ${dto.brokerCode} not found`);
+        }
+
+        // Require and verify the email OTP that was dispatched via
+        // `requestUnsubscribeOtp` before allowing the account to be removed.
+        if (!dto.emailOtp) {
+            throw new BadRequestException('emailOtp is required. Request an unsubscribe OTP first.');
+        }
+
+        const isEmailOtpValid = await this.otpStore.verify('email', broker.email, dto.emailOtp);
+        if (!isEmailOtpValid) {
+            throw new BadRequestException('Invalid or expired confirmation code');
         }
 
         if (dto.googleId) {
@@ -1510,6 +1556,80 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         return {
             success: true,
             message: 'Account unsubscribed successfully',
+        };
+    }
+
+    @GrpcMethod('BrokerService', 'SetupBrokerAccount')
+    async setupBrokerAccount(dto: SetupBrokerAccountDto) {
+        const { brokerCode, password, deviceId } = dto;
+
+        if (!brokerCode) {
+            throw new BadRequestException('brokerCode is required');
+        }
+        if (!password) {
+            throw new BadRequestException('password is required');
+        }
+        if (!deviceId) {
+            throw new BadRequestException('deviceId is required');
+        }
+
+        const broker = await this.brokerRepo.findOne({ where: { brokerCode } });
+        if (!broker) {
+            throw new NotFoundException(`Broker with code ${brokerCode} not found`);
+        }
+
+        // Set the password and bind the device for this broker's first sign-in.
+        await this.brokerRepo.update(broker.id, {
+            password,
+            deviceId,
+            lastLogin: new Date(),
+            isActive: true,
+            updatedAt: new Date(),
+        });
+
+        await this.invalidateBrokerCache(brokerCode);
+
+        const updated = await this.brokerRepo.findOne({ where: { brokerCode } });
+        if (!updated) {
+            throw new NotFoundException(`Broker with code ${brokerCode} not found after setup`);
+        }
+        const { password: _pw, ...sanitized } = updated;
+
+        const ttl = 7 * 24 * 60 * 60;
+        const sessionId = randomUUID();
+        const now = Date.now();
+        const expiresAt = now + ttl * 1000;
+
+        const sessionData = {
+            sessionId,
+            brokerCode: updated.brokerCode,
+            brokerId: updated.id,
+            deviceId,
+            createdAt: now,
+            lastActivityAt: now,
+        };
+
+        await this.redisClient.connect();
+        await (this.redisClient as any).store.set(`broker:session:${sessionId}`, JSON.stringify(sessionData), 'EX', ttl);
+        await (this.redisClient as any).store.sAdd(`broker:sessions:${updated.brokerCode}`, sessionId);
+        await (this.redisClient as any).store.expire(`broker:sessions:${updated.brokerCode}`, ttl);
+
+        const sessionToken = Buffer.from(`${sessionId}:${updated.brokerCode}:${Date.now()}`).toString('base64');
+
+        await this.brokerRepo.update(updated.id, {
+            currentSessionId: sessionId,
+            updatedAt: new Date(),
+        });
+
+        return {
+            success: true,
+            message: 'Broker account setup successful',
+            broker: sanitized,
+            sessionToken,
+            sessionId,
+            deviceId,
+            expiresAt,
+            ttlSeconds: ttl,
         };
     }
 

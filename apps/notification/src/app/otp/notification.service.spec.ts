@@ -1,7 +1,6 @@
 import { of } from 'rxjs';
 import Redis from 'ioredis';
 import { NotificationService } from './notification.service';
-import { NotificationEntity } from '../entitty/notification.entity';
 
 jest.mock('ioredis');
 const MockRedis = Redis as unknown as jest.Mock;

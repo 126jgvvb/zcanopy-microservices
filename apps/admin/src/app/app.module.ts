@@ -70,6 +70,15 @@ export const REDIS_CLIENT_PROVIDER = 'REDIS_CLIENT_PROVIDER';
           protoPath: join(__dirname, 'proto/payment.proto'),
         },
       },
+      {
+        name: 'AUTH_CLIENT',
+        transport: Transport.GRPC,
+        options: {
+          url: process.env.AUTH_SERVICE_URL || 'localhost:50050',
+          package: 'auth',
+          protoPath: join(__dirname, 'proto/auth.proto'),
+        },
+      },
     ]),
   ],
   controllers: [AppController, AdminController],

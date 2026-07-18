@@ -1,8 +1,8 @@
 import { Controller, Logger } from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { NotificationService } from './notification.service';
 import type { OtpNotificationPayload } from './otp-payload.interface';
-import type { PaymentNotificationPayload, BrokerApprovalPayload, BrokerCreatedPayload, PaymentFailedPayload } from './notification.service';
+import type { PaymentNotificationPayload, BrokerApprovalPayload, BrokerCreatedPayload } from './notification.service';
 
 @Controller()
 export class OtpNotificationController {
@@ -210,7 +210,36 @@ export class OtpNotificationController {
       this.logger.error(`Failed to send broker new device login notification: ${(error as Error).message}`);
     }
   }
-}
+
+  // ---------------------------------------------------------------------------
+  // Request/response message patterns (used by the API gateway)
+  // ---------------------------------------------------------------------------
+
+  @MessagePattern('get_notifications')
+  async getNotifications(@Payload() payload: any) {
+    this.logger.log(`Received get_notifications request (brokerCode=${payload?.brokerCode ?? ''}, recipient=${payload?.recipient ?? ''})`);
+    return this.notificationService.getNotifications({
+      page: payload?.page,
+      limit: payload?.limit,
+      status: payload?.status,
+      type: payload?.type,
+      channel: payload?.channel,
+      recipient: payload?.recipient,
+      brokerCode: payload?.brokerCode,
+      read: payload?.read,
+    });
+  }
+
+  @MessagePattern('mark_as_read')
+  async markAsRead(@Payload() payload: any) {
+    this.logger.log(`Received mark_as_read request (id=${payload?.id ?? ''}, brokerCode=${payload?.brokerCode ?? ''})`);
+    return this.notificationService.markAsRead({
+      id: payload?.id,
+      ids: payload?.ids,
+      recipient: payload?.recipient,
+      brokerCode: payload?.brokerCode,
+      all: payload?.all,
+    });
   }
 }
 

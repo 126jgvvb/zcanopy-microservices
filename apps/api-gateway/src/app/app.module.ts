@@ -5,11 +5,17 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthController } from './auth.controller';
 import { BrokerController } from './broker.controller';
+import { BrokerSessionController } from './broker-session.controller';
 import { PropertyController } from './property.controller';
 import { PaymentController } from './payment.controller';
 import { AdminController } from './admin.controller';
 import { CustomerController } from './customer.controller';
 import { ListingsController } from './listings.controller';
+import { SubscriptionsController } from './subscriptions.controller';
+import { BookingsController } from './bookings.controller';
+import { PaymentLegacyController } from './payment-legacy.controller';
+import { GateWayController } from './gate-way.controller';
+import { NotificationController } from './notification.controller';
 import { ProxyService } from './proxy.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { EncryptionService } from './encryption/encryption.service';
@@ -97,7 +103,7 @@ const getProtoPath = (fileName: string) => {
       },
     ]),
   ],
-  controllers: [AppController, AuthController, BrokerController, PropertyController, PaymentController, AdminController, CustomerController, ListingsController],
+  controllers: [AppController, AuthController, BrokerController, BrokerSessionController, PropertyController, PaymentController, AdminController, CustomerController, ListingsController, SubscriptionsController, BookingsController, PaymentLegacyController, GateWayController, NotificationController],
   providers: [AppService, EncryptionInterceptor, EncryptionMiddleware, ProxyService, JwtAuthGuard, EncryptionService, CryptoService],
 })
 export class AppModule {}

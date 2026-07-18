@@ -1,0 +1,780 @@
+{
+  "info": {
+    "name": "ZCanopy API Gateway",
+    "description": "Postman collection for ZCanopy microservices API Gateway running on port 4000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "baseUrl": "http://localhost:4000/api",
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000/api"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "sessionToken",
+      "value": ""
+    },
+    {
+      "key": "customerSessionToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@zcanopy.com\",\n  \"password\": \"admin123\",\n  \"type\": \"admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Broker Login",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/broker/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"BROKER123\",\n  \"password\": \"password123\",\n  \"deviceId\": \"device-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/refresh",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{accessToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer",
+      "item": [
+        {
+          "name": "Get Customer Properties",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/customer/properties",
+            "params": [
+              { "key": "sessionToken", "value": "{{customerSessionToken}}" },
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" },
+              { "key": "lat", "value": "0.3476" },
+              { "key": "lng", "value": "32.5825" },
+              { "key": "radiusKm", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Search Properties by Broker Title",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/customer/search",
+            "params": [
+              { "key": "q", "value": "broker name" },
+              { "key": "sessionToken", "value": "{{customerSessionToken}}" },
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Initiate Property Access Payment",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/customer/properties/access-payment",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionToken\": \"{{customerSessionToken}}\",\n  \"brokerCode\": \"BROKER123\",\n  \"propertyId\": \"prop-123\",\n  \"amount\": 5000,\n  \"customerEmail\": \"customer@example.com\",\n  \"customerPhone\": \"0700000000\",\n  \"customerName\": \"John Doe\",\n  \"careerExamples\": \"Real estate investor\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Broker Properties for Customer",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/customer/broker-properties",
+            "params": [
+              { "key": "sessionToken", "value": "{{customerSessionToken}}" },
+              { "key": "brokerCode", "value": "BROKER123" },
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Create Customer Booking",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/customer/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionToken\": \"{{customerSessionToken}}\",\n  \"propertyId\": \"prop-123\",\n  \"customerName\": \"John Doe\",\n  \"customerPhone\": \"0700000000\",\n  \"customerEmail\": \"john@example.com\",\n  \"date\": \"2024-12-01\",\n  \"amount\": 10000,\n  \"reason\": \"Property viewing\",\n  \"status\": \"confirmed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Property Details for Customer",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/customer/properties/prop-123/details",
+            "params": [
+              { "key": "sessionToken", "value": "{{customerSessionToken}}" }
+            ]
+          }
+        },
+        {
+          "name": "Get Customer Bookings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/customer/bookings",
+            "params": [
+              { "key": "sessionToken", "value": "{{customerSessionToken}}" },
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Get Booking by Code",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/customer/bookings/code/TXN123456",
+            "params": []
+          }
+        },
+        {
+          "name": "Get Bookings by Phone",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/customer/bookings/phone",
+            "params": [
+              { "key": "customerPhone", "value": "0700000000" },
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brokers",
+      "item": [
+        {
+          "name": "Get All Brokers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/brokers",
+            "params": [
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Get Broker by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/brokers/1",
+            "params": []
+          }
+        },
+        {
+          "name": "Create Broker",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/brokers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"John Doe\",\n  \"title\": \"Senior Agent\",\n  \"email\": \"broker@example.com\",\n  \"phoneNumber\": \"0700000000\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Broker",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/brokers/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"John Doe Updated\",\n  \"title\": \"Lead Agent\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete Broker",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/brokers/1",
+            "params": []
+          }
+        },
+        {
+          "name": "Get Pending Verifications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/brokers/pending/verifications",
+            "params": []
+          }
+        },
+        {
+          "name": "Get Recent Signups",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/brokers/recent/signups",
+            "params": []
+          }
+        },
+        {
+          "name": "Get Broker Dashboard",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/brokers/dashboard/1",
+            "params": []
+          }
+        },
+        {
+          "name": "Search Brokers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/brokers/search",
+            "params": [
+              { "key": "q", "value": "John" }
+            ]
+          }
+        },
+        {
+          "name": "Subscribe Broker to Tier",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/brokers/1/subscribe",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"premium\",\n  \"phoneNumber\": \"0700000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Submit Broker Feedback",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/brokers/feedback/submit",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"BROKER123\",\n  \"email\": \"broker@example.com\",\n  \"phone\": \"0700000000\",\n  \"content\": \"Great platform, but please add more filters.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brokers (Session)",
+      "item": [
+        {
+          "name": "Broker Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/brokers/logout-user",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"BROKER123\",\n  \"sessionId\": \"{{sessionToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Unsubscribe Broker",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/brokers/unsubscribe-user",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"BROKER123\",\n  \"password\": \"password123\",\n  \"sessionId\": \"{{sessionToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Withdraw Broker Wallet",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/brokers/withdraw",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 50000,\n  \"phoneNumber\": \"0700000000\",\n  \"provider\": \"mtn\",\n  \"payeeName\": \"John Doe\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Properties",
+      "item": [
+        {
+          "name": "Get Properties",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/properties",
+            "params": [
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" },
+              { "key": "brokerCode", "value": "BROKER123" },
+              { "key": "location", "value": "Kampala" }
+            ]
+          }
+        },
+        {
+          "name": "Create Property",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/properties",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokersUniqueCode\": \"BROKER123\",\n  \"title\": \"Bungalow in Ntinda\",\n  \"description\": \"Spacious 3-bedroom bungalow\",\n  \"propertyType\": \"House\",\n  \"location\": \"Ntinda, Kampala\",\n  \"lat\": 0.3476,\n  \"lng\": 32.5825,\n  \"imageUrl\": [\"https://picsum.photos/400/200?1\"],\n  \"subCounty\": \"Ntinda\",\n  \"district\": \"Kampala Central\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Property Locations",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/properties/locations",
+            "params": []
+          }
+        },
+        {
+          "name": "Resolve Location Name",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/properties/resolve-location-name",
+            "params": [
+              { "key": "lat", "value": "0.3476" },
+              { "key": "long", "value": "32.5825" }
+            ]
+          }
+        },
+        {
+          "name": "Get Broker Bookings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/properties/bookings/BROKER123",
+            "params": []
+          }
+        },
+        {
+          "name": "Update Property",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/properties/prop-123",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Property Title\",\n  \"description\": \"Updated description\",\n  \"location\": \"Kampala, Uganda\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete Property",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/properties/prop-123",
+            "params": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listings",
+      "item": [
+        {
+          "name": "Find Nearby Properties",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/listings/nearby",
+            "params": [
+              { "key": "lat", "value": "0.3476" },
+              { "key": "longitude", "value": "32.5825" },
+              { "key": "radius", "value": "10" },
+              { "key": "limit", "value": "20" }
+            ]
+          }
+        },
+        {
+          "name": "Get Nearby Properties (Alt)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/listings/get-nearby-properties",
+            "params": [
+              { "key": "lat", "value": "0.3476" },
+              { "key": "longitude", "value": "32.5825" },
+              { "key": "radius", "value": "10" },
+              { "key": "limit", "value": "20" }
+            ]
+          }
+        },
+        {
+          "name": "Get Property by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/listings/get_property_by_id",
+            "params": [
+              { "key": "id", "value": "prop-123" }
+            ]
+          }
+        },
+        {
+          "name": "Get User Properties",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/listings/get-user-properties",
+            "params": [
+              { "key": "brokerCode", "value": "BROKER123" },
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get Commissions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/commissions",
+            "params": []
+          }
+        },
+        {
+          "name": "Get All Brokers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/brokers",
+            "params": [
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Get Pending Verifications",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/pending/verifications",
+            "params": []
+          }
+        },
+        {
+          "name": "Get Properties",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/properties",
+            "params": [
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Get Recent Signups",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/recent/signups",
+            "params": []
+          }
+        },
+        {
+          "name": "Get Property Locations",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/property/locations",
+            "params": []
+          }
+        },
+        {
+          "name": "Get Monthly Income",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/income/monthly",
+            "params": []
+          }
+        },
+        {
+          "name": "Get Current Commission",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/commission/current",
+            "params": []
+          }
+        },
+        {
+          "name": "Get Transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/transactions",
+            "params": [
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Get Logs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/logs",
+            "params": [
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Send Message",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/messages/send",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recipient\": \"broker@example.com\",\n  \"message\": \"Welcome to ZCanopy\",\n  \"type\": \"system\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get All Admins",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/admins",
+            "params": []
+          }
+        },
+        {
+          "name": "Add Admin",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/admins",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin2@zcanopy.com\",\n  \"password\": \"admin123\",\n  \"role\": \"admin\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete Admin",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/admin/admins/admin-id-123",
+            "params": []
+          }
+        },
+        {
+          "name": "Freeze/Unfreeze Admin",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/admin/admins/admin-id-123/freeze",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isActive\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get System Messages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/system/messages",
+            "params": [
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Get Client Messages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/client/messages",
+            "params": [
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Get Broker Details",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/brokers/1/details",
+            "params": []
+          }
+        },
+        {
+          "name": "Get Broker Properties",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/brokers/1/properties",
+            "params": [
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        },
+        {
+          "name": "Update Admin Email",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/admin/email",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newadmin@zcanopy.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update Admin SMS",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/admin/sms",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"smsProvider\": \"twilio\",\n  \"apiKey\": \"your-api-key\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get Active Customer Sessions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/customers/active-sessions",
+            "params": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Get Transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/payments/transactions",
+            "params": [
+              { "key": "page", "value": "1" },
+              { "key": "limit", "value": "10" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

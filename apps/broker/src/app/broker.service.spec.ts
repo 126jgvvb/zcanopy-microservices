@@ -31,12 +31,14 @@ describe('BrokerService', () => {
     brokerRepo = repoMock();
     payoutsRepo = repoMock();
     walletTxRepo = repoMock();
+    const feedbackRepo = repoMock();
     clients = { redis: client(), property: client(), payment: client(), admin: client() };
     const otpStore = { generateAndStore: jest.fn(), verify: jest.fn(), ttlSeconds: 300 } as any;
     service = new BrokerService(
       brokerRepo,
       payoutsRepo,
       walletTxRepo,
+      feedbackRepo,
       clients.redis,
       clients.property,
       clients.payment,

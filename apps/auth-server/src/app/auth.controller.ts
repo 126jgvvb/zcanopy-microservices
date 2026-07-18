@@ -1,6 +1,6 @@
 import { Controller, Logger } from '@nestjs/common';
 import { AuthService, LoginResponse, CustomerSessionResponse, ValidateCustomerSessionResponse, GetCustomerSessionResponse, BrokerSessionResponse, ValidateBrokerSessionResponse, GetBrokerSessionResponse } from './auth.service';
-import { LoginDto, RefreshTokenDto, BrokerLoginDto } from './dtos/auth.dto';
+import { LoginDto, RefreshTokenDto, BrokerLoginDto, BrokerSetupDto } from './dtos/auth.dto';
 import { GrpcMethod } from '@nestjs/microservices';
 
 @Controller()
@@ -19,6 +19,12 @@ export class AuthController {
   async loginBroker(dto: BrokerLoginDto): Promise<any> {
     this.logger.log(`Broker login attempt for code ${dto.brokerCode}`);
     return this.authService.loginBroker(dto);
+  }
+
+  @GrpcMethod('AuthService', 'SetupBroker')
+  async setupBroker(dto: BrokerSetupDto): Promise<any> {
+    this.logger.log(`Broker account setup for code ${dto.brokerCode}`);
+    return this.authService.setupBroker(dto);
   }
 
   @GrpcMethod('AuthService', 'RefreshToken')
@@ -87,5 +93,10 @@ export class AuthController {
   @GrpcMethod('AuthService', 'RevokeBrokerSession')
   async revokeBrokerSession(dto: { sessionToken: string }) {
     return this.authService.revokeBrokerSession(dto.sessionToken);
+  }
+
+  @GrpcMethod('AuthService', 'GetActiveCustomerSessions')
+  async getActiveCustomerSessions(): Promise<{ sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }>; total: number }> {
+    return this.authService.getActiveCustomerSessions();
   }
 }

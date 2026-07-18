@@ -23,6 +23,12 @@ export class NotificationEntity {
   @Column({ default: 'pending' })
   status!: string;
 
+  @Column({ default: false })
+  read!: boolean;
+
+  @Column({ nullable: true })
+  brokerCode?: string;
+
   @Column({ nullable: true })
   providerMessageId?: string;
 

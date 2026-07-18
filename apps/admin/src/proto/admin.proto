@@ -37,6 +37,7 @@ service AdminService {
   rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
   rpc GetNotifications (GetNotificationsRequest) returns (GetNotificationsResponse);
   rpc ApproveBrokerDocument (ApproveBrokerDocumentRequest) returns (ApproveBrokerDocumentResponse);
+  rpc GetActiveCustomerSessions (GetActiveCustomerSessionsRequest) returns (GetActiveCustomerSessionsResponse);
 }
 
 message GetCommissionsRequest {}
@@ -583,4 +584,22 @@ message Booking {
   string status = 8;
   double amount = 9;
   string transactionCode = 10;
+}
+
+message GetActiveCustomerSessionsRequest {}
+
+message ActiveCustomerSession {
+  string sessionId = 1;
+  string deviceId = 2;
+  int64 createdAt = 3;
+  int64 lastActivityAt = 4;
+  double locationLat = 5;
+  double locationLng = 6;
+  int64 locationUpdatedAt = 7;
+  int64 ttlSecondsRemaining = 8;
+}
+
+message GetActiveCustomerSessionsResponse {
+  repeated ActiveCustomerSession sessions = 1;
+  int32 total = 2;
 }

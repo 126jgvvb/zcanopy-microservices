@@ -122,6 +122,12 @@ export class PropertyController {
     return this.propertyService.deleteProperty(dto.id);
   }
 
+  @GrpcMethod('PropertyService', 'ResolveLocationName')
+  async resolveLocationName(dto: { lat: number; lng: number }) {
+    this.logger.log(`Received resolve-location-name request for lat=${dto.lat}, lng=${dto.lng}`);
+    return this.propertyService.resolveLocationName(dto);
+  }
+
   @GrpcMethod('PropertyService', 'GetCustomerProperties')
   async getCustomerProperties(dto: { sessionToken: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number; propertyType?: string }) {
     this.logger.log(`Received get-customer-properties request`);

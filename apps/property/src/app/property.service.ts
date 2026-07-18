@@ -18,6 +18,8 @@ export interface CreatePropertyDto {
   imageUrl?: string[];
   videoUrl?: string[];
   location?: string;
+  subCounty?: string;
+  district?: string;
   allowedViewers?: any[];
   maxProperties?: number;
   maxPhotosPerProperty?: number;
@@ -165,6 +167,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       imageUrl: dto.imageUrl ?? [],
       videoUrl: dto.videoUrl ?? [],
       location: dto.location ?? 'Unknown',
+      subCounty: dto.subCounty ?? null,
+      district: dto.district ?? null,
       allowedViewers: dto.allowedViewers ?? [],
       photoCount: dto.imageUrl?.length ?? 0,
       videoCount: dto.videoUrl?.length ?? 0,
@@ -225,7 +229,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     return saved;
   }
 
-  async getProperties(query: { page: number; limit: number; brokerCode?: string; location?: string; sortBy?: string; sortOrder?: string; minAmount?: number; maxAmount?: number; fromDate?: string; toDate?: string }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; updatedAt?: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; bookingState: BookingState | null }>; total: number }> {
+  async getProperties(query: { page: number; limit: number; brokerCode?: string; location?: string; subCounty?: string; district?: string; sortBy?: string; sortOrder?: string; minAmount?: number; maxAmount?: number; fromDate?: string; toDate?: string }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; updatedAt?: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; bookingState: BookingState | null }>; total: number }> {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
     const where: any = query.brokerCode ? { brokersUniqueCode: query.brokerCode } : {};
@@ -234,6 +238,14 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
     if (query.location) {
       qb.andWhere('property.location ILIKE :location', { location: `%${query.location}%` });
+    }
+
+    if (query.subCounty) {
+      qb.andWhere('property.subCounty ILIKE :subCounty', { subCounty: `%${query.subCounty}%` });
+    }
+
+    if (query.district) {
+      qb.andWhere('property.district ILIKE :district', { district: `%${query.district}%` });
     }
 
     if (query.fromDate) {
@@ -274,6 +286,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         location: p.location,
         brokersUniqueCode: p.brokersUniqueCode,
         isAvailable: p.isAvailable,
+        subCounty: p.subCounty ?? null,
+        district: p.district ?? null,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
         photoCount: p.photoCount,
@@ -297,6 +311,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     if (dto.title != null) updateData.title = dto.title;
     if (dto.description != null) updateData.description = dto.description;
     if (dto.location != null) updateData.location = dto.location;
+    if (dto.subCounty != null) updateData.subCounty = dto.subCounty;
+    if (dto.district != null) updateData.district = dto.district;
     if (dto.propertyType != null) updateData.propertyType = dto.propertyType;
     if (dto.imageUrl != null) {
       updateData.imageUrl = dto.imageUrl;
@@ -333,6 +349,57 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     return { success: true, message: `Property ${id} deleted successfully` };
   }
 
+  /**
+   * Reverse-geocode coordinates using the Google Maps Geocoding API and
+   * derive a human-readable location name plus the sub-county and district.
+   */
+  async resolveLocationName(dto: { lat: number; lng: number }): Promise<{
+    locationName: string;
+    subCounty: string | null;
+    district: string | null;
+    formattedAddress: string | null;
+  }> {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      this.logger.warn('GOOGLE_MAPS_API_KEY is not set; cannot resolve location');
+      return { locationName: '', subCounty: null, district: null, formattedAddress: null };
+    }
+
+    const url =
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${dto.lat},${dto.lng}&key=${apiKey}`;
+
+    try {
+      const response = await lastValueFrom(this.httpService.get(url));
+      const results: any[] = response?.data?.results ?? [];
+      if (results.length === 0) {
+        return { locationName: '', subCounty: null, district: null, formattedAddress: null };
+      }
+
+      const top = results[0];
+      const formattedAddress: string = top.formatted_address ?? '';
+      let subCounty: string | null = null;
+      let district: string | null = null;
+      let locationName = '';
+
+      for (const component of top.address_components ?? []) {
+        const types: string[] = component.types ?? [];
+        if (types.includes('sublocality') || types.includes('sublocality_level_1')) {
+          subCounty = component.long_name;
+        }
+        if (types.includes('administrative_area_level_1')) {
+          district = component.long_name;
+        }
+      }
+
+      locationName = subCounty ?? district ?? formattedAddress.split(',')[0] ?? '';
+
+      return { locationName, subCounty, district, formattedAddress };
+    } catch (error) {
+      this.logger.error(`Failed to resolve location for ${dto.lat},${dto.lng}: ${error}`);
+      return { locationName: '', subCounty: null, district: null, formattedAddress: null };
+    }
+  }
+
   private computeBookingState(property: PropertyEntity): BookingState | null {
     const viewers = property.allowedViewers || [];
     const isBooked = viewers.length > 0;
@@ -346,6 +413,28 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       isBooked,
       bookingCount: viewers.length,
       latestBookingDate: latestBooking?.date,
+    };
+  }
+
+  private serializeProperty(p: PropertyEntity, geo: GeoSpatialField | null) {
+    return {
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      propertyType: p.propertyType,
+      location: p.location,
+      brokersUniqueCode: p.brokersUniqueCode,
+      subCounty: p.subCounty ?? null,
+      district: p.district ?? null,
+      isAvailable: p.isAvailable,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+      photoCount: p.photoCount,
+      videoCount: p.videoCount,
+      postgisSpatialField: geo ? JSON.stringify(geo) : null,
+      imageUrl: p.imageUrl,
+      videoUrl: p.videoUrl,
+      bookingState: this.computeBookingState(p),
     };
   }
 
@@ -591,21 +680,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         const geo = p.postgis_spatial_field;
         const distance = geo && dto.lat != null && dto.lng != null ? this.haversineDistance(dto.lat, dto.lng, geo.lat, geo.lng) : null;
         return {
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          propertyType: p.propertyType,
-          location: p.location,
-          brokersUniqueCode: p.brokersUniqueCode,
-          isAvailable: p.isAvailable,
-          createdAt: p.createdAt,
-          photoCount: p.photoCount,
-          videoCount: p.videoCount,
-          postgisSpatialField: geo ? JSON.stringify(geo) : null,
-          imageUrl: p.imageUrl,
-          videoUrl: p.videoUrl,
+          ...this.serializeProperty(p, geo),
           distanceKm: distance ? Math.round(distance * 100) / 100 : null,
-          bookingState: this.computeBookingState(p),
           totalBrokerProperties: brokerPropertyCounts[p.brokersUniqueCode] || 0,
         };
       }),
@@ -734,19 +810,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
     return {
       properties: properties.map(p => ({
-        id: p.id,
-        title: p.title,
-        description: p.description,
-        propertyType: p.propertyType,
-        location: p.location,
-        brokersUniqueCode: p.brokersUniqueCode,
-        isAvailable: p.isAvailable,
-        createdAt: p.createdAt,
-        photoCount: p.photoCount,
-        videoCount: p.videoCount,
-        postgisSpatialField: p.postgis_spatial_field ? JSON.stringify(p.postgis_spatial_field) : null,
-        imageUrl: p.imageUrl,
-        videoUrl: p.videoUrl,
+        ...this.serializeProperty(p, p.postgis_spatial_field),
         amount: 0,
         bookingState: this.computeBookingState(p),
       })),
@@ -1015,21 +1079,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
           ? this.haversineDistance(dto.lat, dto.lng, geo.lat, geo.lng)
           : null;
         return {
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          propertyType: p.propertyType,
-          location: p.location,
-          brokersUniqueCode: p.brokersUniqueCode,
-          isAvailable: p.isAvailable,
-          createdAt: p.createdAt,
-          photoCount: p.photoCount,
-          videoCount: p.videoCount,
-          postgisSpatialField: geo ? JSON.stringify(geo) : null,
-          imageUrl: p.imageUrl,
-          videoUrl: p.videoUrl,
+          ...this.serializeProperty(p, geo),
           distanceKm: distance ? Math.round(distance * 100) / 100 : null,
-          bookingState: this.computeBookingState(p),
           totalBrokerProperties: brokerPropertyCounts[p.brokersUniqueCode] || 0,
         };
       }),

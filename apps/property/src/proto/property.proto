@@ -14,6 +14,7 @@ service PropertyService {
   rpc TrackNearbyProperties (TrackNearbyPropertiesRequest) returns (TrackNearbyPropertiesResponse);
   rpc UpdateProperty (UpdatePropertyRequest) returns (UpdatePropertyResponse);
   rpc DeleteProperty (DeletePropertyRequest) returns (DeletePropertyResponse);
+  rpc ResolveLocationName (ResolveLocationNameRequest) returns (ResolveLocationNameResponse);
   rpc GetCustomerProperties (GetCustomerPropertiesRequest) returns (GetCustomerPropertiesResponse);
   rpc InitiatePropertyAccessPayment (InitiatePropertyAccessPaymentRequest) returns (InitiatePropertyAccessPaymentResponse);
   rpc GetBrokerPropertiesForCustomer (GetBrokerPropertiesForCustomerRequest) returns (GetBrokerPropertiesForCustomerResponse);
@@ -43,6 +44,8 @@ message CreatePropertyRequest {
   int32 maxVideosPerProperty = 11;
   int32 maxVideoSizeMB = 12;
   Coordinates coordinates = 13;
+  string subCounty = 14;
+  string district = 15;
 }
 
 message CreatePropertyResponse {
@@ -79,6 +82,8 @@ message GetPropertiesRequest {
   double maxAmount = 8;
   string fromDate = 9;
   string toDate = 10;
+  string subCounty = 11;
+  string district = 12;
 }
 
 message GetPropertiesResponse {
@@ -96,6 +101,8 @@ message UpdatePropertyRequest {
   repeated string videoUrl = 7;
   double lat = 8;
   double lng = 9;
+  string subCounty = 10;
+  string district = 11;
 }
 
 message UpdatePropertyResponse {
@@ -113,6 +120,18 @@ message DeletePropertyRequest {
 message DeletePropertyResponse {
   bool success = 1;
   string message = 2;
+}
+
+message ResolveLocationNameRequest {
+  double lat = 1;
+  double lng = 2;
+}
+
+message ResolveLocationNameResponse {
+  string locationName = 1;
+  string subCounty = 2;
+  string district = 3;
+  string formattedAddress = 4;
 }
 
 message BookingState {
@@ -137,6 +156,8 @@ message Property {
   int32 videoCount = 13;
   Coordinates postgisSpatialField = 14;
   BookingState bookingState = 15;
+  string subCounty = 16;
+  string district = 17;
 }
 
 message GetPropertiesResponse {

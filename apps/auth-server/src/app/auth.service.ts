@@ -194,6 +194,35 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  async setupBroker(dto: { brokerCode: string; password: string; deviceId: string }): Promise<any> {
+    const result = await lastValueFrom(
+      this.brokerClient.send('SetupBrokerAccount', {
+        brokerCode: dto.brokerCode,
+        password: dto.password,
+        deviceId: dto.deviceId,
+      }),
+    );
+
+    if (!result.success) {
+      throw new BadRequestException(result.message || 'Broker setup failed');
+    }
+
+    const broker = result.broker || {};
+
+    return {
+      success: true,
+      message: result.message || 'Broker account setup successful',
+      id: broker.id,
+      email: broker.email,
+      username: broker.username,
+      brokerCode: broker.brokerCode,
+      isVerified: broker.isVerified,
+      sessionToken: result.sessionToken,
+      sessionId: result.sessionId,
+      deviceId: result.deviceId,
+    };
+  }
+
   async refreshToken(token: string): Promise<LoginResponse> {
     try {
       const payload = this.jwtService.verify(token);
@@ -417,6 +446,51 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async getActiveCustomerSessions(): Promise<{ sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }>; total: number }> {
+    const sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }> = [];
+    let cursor = '0';
+
+    do {
+      const result = await (this.redis as any).scan(cursor, 'MATCH', 'customer:session:*', 'COUNT', '100');
+      cursor = result[0];
+      const keys = result[1] as string[];
+
+      for (const key of keys) {
+        const raw = await this.redis.get(key);
+        if (!raw) continue;
+
+        try {
+          const data = JSON.parse(raw) as StoredSession & { ttlSecondsRemaining?: number };
+          const sessionId = data.sessionId || key.replace('customer:session:', '');
+          
+          let ttlSecondsRemaining;
+          try {
+            ttlSecondsRemaining = await (this.redis as any).ttl(key);
+          } catch {
+            ttlSecondsRemaining = undefined;
+          }
+
+          sessions.push({
+            sessionId,
+            deviceId: data.deviceId,
+            createdAt: data.createdAt,
+            lastActivityAt: data.lastActivityAt,
+            locationLat: data.location?.lat,
+            locationLng: data.location?.lng,
+            locationUpdatedAt: data.location?.updatedAt,
+            ttlSecondsRemaining,
+          });
+        } catch {
+          // skip unparseable session
+        }
+      }
+    } while (cursor !== '0');
+
+    sessions.sort((a, b) => b.lastActivityAt - a.lastActivityAt);
+
+    return { sessions, total: sessions.length };
+  }
+
   private brokerSessionKey(sessionId: string): string {
     return `broker:session:${sessionId}`;
   }
@@ -444,7 +518,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     };
 
     await this.redis.set(this.brokerSessionKey(sessionId), JSON.stringify(sessionData), 'EX', ttl);
-    await this.redis.sAdd(this.brokerSessionsKey(dto.brokerCode), sessionId);
+    await this.redis.sadd(this.brokerSessionsKey(dto.brokerCode), sessionId);
     await this.redis.expire(this.brokerSessionsKey(dto.brokerCode), ttl);
 
     const sessionToken = Buffer.from(`${sessionId}:${dto.brokerCode}:${Date.now()}`).toString('base64');
@@ -527,7 +601,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       }
 
       await this.redis.del(this.brokerSessionKey(sessionId));
-      await this.redis.sRem(this.brokerSessionsKey(brokerCode), sessionId);
+      await this.redis.srem(this.brokerSessionsKey(brokerCode), sessionId);
 
       return { success: true };
     } catch {

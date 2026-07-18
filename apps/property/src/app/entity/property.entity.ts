@@ -58,6 +58,12 @@ export class PropertyEntity {
   @Column()
   location!: string;
 
+  @Column({ nullable: true })
+  subCounty!: string | null;
+
+  @Column({ nullable: true })
+  district!: string | null;
+
   @Column()
   brokersUniqueCode!: string;
 
