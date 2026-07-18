@@ -133,7 +133,7 @@ message Property {
   string updatedAt = 11;
   int32 photoCount = 12;
   int32 videoCount = 13;
-  Coordinates postgisSpatialField = 14;
+  string postgisSpatialField = 14;
   BookingState bookingState = 15;
 }
 
@@ -211,7 +211,7 @@ message NearbyProperty {
   string createdAt = 8;
   int32 photoCount = 9;
   int32 videoCount = 10;
-  Coordinates postgisSpatialField = 11;
+  string postgisSpatialField = 11;
   repeated string imageUrl = 12;
   repeated string videoUrl = 13;
   double distanceKm = 14;
@@ -335,7 +335,7 @@ message Property {
   string updatedAt = 11;
   int32 photoCount = 12;
   int32 videoCount = 13;
-  Coordinates postgisSpatialField = 14;
+  string postgisSpatialField = 14;
   BookingState bookingState = 15;
   double amount = 16;
   string brokerPhone = 17;

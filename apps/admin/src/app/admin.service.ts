@@ -865,6 +865,10 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       ),
     ]);
 
+    // Invoices deleted by an admin are suppressed from the derived list.
+    const dashboard = await this.getOrCreateDashboard();
+    const deletedIds = new Set(dashboard.deletedInvoiceIds ?? []);
+
     // Index brokers by their code so we can attach recipient details.
     const brokersByCode = new Map<string, any>();
     for (const b of brokersResult.brokers ?? []) {
@@ -877,6 +881,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     const allInvoices = (transactionsResult.transactions ?? [])
       // Only subscription-related payments are billable invoices.
       .filter((t: any) => typeof t.reasonForPayment === 'string' && t.reasonForPayment.toLowerCase().includes('subscription'))
+      // Exclude invoices an admin has deleted.
+      .filter((t: any) => !deletedIds.has(t.id))
       .map((t: any, index: number) => {
         const broker = brokersByCode.get(t.propertyId) || brokersByCode.get(t.brokerCode);
         const issueDateMs = t.createdAt ? new Date(t.createdAt).getTime() : now;
@@ -884,12 +890,18 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
         const rawStatus = String(t.paymentStatus || '').toLowerCase();
         const isPaid = rawStatus === 'success' || rawStatus === 'paid' || rawStatus === 'completed';
+        const isFailed =
+          rawStatus === 'failed' ||
+          rawStatus === 'declined' ||
+          rawStatus === 'cancelled' ||
+          rawStatus === 'canceled' ||
+          rawStatus === 'error';
 
-        let status: 'paid' | 'pending' | 'overdue';
-        if (isPaid) {
-          status = 'paid';
-        } else if (now > dueDateMs) {
-          status = 'overdue';
+        let status: 'sent' | 'pending' | 'failed';
+        if (isFailed) {
+          status = 'failed';
+        } else if (isPaid) {
+          status = 'sent';
         } else {
           status = 'pending';
         }
@@ -921,6 +933,45 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     const invoices = filtered.slice(start, start + limit);
 
     return { invoices, total, page, limit };
+  }
+
+  /**
+   * Invoices are derived from payment transactions (there is no invoice table),
+   * so "deleting" an invoice records its id in a suppression list on the
+   * dashboard entity. Suppressed invoices are filtered out of getInvoices.
+   */
+  async deleteInvoice(dto: { invoiceId: string }) {
+    const invoiceId = (dto.invoiceId || '').trim();
+    if (!invoiceId) {
+      throw new BadRequestException('invoiceId is required');
+    }
+
+    const dashboard = await this.getOrCreateDashboard();
+    const existing = new Set(dashboard.deletedInvoiceIds ?? []);
+    existing.add(invoiceId);
+    dashboard.deletedInvoiceIds = Array.from(existing);
+    await this.dashboardRepo.save(dashboard);
+
+    this.logger.log(`Invoice ${invoiceId} marked as deleted`);
+    return { success: true, message: 'Invoice deleted' };
+  }
+
+  async deleteInvoices(dto: { invoiceIds: string[] }) {
+    const ids = (dto.invoiceIds ?? []).map((id) => String(id).trim()).filter(Boolean);
+    if (ids.length === 0) {
+      throw new BadRequestException('invoiceIds is required');
+    }
+
+    const dashboard = await this.getOrCreateDashboard();
+    const existing = new Set(dashboard.deletedInvoiceIds ?? []);
+    const before = existing.size;
+    for (const id of ids) existing.add(id);
+    dashboard.deletedInvoiceIds = Array.from(existing);
+    await this.dashboardRepo.save(dashboard);
+
+    const deleted = existing.size - before;
+    this.logger.log(`Marked ${deleted} invoice(s) as deleted`);
+    return { success: true, message: `Deleted ${deleted} invoice(s)`, deleted };
   }
 
   async updateAdminEmail(dto: { adminId: string; email: string }) {    const admin = await this.adminRepo.findOne({ where: { id: dto.adminId } });

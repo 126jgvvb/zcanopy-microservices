@@ -39,6 +39,10 @@ service AdminService {
   rpc ApproveBrokerDocument (ApproveBrokerDocumentRequest) returns (ApproveBrokerDocumentResponse);
   rpc GetActiveCustomerSessions (GetActiveCustomerSessionsRequest) returns (GetActiveCustomerSessionsResponse);
   rpc GetInvoices (GetInvoicesRequest) returns (GetInvoicesResponse);
+  rpc DeleteInvoice (DeleteInvoiceRequest) returns (DeleteInvoiceResponse);
+  rpc DeleteInvoices (DeleteInvoicesRequest) returns (DeleteInvoicesResponse);
+  rpc GetBrokerCommissions (GetBrokerCommissionsRequest) returns (GetBrokerCommissionsResponse);
+  rpc ApproveAllPendingVerifications (ApproveAllPendingVerificationsRequest) returns (ApproveAllPendingVerificationsResponse);
 }
 
 message GetCommissionsRequest {}
@@ -630,4 +634,57 @@ message GetInvoicesResponse {
   int32 total = 2;
   int32 page = 3;
   int32 limit = 4;
+}
+
+message DeleteInvoiceRequest {
+  string invoiceId = 1;
+}
+
+message DeleteInvoiceResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteInvoicesRequest {
+  repeated string invoiceIds = 1;
+}
+
+message DeleteInvoicesResponse {
+  bool success = 1;
+  string message = 2;
+  int32 deleted = 3;
+}
+
+message GetBrokerCommissionsRequest {}
+
+message BrokerCommission {
+  string brokerId = 1;
+  string brokerCode = 2;
+  string brokerName = 3;
+  string tier = 4;
+  double totalCommission = 5;
+  int32 transactionCount = 6;
+  double totalBookings = 7;
+}
+
+message GetBrokerCommissionsResponse {
+  repeated BrokerCommission commissions = 1;
+}
+
+message ApproveAllPendingVerificationsRequest {
+  string adminId = 1;
+}
+
+message ApproveVerificationResult {
+  string brokerId = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message ApproveAllPendingVerificationsResponse {
+  bool success = 1;
+  int32 totalProcessed = 2;
+  int32 successful = 3;
+  int32 failed = 4;
+  repeated ApproveVerificationResult results = 5;
 }

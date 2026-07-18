@@ -286,4 +286,18 @@ export class AdminController {
   async getInvoices(@Query() query: any) {
     return this.proxyService.forwardToAdmin('GetInvoices', query);
   }
+
+  @Delete('invoices/batch-delete')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete multiple invoices' })
+  async deleteInvoices(@Body() body: { invoiceIds: string[] }) {
+    return this.proxyService.forwardToAdmin('DeleteInvoices', { invoiceIds: body?.invoiceIds ?? [] });
+  }
+
+  @Delete('invoices/:invoiceId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete a single invoice' })
+  async deleteInvoice(@Param('invoiceId') invoiceId: string) {
+    return this.proxyService.forwardToAdmin('DeleteInvoice', { invoiceId });
+  }
 }

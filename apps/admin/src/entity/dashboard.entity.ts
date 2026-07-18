@@ -41,6 +41,9 @@ export class DashaordEntity{
  @Column()
  sentMessages!:any[];
 
+ @Column({ type: 'simple-array', nullable: true })
+ deletedInvoiceIds!: string[];
+
  @Column()
  updatedAt!:Date
 }

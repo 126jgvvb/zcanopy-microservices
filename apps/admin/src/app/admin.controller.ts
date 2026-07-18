@@ -223,4 +223,28 @@ export class AdminController {
     this.logger.log('Received getInvoices request');
     return this.adminService.getInvoices(dto);
   }
+
+  @GrpcMethod('AdminService', 'DeleteInvoice')
+  async deleteInvoice(dto: any) {
+    this.logger.log(`Received deleteInvoice request: ${dto.invoiceId}`);
+    return this.adminService.deleteInvoice(dto);
+  }
+
+  @GrpcMethod('AdminService', 'DeleteInvoices')
+  async deleteInvoices(dto: any) {
+    this.logger.log(`Received deleteInvoices request: ${(dto.invoiceIds || []).length} ids`);
+    return this.adminService.deleteInvoices(dto);
+  }
+
+  @GrpcMethod('AdminService', 'GetBrokerCommissions')
+  async getBrokerCommissions() {
+    this.logger.log('Received getBrokerCommissions request');
+    return this.adminService.getBrokerCommissions();
+  }
+
+  @GrpcMethod('AdminService', 'ApproveAllPendingVerifications')
+  async approveAllPendingVerifications(dto: any) {
+    this.logger.log('Received approveAllPendingVerifications request');
+    return this.adminService.approveAllPendingVerifications(dto);
+  }
 }
