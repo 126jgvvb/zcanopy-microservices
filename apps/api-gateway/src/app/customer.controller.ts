@@ -14,6 +14,15 @@ export class CustomerController {
     return query;
   }
 
+  @Post('session')
+  @ApiOperation({ summary: 'Issue an anonymous customer session (no login required)' })
+  async issueCustomerSession(@Body() body: any) {
+    return this.proxyService.forwardToAuth('IssueCustomerSession', {
+      deviceId: body?.deviceId ?? '',
+      ttlSeconds: body?.ttlSeconds,
+    });
+  }
+
   @Get('properties')
   @ApiOperation({ summary: 'Get nearby properties for customer' })
   async getCustomerProperties(@Query() query: any) {
