@@ -20,7 +20,8 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
-      host: `0.0.0.0:${port}`,
+      host: `0.0.0.0`,
+      url: `0.0.0.0:${port}`,
       package: 'admin',
       protoPath: join(__dirname, '../../admin/src/proto/admin.proto'),
     },

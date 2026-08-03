@@ -19,7 +19,8 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
-      host: `0.0.0.0:${port}`,
+      host: `0.0.0.0`,
+      url: `0.0.0.0:${port}`,
       package: 'auth',
       protoPath: join(__dirname, '../../auth-server/src/proto/auth.proto'),
     },
