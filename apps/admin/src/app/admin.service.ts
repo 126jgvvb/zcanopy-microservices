@@ -9,7 +9,8 @@ import { LogEntity } from '../entity/log.entity';
 import { AdminMessageEntity } from '../entity/admin-message.entity';
 import { lastValueFrom } from 'rxjs';
 import Redis from 'ioredis';
-import { REDIS_CLIENT_PROVIDER } from './app.module';
+
+export const REDIS_CLIENT_PROVIDER = 'REDIS_CLIENT_PROVIDER';
 
 interface PendingRequest {
   resolve: (value: any) => void;
@@ -63,6 +64,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     this.subscriber = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
       port: Number(process.env.REDIS_PORT) || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
     });
 
     this.subscriber.subscribe('update_platform_commission', (err) => {

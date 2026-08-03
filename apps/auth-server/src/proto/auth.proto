@@ -10,7 +10,7 @@ service AuthService {
   rpc IssueCustomerSession (IssueCustomerSessionRequest) returns (IssueCustomerSessionResponse);
   rpc ValidateCustomerSession (ValidateCustomerSessionRequest) returns (ValidateCustomerSessionResponse);
   rpc GetCustomerSession (GetCustomerSessionRequest) returns (GetCustomerSessionResponse);
-  rpc UpdateCustomerLocation (UpdateCustomerSessionRequest) returns (UpdateCustomerSessionResponse);
+  rpc UpdateCustomerLocation (UpdateCustomerLocationRequest) returns (UpdateCustomerLocationResponse);
   rpc RevokeCustomerSession (RevokeCustomerSessionRequest) returns (RevokeCustomerSessionResponse);
   rpc IssueBrokerSession (IssueBrokerSessionRequest) returns (IssueBrokerSessionResponse);
   rpc ValidateBrokerSession (ValidateBrokerSessionRequest) returns (ValidateBrokerSessionResponse);

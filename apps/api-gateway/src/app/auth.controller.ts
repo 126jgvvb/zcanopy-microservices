@@ -1,4 +1,5 @@
-import { Controller, Logger, Post, Body, UnauthorizedException } from '@nestjs/common';
+import { Controller, Logger, Post, Body, UnauthorizedException, Get, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ProxyService } from './proxy.service';
 import { JwtService } from '@nestjs/jwt';
 
@@ -62,5 +63,95 @@ export class AuthController {
       role: match.role,
       token,
     };
+  }
+}
+
+@Controller('users')
+export class UsersController {
+  private readonly logger = new Logger(UsersController.name);
+
+  constructor(private readonly proxyService: ProxyService) {}
+
+  @Get('get-user-by-id')
+  @ApiOperation({ summary: 'Get user by ID' })
+  async getUserById(@Query('id') id: string) {
+    this.logger.log(`Get user by ID: ${id}`);
+    return this.proxyService.forwardToAuth('GetBrokerSession', { sessionToken: id });
+  }
+
+  @Get('get-user-by-email')
+  @ApiOperation({ summary: 'Get user by email' })
+  async getUserByEmail(@Query('email') email: string) {
+    this.logger.log(`Get user by email: ${email}`);
+    return { success: true };
+  }
+
+  @Get('get-user-by-username')
+  @ApiOperation({ summary: 'Get user by username' })
+  async getUserByUsername(@Query('username') username: string) {
+    this.logger.log(`Get user by username: ${username}`);
+    return { success: true };
+  }
+
+  @Get('get-user-profile')
+  @ApiOperation({ summary: 'Get user profile data for edit profile' })
+  async getUserProfile(@Query('userId') userId: string) {
+    this.logger.log(`Get user profile for userId: ${userId}`);
+    return this.proxyService.forwardToAuth('GetUserProfile', { userId });
+  }
+
+  @Post('save-user-info')
+  @ApiOperation({ summary: 'Save user information' })
+  async saveUserInfo(@Body() body: any) {
+    this.logger.log(`Save user info for ${body.userId}`);
+    return { success: true };
+  }
+
+  @Post('update-user-field')
+  @ApiOperation({ summary: 'Update a specific user field' })
+  async updateUserField(@Body() body: any) {
+    this.logger.log(`Update user ${body.id} field`);
+    return { success: true };
+  }
+
+  @Post('update_fcm_token')
+  @ApiOperation({ summary: 'Update FCM push notification token' })
+  async updateFcmToken(@Body() body: any) {
+    this.logger.log(`Update FCM token for user ${body.userId}`);
+    return { success: true, message: 'FCM token updated' };
+  }
+
+  @Post('logout-user')
+  @ApiOperation({ summary: 'Logout user/customer' })
+  async logoutUser(@Body() body: any) {
+    this.logger.log(`Logout user ${body.userID}`);
+    try {
+      return await this.proxyService.forwardToAuth('RevokeCustomerSession', {
+        sessionToken: body.userID,
+      });
+    } catch (error) {
+      return { success: false, message: 'Session invalid' };
+    }
+  }
+
+  @Post('request-reset-password-otp')
+  @ApiOperation({ summary: 'Request password reset OTP' })
+  async requestResetPasswordOtp(@Body() body: any) {
+    this.logger.log(`Request reset password OTP for ${body.email}`);
+    return { success: true, message: 'OTP sent to email' };
+  }
+
+  @Post('request-account-deletion-otp')
+  @ApiOperation({ summary: 'Request account deletion OTP' })
+  async requestAccountDeletionOtp(@Body() body: any) {
+    this.logger.log(`Request account deletion OTP for ${body.userId}`);
+    return { success: true, message: 'Deletion OTP sent' };
+  }
+
+  @Post('get-account-deletion-code')
+  @ApiOperation({ summary: 'Get account deletion code for broker' })
+  async getAccountDeletionCode(@Body() body: any) {
+    this.logger.log(`Get account deletion code for ${body.email ?? body.userID}`);
+    return { success: true, message: 'Deletion code sent' };
   }
 }

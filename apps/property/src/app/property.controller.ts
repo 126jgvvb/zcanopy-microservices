@@ -175,4 +175,10 @@ export class PropertyController {
     this.logger.log(`Received get-bookings-by-phone request for phone ${dto.customerPhone}`);
     return this.propertyService.getBookingsByPhone(dto);
   }
+
+  @GrpcMethod('PropertyService', 'GetPropertyClients')
+  async getPropertyClients(dto: { propertyId: string }) {
+    this.logger.log(`Received get-property-clients request for property ${dto.propertyId}`);
+    return this.propertyService.GetPropertyClients(dto);
+  }
 }

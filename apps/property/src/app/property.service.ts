@@ -84,6 +84,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
       port: Number(process.env.REDIS_PORT) || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
     });
 
     this.redis.subscribe('new_property_nearby', (err) => {
@@ -229,12 +230,16 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     return saved;
   }
 
-  async getProperties(query: { page: number; limit: number; brokerCode?: string; location?: string; subCounty?: string; district?: string; sortBy?: string; sortOrder?: string; minAmount?: number; maxAmount?: number; fromDate?: string; toDate?: string }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; updatedAt?: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; bookingState: BookingState | null }>; total: number }> {
+  async getProperties(query: { page: number; limit: number; brokerCode?: string; location?: string; subCounty?: string; district?: string; sortBy?: string; sortOrder?: string; minAmount?: number; maxAmount?: number; fromDate?: string; toDate?: string; id?: string }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; updatedAt?: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; bookingState: BookingState | null }>; total: number }> {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
     const where: any = query.brokerCode ? { brokersUniqueCode: query.brokerCode } : {};
 
     const qb = this.propertyRepo.createQueryBuilder('property').where(where);
+
+    if (query.id) {
+      qb.andWhere('property.id = :id', { id: query.id });
+    }
 
     if (query.location) {
       qb.andWhere('property.location ILIKE :location', { location: `%${query.location}%` });
@@ -335,6 +340,15 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException(`Property with id ${id} not found after update`);
     }
     this.logger.log(`Updated property ${id}`);
+
+    this.redis.publish('broker_property_updated', JSON.stringify({
+      brokerCode: property.brokersUniqueCode,
+      propertyId: updated.id,
+      title: updated.title,
+      location: updated.location,
+      timestamp: new Date().toISOString(),
+    }));
+
     return updated;
   }
 
@@ -346,6 +360,14 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
     await this.propertyRepo.delete(id);
     this.logger.log(`Deleted property ${id}`);
+
+    this.redis.publish('broker_property_deleted', JSON.stringify({
+      brokerCode: property.brokersUniqueCode,
+      propertyId: property.id,
+      title: property.title,
+      timestamp: new Date().toISOString(),
+    }));
+
     return { success: true, message: `Property ${id} deleted successfully` };
   }
 
@@ -1098,5 +1120,27 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`Failed to validate customer session: ${err}`);
       return { valid: false, sessionId: '', deviceId: '' };
     }
+  }
+
+  async GetPropertyClients(dto: { propertyId: string }): Promise<{ clients: Array<{ id: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; status?: string; reason?: string }>; total: number }> {
+    const property = await this.propertyRepo.findOne({ where: { id: dto.propertyId } });
+    if (!property) {
+      return { clients: [], total: 0 };
+    }
+    const viewers = property.allowedViewers || [];
+    return {
+      clients: viewers.map((v, idx) => ({
+        id: `${property.id}-${idx}`,
+        customerName: v.customerName,
+        customerPhone: v.customerPhone,
+        customerEmail: v.customerEmail,
+        date: v.date,
+        amount: v.amount,
+        transactionCode: v.transactionCode,
+        status: v.status,
+        reason: v.reason,
+      })),
+      total: viewers.length,
+    };
   }
 }

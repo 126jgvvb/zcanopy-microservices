@@ -17,11 +17,11 @@ export class DashaordEntity{
  @PrimaryGeneratedColumn()
  id!:string;
 
- @Column()
- monthlyIncome!:any[];
+  @Column({ type: 'json', nullable: true })
+  monthlyIncome!: any[];
 
- @Column()
- currentCommission!:number;
+  @Column()
+  currentCommission!:number;
 
   @Column()
   platformCommission!:number;
@@ -32,14 +32,14 @@ export class DashaordEntity{
   @Column()
   minimumWithdrawal!:number;
 
-  @Column()
+  @Column({ type: 'json', nullable: true })
   systemMessages!:SystemMessage[];
 
- @Column()
- clientMessages!:any[];
+  @Column({ type: 'json', nullable: true })
+  clientMessages!:any[];
 
- @Column()
- sentMessages!:any[];
+  @Column({ type: 'json', nullable: true })
+  sentMessages!:any[];
 
  @Column({ type: 'simple-array', nullable: true })
  deletedInvoiceIds!: string[];

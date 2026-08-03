@@ -58,10 +58,10 @@ export class PropertyEntity {
   @Column()
   location!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   subCounty!: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'text', nullable: true })
   district!: string | null;
 
   @Column()

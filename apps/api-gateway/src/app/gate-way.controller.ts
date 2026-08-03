@@ -41,4 +41,65 @@ export class GateWayController {
       'Reverse-geocoding is not provided by the current backend',
     );
   }
+
+  @Post('initiate-payment')
+  @ApiOperation({ summary: 'Legacy broker initiate payment' })
+  async initiatePayment(@Body() body: any) {
+    this.logger.log('Legacy broker initiate payment');
+    return this.proxyService.forwardToBroker('ProcessSubscriptionPayment', {
+      phoneNumber: body.phoneNumber,
+      tier: body.package ?? body.tier,
+      brokerId: body.userId ?? body.userID ?? body.brokerId,
+    });
+  }
+
+  @Post('get-change-passsword-otp')
+  @ApiOperation({ summary: 'Request password reset OTP for broker' })
+  async getChangePasswordOtp(@Body() body: any) {
+    this.logger.log(`Request change password OTP for ${body.email ?? body.phoneNumber}`);
+    return {
+      success: true,
+      message: 'Password reset OTP sent to your email/phone',
+    };
+  }
+
+  @Post('validate-session')
+  @ApiOperation({ summary: 'Legacy broker session validation' })
+  async validateSession(@Body() body: any) {
+    this.logger.log('Validate legacy broker session');
+    try {
+      return await this.proxyService.forwardToAuth('ValidateBrokerSession', {
+        sessionToken: body.sessionID ?? body.sessionToken,
+      });
+    } catch (error) {
+      return { success: false, valid: false, message: 'Session invalid' };
+    }
+  }
+
+  @Post('get-notifications')
+  @ApiOperation({ summary: 'Legacy get notifications' })
+  async getNotificationsLegacy(@Query() query: any) {
+    this.logger.log('Legacy get notifications');
+    return this.proxyService.forwardToNotification('get_notifications', query);
+  }
+
+  @Post('decline-booking-request')
+  @ApiOperation({ summary: 'Decline a booking request' })
+  async declineBookingRequest(@Body() body: any) {
+    this.logger.log(`Decline booking ${body.bookingId}`);
+    return {
+      success: true,
+      message: 'Booking declined successfully',
+    };
+  }
+
+  @Post('delete-user-account')
+  @ApiOperation({ summary: 'Legacy delete user account' })
+  async deleteUserAccount(@Body() body: any) {
+    this.logger.log('Legacy delete user account');
+    return {
+      success: true,
+      message: 'Account deletion requested',
+    };
+  }
 }

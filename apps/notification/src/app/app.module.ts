@@ -27,14 +27,16 @@ import { NotificationEntity } from './entitty/notification.entity';
       }),
     }),
     TypeOrmModule.forFeature([NotificationEntity]),
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
         name: 'REDIS_CLIENT',
         transport: Transport.REDIS,
-        options: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: Number(process.env.REDIS_PORT) || 6379,
-        },
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          host: config.get<string>('REDIS_HOST') || 'localhost',
+          port: Number(config.get<string>('REDIS_PORT') || '6379'),
+          password: config.get<string>('REDIS_PASSWORD') || undefined,
+        }),
       },
     ]),
     HttpModule,

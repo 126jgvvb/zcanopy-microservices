@@ -30,6 +30,11 @@ export class AppController {
         limit: data.limit,
     };
   }
+
+  @GrpcMethod('BrokerService', 'SaveBrokerFcmToken')
+  async saveBrokerFcmToken(dto: { brokerCode: string; fcmToken: string; deviceId?: string }) {
+    return this.brokerService.saveBrokerFcmToken(dto);
+  }
 }
 
 

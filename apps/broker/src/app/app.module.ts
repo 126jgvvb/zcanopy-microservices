@@ -6,6 +6,7 @@ import { BrokerEntity } from '../entity/broker.entity';
 import { PayoutsEntity } from '../entity/payouts.entity';
 import { BrokerWalletTransactionEntity } from '../entity/broker-wallet-transaction.entity';
 import { BrokerFeedbackEntity } from '../entity/broker-feedback.entity';
+import { BrokerFcmTokenEntity } from '../entity/broker-fcm-token.entity';
 import {TypeOrmModule} from "@nestjs/typeorm";
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule,Transport } from '@nestjs/microservices';
@@ -25,47 +26,55 @@ import { join } from 'path';
         username: config.get<string>('DB_USERNAME') || 'postgres',
         password: config.get<string>('DB_PASSWORD') || 'password',
         database: config.get<string>('DB_DATABASE') || 'broker_db',
-        entities: [BrokerEntity, PayoutsEntity, BrokerWalletTransactionEntity, BrokerFeedbackEntity],
+        entities: [BrokerEntity, PayoutsEntity, BrokerWalletTransactionEntity, BrokerFeedbackEntity, BrokerFcmTokenEntity],
         synchronize: config.get<string>('DB_SYNCHRONIZE') !== 'false',
         logging: config.get<string>('DB_LOGGING') === 'true',
       }),
     }),
-    TypeOrmModule.forFeature([BrokerEntity, PayoutsEntity, BrokerWalletTransactionEntity, BrokerFeedbackEntity]),
-    ClientsModule.register([
+    TypeOrmModule.forFeature([BrokerEntity, PayoutsEntity, BrokerWalletTransactionEntity, BrokerFeedbackEntity, BrokerFcmTokenEntity]),
+    ClientsModule.registerAsync([
       {
         name: 'REDIS_CLIENT',
-        transport: Transport.REDIS,
-        options: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: Number(process.env.REDIS_PORT) || 6379,
-        },
+        useFactory: () => ({
+          transport: Transport.REDIS,
+          options: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: Number(process.env.REDIS_PORT) || 6379,
+          },
+        }),
       },
       {
         name: 'PROPERTY_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.PROPERTY_SERVICE_URL || 'localhost:50052',
-          package: 'property',
-          protoPath: join(__dirname, 'proto/property.proto'),
-        },
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.PROPERTY_SERVICE_URL || 'localhost:50052',
+            package: 'property',
+            protoPath: join(__dirname, '../../property/src/proto/property.proto'),
+          },
+        }),
       },
       {
         name: 'PAYMENT_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.PAYMENT_SERVICE_URL || 'localhost:50051',
-          package: 'payment',
-          protoPath: join(__dirname, 'proto/payment.proto'),
-        },
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.PAYMENT_SERVICE_URL || 'localhost:50051',
+            package: 'payment',
+            protoPath: join(__dirname, '../../payment/src/proto/payment.proto'),
+          },
+        }),
       },
       {
         name: 'ADMIN_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.ADMIN_SERVICE_URL || 'localhost:50053',
-          package: 'admin',
-          protoPath: join(__dirname, 'proto/admin.proto'),
-        },
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.ADMIN_SERVICE_URL || 'localhost:50053',
+            package: 'admin',
+            protoPath: join(__dirname, '../../admin/src/proto/admin.proto'),
+          },
+        }),
       },
     ]),
   ],
@@ -73,63 +82,3 @@ import { join } from 'path';
   providers: [AppService, BrokerService, OtpStoreService, redisOtpProvider],
 })
 export class AppModule {}
-
-
-/*
-const workspaceRoot = (() => {
-  try {
-    return require('path').resolve(__dirname, '../../../../');
-  } catch {
-    return process.cwd();
-  }
-})();
-
-@Module({
-  imports: [
-  TypeOrmModule.forFeature([BrokerEntity, PayoutsEntity, BrokerWalletTransactionEntity]),
-
-  ClientsModule.register([
-   {
-     name: 'REDIS_CLIENT',
-     transport: Transport.REDIS,
-     options: {
-       host: process.env.REDIS_HOST || 'localhost',
-       port: Number(process.env.REDIS_PORT) || 6379,
-     },
-   },
-   {
-     name: 'PROPERTY_CLIENT',
-     transport: Transport.GRPC,
-     options: {
-       url: process.env.PROPERTY_SERVICE_URL || 'localhost:50052',
-       package: 'property',
-       protoPath: require('path').join(workspaceRoot, 'apps/property/src/proto/property.proto'),
-     },
-   },
-   {
-     name: 'PAYMENT_CLIENT',
-     transport: Transport.GRPC,
-     options: {
-       url: process.env.PAYMENT_SERVICE_URL || 'localhost:50051',
-       package: 'payment',
-       protoPath: require('path').join(workspaceRoot, 'apps/payment/src/proto/payment.proto'),
-     },
-   },
-   {
-     name: 'ADMIN_CLIENT',
-     transport: Transport.GRPC,
-     options: {
-       url: process.env.ADMIN_SERVICE_URL || 'localhost:50053',
-       package: 'admin',
-       protoPath: require('path').join(workspaceRoot, 'apps/admin/src/proto/admin.proto'),
-     },
-   },
- ]),
-], //registering the broker entity
-
-
-  controllers: [AppController],
-  providers: [AppService, BrokerService, OtpStoreService, redisOtpProvider],
-})
-export class AppModule {}
-*/

@@ -35,7 +35,7 @@ describe('NotificationService', () => {
       await service.sendEmailOtp({ otp: '1234', email: 'a@b.c' });
       const saved = repo.create.mock.calls[0][0];
       expect(saved.status).toBe('failed');
-      expect(saved.error).toContain('Render API key not configured');
+      expect(saved.error).toContain('Resend API key not configured');
     });
 
     it('records a sent status with the provider message id', async () => {

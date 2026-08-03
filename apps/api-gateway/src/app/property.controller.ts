@@ -51,6 +51,12 @@ export class PropertyController {
     return this.proxyService.forwardToProperty('UpdateProperty', { id, ...body });
   }
 
+  @Post(':id')
+  @ApiOperation({ summary: 'Update property details (POST alias for broker app)' })
+  async updatePropertyPost(@Param('id') id: string, @Body() body: any) {
+    return this.proxyService.forwardToProperty('UpdateProperty', { id, ...body });
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete property' })
   async deleteProperty(@Param('id') id: string) {

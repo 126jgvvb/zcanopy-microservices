@@ -29,8 +29,8 @@ export class AdminEntity{
  @Column()
  phoneNumber!:string;
 
- @Column()
- otherAdmins!:[]
+@Column({ type: 'simple-array' })
+  otherAdmins!: string[]
 
  @Column()
  status!:string;

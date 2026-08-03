@@ -3,8 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import axios from 'axios';
 import Redis from 'ioredis';
+import * as admin from 'firebase-admin';
+import Resend from 'resend';
 import { OtpChannel, OtpNotificationPayload } from './otp-payload.interface';
 import { NotificationEntity } from '../entitty/notification.entity';
 
@@ -86,9 +87,8 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   private brevoSenderName: string;
   private brevoSenderEmail: string;
 
-  private renderApiKey: string;
-  private renderFromEmail: string;
-  private renderApiUrl: string;
+  private resendApiKey: string;
+  private resendFromEmail: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -100,27 +100,36 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     this.brevoSenderName = this.configService.get<string>('BREVO_SENDER_NAME') || 'ZCanopy';
     this.brevoSenderEmail = this.configService.get<string>('BREVO_SENDER_EMAIL') || 'noreply@zcanopy.com';
 
-    this.renderApiKey = this.configService.get<string>('RENDER_API_KEY') || '';
-    this.renderFromEmail = this.configService.get<string>('RENDER_FROM_EMAIL') || 'ZCanopy <noreply@zcanopy.com>';
-    this.renderApiUrl = this.configService.get<string>('RENDER_API_URL') || 'https://api.render.com/v1';
+    this.resendApiKey = this.configService.get<string>('RESEND_API_KEY') || '';
+    this.resendFromEmail = this.configService.get<string>('RESEND_FROM_EMAIL') || 'ZCanopy <noreply@zcanopy.com>';
   }
 
   async onModuleInit() {
+    const redisHost = this.configService.get<string>('REDIS_HOST') || 'localhost';
+    const redisPort = Number(this.configService.get<string>('REDIS_PORT') || '6379');
+    const redisPassword = this.configService.get<string>('REDIS_PASSWORD') || undefined;
+
     this.subscriber = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: Number(process.env.REDIS_PORT) || 6379,
+      host: redisHost,
+      port: redisPort,
+      password: redisPassword,
     });
 
-    // Separate connection for regular reads (session lookups). The
-    // `subscriber` connection is in subscribe mode and cannot run GET.
     this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: Number(process.env.REDIS_PORT) || 6379,
+      host: redisHost,
+      port: redisPort,
+      password: redisPassword,
     });
 
     this.subscriber.subscribe('get_notifications', (err) => {
       if (err) {
         console.error('Failed to subscribe to get_notifications', err);
+      }
+    });
+
+    this.subscriber.subscribe('send_broker_fcm_notification', (err) => {
+      if (err) {
+        console.error('Failed to subscribe to send_broker_fcm_notification', err);
       }
     });
 
@@ -147,6 +156,13 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
           this.logger.log(`Responded to notifications request ${data.requestId || ''}`);
         } catch (error) {
           this.logger.error(`Failed to handle get_notifications: ${(error as Error).message}`);
+        }
+      } else if (channel === 'send_broker_fcm_notification') {
+        try {
+          const data = JSON.parse(message);
+          await this.sendFcmNotification(data.brokerCode, data.title, data.body, data.data, data.tokens);
+        } catch (error) {
+          this.logger.error(`Failed to handle send_broker_fcm_notification: ${(error as Error).message}`);
         }
       }
     });
@@ -364,6 +380,74 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     return { success: true };
   }
 
+  async sendFcmNotification(brokerCode: string, title: string, body: string, data?: Record<string, string>, tokens?: string[]) {
+    if (!brokerCode || !title || !body) {
+      this.logger.warn('Missing required fields for FCM notification');
+      return { success: false, message: 'Missing required fields' };
+    }
+
+    try {
+      if (admin.apps.length === 0) {
+        const credential = admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        });
+        admin.initializeApp({ credential });
+      }
+
+      const validTokens = (tokens || []).filter(t => t && t.trim().length > 0);
+
+      if (validTokens.length === 0) {
+        this.logger.warn(`No active FCM tokens found for broker ${brokerCode}`);
+        await this.saveNotification({ type: 'fcm', channel: 'fcm', title, content: body, recipient: brokerCode, result: { success: false, error: 'No active FCM tokens' }, brokerCode });
+        return { success: false, message: 'No active FCM tokens' };
+      }
+
+      const messagePromises = validTokens.map(async (fcmToken) => {
+        try {
+          const message: admin.messaging.Message = {
+            token: fcmToken,
+            notification: { title, body },
+            data: data || {},
+            android: {
+              priority: 'high',
+              notification: { channelId: 'zcanopy_channel', priority: 'high' },
+            },
+            apns: {
+              payload: { aps: { sound: 'default', badge: 1 } },
+            },
+          };
+
+          const response = await admin.messaging().send(message);
+          return { success: true, messageId: response };
+        } catch (error) {
+          this.logger.error(`Failed to send FCM to token ${fcmToken.substring(0, 10)}...: ${(error as Error).message}`);
+          return { success: false, error: (error as Error).message };
+        }
+      });
+
+      const results = await Promise.all(messagePromises);
+      const successCount = results.filter(r => r.success).length;
+
+      await this.saveNotification({
+        type: 'fcm',
+        channel: 'fcm',
+        title,
+        content: body,
+        recipient: brokerCode,
+        result: { success: successCount > 0, messageId: String(successCount) },
+        brokerCode,
+      });
+
+      return { success: successCount > 0, message: `Sent to ${successCount}/${validTokens.length} devices` };
+    } catch (error) {
+      this.logger.error(`sendFcmNotification failed for broker ${brokerCode}: ${(error as Error).message}`);
+      await this.saveNotification({ type: 'fcm', channel: 'fcm', title, content: body, recipient: brokerCode, result: { success: false, error: (error as Error).message }, brokerCode });
+      return { success: false, message: (error as Error).message };
+    }
+  }
+
   async getNotifications(query: {
     page?: number;
     limit?: number;
@@ -457,45 +541,41 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   }
 
   // ---------------------------------------------------------------------------
-  // Transport implementations (Brevo SMS + Render Email)
+  // Transport implementations (Brevo SMS + Resend Email)
   // ---------------------------------------------------------------------------
 
   private async dispatchEmail(to: string, subject: string, body: string): Promise<DispatchResult> {
-    if (!this.renderApiKey) {
-      this.logger.warn('Render API key not configured, skipping email dispatch');
-      return { success: false, error: 'Render API key not configured' };
+    if (!this.resendApiKey) {
+      this.logger.warn('Resend API key not configured, skipping email dispatch');
+      return { success: false, error: 'Resend API key not configured' };
     }
 
     try {
-      const response = await axios.post(
-        `${this.renderApiUrl}/ostriches`,
-        {
-          from: this.renderFromEmail,
-          to,
-          subject,
-          html_body: body,
-          text_body: this.stripHtml(body),
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.renderApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          timeout: 20000,
-        }
-      );
+      const resend = new Resend(this.resendApiKey);
+      const { data, error } = await resend.emails.send({
+        from: this.resendFromEmail,
+        to,
+        subject,
+        html: body,
+        text: this.stripHtml(body),
+      });
 
-      const messageId = response.data?.uuid || response.data?.id;
-      if (messageId) {
-        this.logger.log(`Email sent successfully to ${to}`);
-        return { success: true, messageId: String(messageId) };
+      if (error) {
+        this.logger.error(`Failed to send email to ${to}: ${error.message}`);
+        return { success: false, error: error.message };
       }
 
-      const error = `Email dispatch unexpected response for ${to}: ${JSON.stringify(response.data)}`;
-      this.logger.warn(error);
-      return { success: false, error };
+      const messageId = data?.id;
+      if (messageId) {
+        this.logger.log(`Email sent successfully to ${to}`);
+        return { success: true, messageId };
+      }
+
+      const errorMessage = `Email dispatch unexpected response for ${to}: ${JSON.stringify(data)}`;
+      this.logger.warn(errorMessage);
+      return { success: false, error: errorMessage };
     } catch (error) {
-      const errorMessage = (error as any).response?.data?.message || (error as Error).message;
+      const errorMessage = (error as Error).message;
       this.logger.error(`Failed to send email to ${to}: ${errorMessage}`);
       return { success: false, error: errorMessage };
     }

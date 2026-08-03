@@ -84,4 +84,14 @@ export class BrokerController {
   async submitFeedback(@Body() body: any) {
     return this.proxyService.forwardToBroker('SubmitBrokerFeedback', body);
   }
+
+  @Post('fcm-token')
+  @ApiOperation({ summary: 'Save or update broker FCM push token' })
+  async saveFcmToken(@Body() body: any) {
+    return this.proxyService.forwardToBroker('SaveBrokerFcmToken', {
+      brokerCode: body.brokerCode,
+      fcmToken: body.fcmToken,
+      deviceId: body.deviceId,
+    });
+  }
 }

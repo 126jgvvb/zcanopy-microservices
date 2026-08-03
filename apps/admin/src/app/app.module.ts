@@ -5,7 +5,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AdminController } from './admin.controller';
-import { AdminService } from './admin.service';
+import { AdminService, REDIS_CLIENT_PROVIDER } from './admin.service';
 import { DashaordEntity } from '../entity/dashboard.entity';
 import { AdminEntity } from '../entity/admin.entity';
 import { InvitationCodeEntity } from '../entity/invitation-code.entity';
@@ -13,8 +13,6 @@ import { LogEntity } from '../entity/log.entity';
 import { AdminMessageEntity } from '../entity/admin-message.entity';
 import { join } from 'path';
 import Redis from 'ioredis';
-
-export const REDIS_CLIENT_PROVIDER = 'REDIS_CLIENT_PROVIDER';
 
 @Module({
   imports: [
@@ -34,50 +32,61 @@ export const REDIS_CLIENT_PROVIDER = 'REDIS_CLIENT_PROVIDER';
       }),
     }),
     TypeOrmModule.forFeature([DashaordEntity, AdminEntity, InvitationCodeEntity, LogEntity, AdminMessageEntity]),
-    ClientsModule.register([
+    ClientsModule.registerAsync([
       {
         name: 'REDIS_CLIENT',
-        transport: Transport.REDIS,
-        options: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: Number(process.env.REDIS_PORT) || 6379,
-        },
+        useFactory: () => ({
+          transport: Transport.REDIS,
+          options: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: Number(process.env.REDIS_PORT) || 6379,
+            password: process.env.REDIS_PASSWORD || undefined,
+          },
+        }),
       },
       {
         name: 'BROKER_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.BROKER_SERVICE_URL || 'localhost:50051',
-          package: 'broker',
-          protoPath: join(__dirname, 'proto/broker.proto'),
-        },
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.BROKER_SERVICE_URL || 'localhost:50051',
+            package: 'broker',
+            protoPath: join(__dirname, '../../broker/src/proto/broker.proto'),
+          },
+        }),
       },
       {
         name: 'PROPERTY_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.PROPERTY_SERVICE_URL || 'localhost:50052',
-          package: 'property',
-          protoPath: join(__dirname, 'proto/property.proto'),
-        },
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.PROPERTY_SERVICE_URL || 'localhost:50052',
+            package: 'property',
+            protoPath: join(__dirname, '../../property/src/proto/property.proto'),
+          },
+        }),
       },
       {
         name: 'PAYMENT_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.PAYMENT_SERVICE_URL || 'localhost:50053',
-          package: 'payment',
-          protoPath: join(__dirname, 'proto/payment.proto'),
-        },
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.PAYMENT_SERVICE_URL || 'localhost:50053',
+            package: 'payment',
+            protoPath: join(__dirname, '../../payment/src/proto/payment.proto'),
+          },
+        }),
       },
       {
         name: 'AUTH_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.AUTH_SERVICE_URL || 'localhost:50050',
-          package: 'auth',
-          protoPath: join(__dirname, 'proto/auth.proto'),
-        },
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.AUTH_SERVICE_URL || 'localhost:50050',
+            package: 'auth',
+            protoPath: join(__dirname, '../../auth-server/src/proto/auth.proto'),
+          },
+        }),
       },
     ]),
   ],
@@ -91,59 +100,9 @@ export const REDIS_CLIENT_PROVIDER = 'REDIS_CLIENT_PROVIDER';
         new Redis({
           host: process.env.REDIS_HOST || 'localhost',
           port: Number(process.env.REDIS_PORT) || 6379,
+          password: process.env.REDIS_PASSWORD || undefined,
         }),
     },
   ],
 })
 export class AppModule {}
-
-
-
-/*
-@Module({
-  imports: [
-    TypeOrmModule.forFeature([DashaordEntity, AdminEntity, InvitationCodeEntity, LogEntity, AdminMessageEntity]),
-    ClientsModule.register([
-      {
-        name: 'REDIS_CLIENT',
-        transport: Transport.REDIS,
-        options: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: Number(process.env.REDIS_PORT) || 6379,
-        },
-      },
-      {
-        name: 'BROKER_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.BROKER_SERVICE_URL || 'localhost:50051',
-          package: 'broker',
-          protoPath: require('path').join(__dirname, '../../broker/src/proto/broker.proto'),
-        },
-      },
-      {
-        name: 'PROPERTY_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.PROPERTY_SERVICE_URL || 'localhost:50052',
-          package: 'property',
-          protoPath: require('path').join(__dirname, '../../property/src/proto/property.proto'),
-        },
-      },
-      {
-        name: 'PAYMENT_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.PAYMENT_SERVICE_URL || 'localhost:50053',
-          package: 'payment',
-          protoPath: require('path').join(__dirname, '../../payment/src/proto/payment.proto'),
-        },
-      },
-    ]),
-  ],
-  controllers: [AppController, AdminController],
-  providers: [AppService, AdminService],
-})
-export class AppModule {}
-
-*/

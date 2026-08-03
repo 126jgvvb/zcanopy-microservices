@@ -22,44 +22,68 @@ function clientMock() {
 
 describe('AdminService - getNotifications', () => {
   let service: AdminService;
+  let adminMessageRepo: any;
   let redisClient: any;
   let subscriber: any;
 
   beforeEach(async () => {
     subscriber = { subscribe: jest.fn(), on: jest.fn(), quit: jest.fn() };
     MockRedis.mockImplementation(() => subscriber);
-    const repos = [repoMock(), repoMock(), repoMock(), repoMock(), repoMock()];
+    const adminRepo = repoMock();
+    adminMessageRepo = repoMock();
+    const invitationRepo = repoMock();
+    const logRepo = repoMock();
+    const dashboardRepo = repoMock();
     redisClient = { emit: jest.fn(() => of(undefined)) };
-    const clients = [clientMock(), clientMock(), clientMock()];
-    service = new AdminService(...repos, redisClient, ...clients);
+    const clients = [clientMock(), clientMock(), clientMock(), clientMock(), clientMock()];
+    service = new AdminService(
+      adminRepo,
+      dashboardRepo,
+      invitationRepo,
+      logRepo,
+      adminMessageRepo,
+      redisClient,
+      ...clients,
+    );
     await service.onModuleInit();
   });
 
-  it('requests notifications over redis and resolves the response', async () => {
-    const promise = service.getNotifications({ page: 1, limit: 20, status: 'sent' });
+  it('queries notifications with filters and pagination', async () => {
+    adminMessageRepo.findAndCount.mockResolvedValue([
+      [{ id: 'n1', status: 'sent', type: 'otp', channel: 'email' }],
+      1,
+    ]);
 
-    expect(redisClient.emit).toHaveBeenCalledWith(
-      'get_notifications',
-      expect.objectContaining({ page: 1, limit: 20, status: 'sent', responseChannel: 'notifications_report' }),
+    const res = await service.getNotifications({ page: 1, limit: 20, status: 'sent' });
+
+    expect(adminMessageRepo.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: 'sent' },
+        order: { sentAt: 'DESC' },
+        skip: 0,
+        take: 20,
+      }),
     );
-
-    const requestId = (redisClient.emit.mock.calls[0][1] as any).requestId;
-    const handler = (subscriber.on.mock.calls.find((c: any[]) => c[0] === 'message') as any[])[1];
-    await handler(
-      'notifications_report',
-      JSON.stringify({ requestId, notifications: [{ id: 'n1' }], total: 1, page: 1, limit: 20 }),
-    );
-
-    const res = await promise;
-    expect(res.total).toBe(1);
-    expect(res.notifications[0].id).toBe('n1');
+    expect(res).toEqual({
+      notifications: [{ id: 'n1', status: 'sent', type: 'otp', channel: 'email' }],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
   });
 
-  it('rejects when the notification service does not respond in time', async () => {
-    jest.useFakeTimers();
-    const promise = service.getNotifications({ page: 1, limit: 20 });
-    jest.advanceTimersByTime(6000);
-    await expect(promise).rejects.toThrow(/Timeout/);
-    jest.useRealTimers();
+  it('applies default pagination when page/limit are missing', async () => {
+    adminMessageRepo.findAndCount.mockResolvedValue([[], 0]);
+
+    const res = await service.getNotifications({});
+
+    expect(adminMessageRepo.findAndCount).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {},
+        skip: 0,
+        take: 20,
+      }),
+    );
+    expect(res).toEqual({ notifications: [], total: 0, page: 1, limit: 20 });
   });
 });

@@ -16,6 +16,12 @@ export interface ProcessPaymentDto {
   brokerCode: string;
 }
 
+export interface ProcessCustomerPaymentDto {
+  phoneNumber: string;
+  amount: number;
+  userId: string;
+}
+
 export interface ProcessPropertyPaymentDto {
   customerPhone: string;
   customerEmail: string;
@@ -70,6 +76,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
     this.subscriber = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
       port: Number(process.env.REDIS_PORT) || 6379,
+      password: process.env.REDIS_PASSWORD || undefined,
     });
 
     this.subscriber.subscribe('create_broker_wallet', (err) => {
@@ -206,6 +213,80 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
         createdAt: new Date(),
         paymentStatus: 'FAILED',
         reasonForPayment: `Subscription upgrade to ${dto.tier}`,
+      });
+
+      await this.transactionRepo.save(failedTransaction);
+
+      return {
+        success: false,
+        message: `Payment processing failed: ${(error as Error).message}`,
+        transactionId: failedTransaction.id,
+        referenceNumber,
+      };
+    }
+  }
+
+  async processCustomerPayment(dto: ProcessCustomerPaymentDto): Promise<{
+    success: boolean;
+    message: string;
+    transactionId?: string;
+    referenceNumber?: string;
+  }> {
+    const externalId = `collect-cust-${dto.userId}-${Date.now()}`;
+    const referenceNumber = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+    try {
+      const collectResult = await firstValueFrom(
+        this.httpService.post(`${IOTEC_BASE_URL}/iotec/collect`, {
+          amount: dto.amount,
+          payer: dto.phoneNumber,
+          externalId,
+          payerNote: 'Customer payment',
+          payeeNote: dto.userId,
+          currency: 'UGX',
+          category: 'MobileMoney',
+          walletId: IOTEC_WALLET_ID,
+          transactionChargesCategory: 'ChargeWallet',
+        }),
+      );
+
+      const iotecStatus = collectResult.data?.status || 'Pending';
+      const isSuccess = iotecStatus === 'Success' || collectResult.data?.code;
+
+      const transaction = this.transactionRepo.create({
+        propertyID: dto.userId,
+        clientPhone: dto.phoneNumber,
+        provider: 'iotec-collection',
+        referenceNumber,
+        amount: collectResult.data?.amount || dto.amount,
+        platformCommission: 0,
+        createdAt: new Date(),
+        paymentStatus: isSuccess ? 'SUCCESS' : 'PENDING',
+        reasonForPayment: 'Customer payment',
+      });
+
+      const saved = await this.transactionRepo.save(transaction);
+      this.logger.log(`Processed customer payment for user ${dto.userId}: ${referenceNumber}, iotec status: ${iotecStatus}`);
+
+      return {
+        success: isSuccess,
+        message: isSuccess ? 'Payment processed successfully' : 'Payment is being processed',
+        transactionId: saved.id,
+        referenceNumber: saved.referenceNumber,
+      };
+    } catch (error) {
+      this.logger.error(`Customer payment failed for user ${dto.userId}: ${(error as Error).message}`);
+
+      const failedTransaction = this.transactionRepo.create({
+        propertyID: dto.userId,
+        clientPhone: dto.phoneNumber,
+        provider: 'iotec-collection',
+        referenceNumber,
+        amount: dto.amount,
+        platformCommission: 0,
+        createdAt: new Date(),
+        paymentStatus: 'FAILED',
+        reasonForPayment: 'Customer payment',
       });
 
       await this.transactionRepo.save(failedTransaction);

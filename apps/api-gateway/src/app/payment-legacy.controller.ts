@@ -6,30 +6,35 @@ import {
   Body,
   Query,
 } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ProxyService } from './proxy.service';
+import { lastValueFrom } from 'rxjs';
 
 @ApiTags('payment')
 @Controller('payment')
 export class PaymentLegacyController {
   private readonly logger = new Logger(PaymentLegacyController.name);
+  private readonly iotecBaseUrl = process.env.IOTEC_SERVICE_URL || 'http://localhost:2000';
 
-  constructor(private readonly proxyService: ProxyService) {}
+  constructor(
+    private readonly proxyService: ProxyService,
+    private readonly httpService: HttpService,
+  ) {}
 
+  /*confirmed*/
   @Post('initiate_payment')
   @ApiOperation({ summary: 'Initiate a mobile-money payment' })
   async initiatePayment(@Body() body: any) {
-    this.logger.log('Initiate payment request via gateway');
-    return this.proxyService.forwardToPayment('ProcessSubscriptionPayment', {
+    this.logger.log('Initiate customer payment request via gateway');
+    return this.proxyService.forwardToPayment('ProcessCustomerPayment', {
       phoneNumber: body.phoneNumber,
-      tier: body.tier,
       amount: Number(body.amount) || 0,
-      brokerId: body.userId ?? body.brokerId,
-      brokerCode: body.brokerCode,
+      userId: body.userId ?? body.userID,
     });
   }
 
-  @Get('get_transaction_records')
+  @Get('get_transaction_records')//confirmed
   @ApiOperation({ summary: "Get a user's transaction records" })
   async getTransactionRecords(
     @Query('user_id') userId: string,
@@ -44,7 +49,7 @@ export class PaymentLegacyController {
     });
   }
 
-  @Get('get_payment_status')
+  @Get('get_payment_status')//confirmed
   @ApiOperation({ summary: 'Get the status of a payment transaction' })
   async getPaymentStatus(@Query('transaction_id') transactionId: string) {
     this.logger.log(`Get payment status for ${transactionId}`);
@@ -53,5 +58,20 @@ export class PaymentLegacyController {
       limit: 50,
       brokerId: transactionId,
     });
+  }
+
+  @Get('access-token') //confirmed
+  @ApiOperation({ summary: 'Get iotec access token' })
+  async getAccessToken() {
+    this.logger.log('Get iotec access token');
+    try {
+      const response = await lastValueFrom(
+        this.httpService.get(`${this.iotecBaseUrl}/payment/access-token`),
+      );
+      return response.data;
+    } catch (error: any) {
+      this.logger.error(`Failed to get access token: ${error.message}`);
+      throw error;
+    }
   }
 }

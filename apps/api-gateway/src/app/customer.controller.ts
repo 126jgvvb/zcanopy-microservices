@@ -23,14 +23,14 @@ export class CustomerController {
     });
   }
 
-  @Get('properties')
+  @Get('properties') //confirmed
   @ApiOperation({ summary: 'Get nearby properties for customer' })
   async getCustomerProperties(@Query() query: any) {
     const mapped = this.mapSessionId(query);
     return this.proxyService.forwardToProperty('GetCustomerProperties', mapped);
   }
 
-  @Post('properties/access-payment')
+  @Post('properties/access-payment')//confirmed
   @ApiOperation({ summary: 'Initiate payment for broker property access' })
   async initiatePropertyAccessPayment(@Body() body: any) {
     if (body.sessionID && !body.sessionToken) {
@@ -39,14 +39,14 @@ export class CustomerController {
     return this.proxyService.forwardToProperty('InitiatePropertyAccessPayment', body);
   }
 
-  @Get('broker-properties')
+  @Get('broker-properties') //confirmed
   @ApiOperation({ summary: 'Get broker properties for authorized customer' })
   async getBrokerPropertiesForCustomer(@Query() query: any) {
     const mapped = this.mapSessionId(query);
     return this.proxyService.forwardToProperty('GetBrokerPropertiesForCustomer', mapped);
   }
 
-  @Post('bookings')
+  @Post('bookings') //confirmed
   @ApiOperation({ summary: 'Create customer booking' })
   async createCustomerBooking(@Body() body: any) {
     if (body.sessionID && !body.sessionToken) {
@@ -55,7 +55,25 @@ export class CustomerController {
     return this.proxyService.forwardToProperty('CreateCustomerBooking', body);
   }
 
-  @Get('properties/:id/details')
+  @Post('bookings/retrieve')//confirmed
+  @ApiOperation({ summary: 'Retrieve booking by code and phone' })
+  async retrieveBooking(@Body() body: any) {
+    if (body.code) body.transactionCode = body.code;
+    if (body.phoneNumber) body.customerPhone = body.phoneNumber;
+    return this.proxyService.forwardToProperty('GetBookingByCode', body);
+  }
+
+  @Post('payments/retrieve')//confirmed
+  @ApiOperation({ summary: 'Retrieve payment by code and phone' })
+  async retrievePayment(@Body() body: any) {
+    return this.proxyService.forwardToPayment('GetTransactions', {
+      page: 1,
+      limit: 10,
+      brokerId: body.code,
+    });
+  }
+
+  @Get('properties/:id/details') //confirmed
   @ApiOperation({ summary: 'Get property details for customer' })
   async getPropertyDetailsForCustomer(@Query() query: any) {
     const mapped = this.mapSessionId(query);

@@ -66,11 +66,11 @@ export class BrokerEntity{
  @Column()
  isPhoneVerified!: boolean;
 
- @Column()
- bookings!: BrokerBooking[];
+  @Column({ type: 'json', nullable: true })
+  bookings!: BrokerBooking[];
 
- @Column()
- messages!: BrokerMessage[];
+  @Column({ type: 'json', nullable: true })
+  messages!: BrokerMessage[];
 
  @Column()
  location!:string;
@@ -99,8 +99,8 @@ export class BrokerEntity{
  @Column()
  paymentProofCode!:string;
 
- @Column()
- ninImages!: string[];
+  @Column({ type: 'json', nullable: true })
+  ninImages!: string[];
 
  @Column()
  brokerImage!:string;
@@ -123,7 +123,7 @@ export class BrokerEntity{
   @Column({ default: true })
   bookingNotificationsEnabled?:boolean;
 
-  @Column({ nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   subscriptionExpiresAt?: Date | null;
 
 }

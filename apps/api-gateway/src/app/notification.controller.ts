@@ -17,10 +17,11 @@ export class NotificationController {
 
   constructor(private readonly proxyService: ProxyService) {}
 
-  private extractSession(source: any): { sessionToken?: string; sessionId?: string } {
+  private extractSession(source: any): { sessionToken?: string; sessionId?: string; brokerCode?: string } {
     return {
       sessionToken: source?.sessionToken ?? source?.sessionID,
       sessionId: source?.sessionId,
+      brokerCode: source?.brokerCode,
     };
   }
 
@@ -34,11 +35,12 @@ export class NotificationController {
       status: query.status,
       type: query.type,
       channel: query.channel,
+      brokerCode: query.brokerCode,
       read: typeof query.read === 'string' ? query.read === 'true' : undefined,
     });
   }
 
-  @Post('get_notifications')
+  @Post('get_notifications')  //confirmed
   @ApiOperation({ summary: 'Get notifications for the authenticated broker session (POST body)' })
   async getNotifications(@Body() body: any) {
     return this.proxyService.forwardToNotification('get_notifications', {
@@ -48,15 +50,17 @@ export class NotificationController {
       status: body.status,
       type: body.type,
       channel: body.channel,
+      brokerCode: body.brokerCode,
       read: body.read,
     });
   }
 
-  @Post('mark_as_read')
+  @Post('mark_as_read') //confirmed
   @ApiOperation({ summary: 'Mark one, many, or all of the broker session\'s notifications as read' })
   async markAsRead(@Body() body: any) {
     return this.proxyService.forwardToNotification('mark_as_read', {
       ...this.extractSession(body),
+      brokerCode: body.brokerCode,
       id: body.id,
       ids: body.ids,
       all: body.all,

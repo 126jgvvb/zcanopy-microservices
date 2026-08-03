@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -14,71 +15,48 @@ import { join } from 'path';
 @Module({
   imports: [
     HttpModule,
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 5432,
-      username: process.env.DB_USER || 'rental',
-      password: process.env.DB_PASSWORD || 'rental123',
-      database: process.env.DB_NAME || 'rentaldb',
-      entities: [PropertyEntity, CustomerSearchEntity, CustomerPropertyAccessEntity],
-      synchronize: true,
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST') || 'localhost',
+        port: parseInt(config.get<string>('DB_PORT') || '5432'),
+        username: config.get<string>('DB_USERNAME') || 'rental',
+        password: config.get<string>('DB_PASSWORD') || 'rental123',
+        database: config.get<string>('DB_DATABASE') || 'rentaldb',
+        entities: [PropertyEntity, CustomerSearchEntity, CustomerPropertyAccessEntity],
+        synchronize: true,
+      }),
     }),
     TypeOrmModule.forFeature([PropertyEntity, CustomerSearchEntity, CustomerPropertyAccessEntity]),
-    ClientsModule.register([
+    
+    ClientsModule.registerAsync([
       {
         name: 'AUTH_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.AUTH_SERVICE_URL || 'localhost:50055',
-          package: 'auth',
-          protoPath: join(__dirname, 'proto/auth.proto'),
-        },
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.AUTH_SERVICE_URL || 'localhost:50055',
+            package: 'auth',
+            protoPath: join(__dirname, '../../auth-server/src/proto/auth.proto'),
+          },
+        }),
       },
       {
         name: 'BROKER_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.BROKER_SERVICE_URL || 'localhost:50051',
-          package: 'broker',
-          protoPath: join(__dirname, 'proto/broker.proto'),
-        },
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.BROKER_SERVICE_URL || 'localhost:50051',
+            package: 'broker',
+            protoPath: join(__dirname, '../../broker/src/proto/broker.proto'),
+          },
+        }),
       },
-    ]),
+]),
   ],
   controllers: [AppController, PropertyController],
   providers: [AppService, PropertyService],
 })
 export class AppModule {}
-
-/*
-@Module({
-  imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 5432,
-      username: process.env.DB_USER || 'rental',
-      password: process.env.DB_PASSWORD || 'rental123',
-      database: process.env.DB_NAME || 'rentaldb',
-      entities: [PropertyEntity, CustomerSearchEntity],
-      synchronize: true,
-    }),
-    TypeOrmModule.forFeature([PropertyEntity, CustomerSearchEntity]),
-    ClientsModule.register([
-      {
-        name: 'AUTH_CLIENT',
-        transport: Transport.GRPC,
-        options: {
-          url: process.env.AUTH_SERVICE_URL || 'localhost:50055',
-          package: 'auth',
-          protoPath: require('path').join(__dirname, '../../auth-server/src/proto/auth.proto'),
-        },
-      },
-    ]),
-  ],
-  controllers: [AppController, PropertyController],
-  providers: [AppService, PropertyService],
-})
-export class AppModule {}
-*/

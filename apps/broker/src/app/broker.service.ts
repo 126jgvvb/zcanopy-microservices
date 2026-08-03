@@ -5,6 +5,7 @@ import { BrokerEntity } from '../entity/broker.entity';
 import { PayoutsEntity } from '../entity/payouts.entity';
 import { BrokerWalletTransactionEntity } from '../entity/broker-wallet-transaction.entity';
 import { BrokerFeedbackEntity } from '../entity/broker-feedback.entity';
+import { BrokerFcmTokenEntity } from '../entity/broker-fcm-token.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientProxy } from '@nestjs/microservices';
@@ -59,6 +60,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             private readonly _walletTransactionRepo:Repository<BrokerWalletTransactionEntity>,
             @InjectRepository(BrokerFeedbackEntity)
             private readonly feedbackRepo:Repository<BrokerFeedbackEntity>,
+            @InjectRepository(BrokerFcmTokenEntity)
+            private readonly fcmTokenRepo:Repository<BrokerFcmTokenEntity>,
             @Inject('REDIS_CLIENT') private readonly redisClient:ClientProxy,
             @Inject('PROPERTY_CLIENT') private readonly propertyClient: ClientProxy,
             @Inject('PAYMENT_CLIENT') private readonly paymentClient: ClientProxy,
@@ -71,6 +74,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             this.subscriber = new Redis({
                 host: process.env.REDIS_HOST || 'localhost',
                 port: Number(process.env.REDIS_PORT) || 6379,
+                password: process.env.REDIS_PASSWORD || undefined,
             });
 
             this.subscriber.subscribe('broker_approved', (err) => {
@@ -103,6 +107,18 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 }
             });
 
+            this.subscriber.subscribe('broker_property_updated', (err) => {
+                if (err) {
+                    console.error('Failed to subscribe to broker_property_updated', err);
+                }
+            });
+
+            this.subscriber.subscribe('broker_property_deleted', (err) => {
+                if (err) {
+                    console.error('Failed to subscribe to broker_property_deleted', err);
+                }
+            });
+
             this.subscriber.on('message', async (channel, message) => {
                 if (channel === 'broker_approved') {
                     const data = JSON.parse(message);
@@ -119,6 +135,12 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 } else if (channel === 'broker_booking_created') {
                     const data = JSON.parse(message);
                     await this.handleBrokerBookingCreated(data);
+                } else if (channel === 'broker_property_updated') {
+                    const data = JSON.parse(message);
+                    await this.handleBrokerPropertyUpdated(data);
+                } else if (channel === 'broker_property_deleted') {
+                    const data = JSON.parse(message);
+                    await this.handleBrokerPropertyDeleted(data);
                 }
             });
 
@@ -421,12 +443,13 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
     }
 
     @GrpcMethod('BrokerService', 'ProcessSubscriptionPayment')
-    async processSubscriptionPayment(dto: { phoneNumber: string; tier: string; brokerId: string }) {
+    async processSubscriptionPayment(dto: { phoneNumber?: string; tier: string; brokerId: string }) {
         const broker = await this.brokerRepo.findOne({ where: { id: dto.brokerId } });
         if (!broker) {
             throw new NotFoundException(`Broker with id ${dto.brokerId} not found`);
         }
 
+        const phoneNumber = dto.phoneNumber || broker.phoneNumber;
         const tierLimits = this.getSubscriptionLimits(dto.tier);
         const amount = this.getTierPrice(dto.tier);
 
@@ -434,7 +457,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             //initiating payment to the payment microservice
             const paymentResponse = await lastValueFrom(
                 this.paymentClient.send('process-subscription-payment', {
-                    phoneNumber: dto.phoneNumber,
+                    phoneNumber,
                     tier: dto.tier,
                     amount,
                     brokerId: dto.brokerId,
@@ -776,6 +799,88 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    async sendFcmNotification(brokerCode: string, title: string, body: string, data?: Record<string, string>) {
+        const tokens = await this.fcmTokenRepo.find({ where: { brokerCode, isActive: true } });
+        const validTokens = tokens.filter(t => t.fcmToken && t.fcmToken.trim().length > 0).map(t => t.fcmToken);
+
+        this.redisClient.emit('send_broker_fcm_notification', {
+            brokerCode,
+            title,
+            body,
+            data,
+            tokens: validTokens,
+            timestamp: new Date().toISOString(),
+        });
+    }
+
+    private async handleBrokerPropertyUpdated(data: { brokerCode: string; propertyId: string; title: string; location?: string }) {
+        const broker = await this.brokerRepo.findOne({ where: { brokerCode: data.brokerCode } });
+        if (!broker) {
+            this.logger.warn(`Broker ${data.brokerCode} not found for property update notification`);
+            return;
+        }
+
+        if (!broker.bookingNotificationsEnabled) {
+            return;
+        }
+
+        await this.sendFcmNotification(data.brokerCode, 'Property Updated', `Your property "${data.title}" has been updated.`, {
+            type: 'PROPERTY_UPDATED',
+            propertyId: data.propertyId,
+            title: data.title,
+        });
+    }
+
+    private async handleBrokerPropertyDeleted(data: { brokerCode: string; propertyId: string; title: string }) {
+        const broker = await this.brokerRepo.findOne({ where: { brokerCode: data.brokerCode } });
+        if (!broker) {
+            this.logger.warn(`Broker ${data.brokerCode} not found for property delete notification`);
+            return;
+        }
+
+        if (!broker.bookingNotificationsEnabled) {
+            return;
+        }
+
+        await this.sendFcmNotification(data.brokerCode, 'Property Removed', `Your property "${data.title}" has been removed.`, {
+            type: 'PROPERTY_DELETED',
+            propertyId: data.propertyId,
+            title: data.title,
+        });
+    }
+
+    @GrpcMethod('BrokerService', 'SaveBrokerFcmToken')
+    async saveBrokerFcmToken(dto: { brokerCode: string; fcmToken: string; deviceId?: string }) {
+        const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+        if (!broker) {
+            throw new NotFoundException(`Broker with code ${dto.brokerCode} not found`);
+        }
+
+        const existing = await this.fcmTokenRepo.findOne({ where: { fcmToken: dto.fcmToken } });
+
+        if (existing) {
+            await this.fcmTokenRepo.update(existing.id, {
+                brokerCode: dto.brokerCode,
+                deviceId: dto.deviceId ?? existing.deviceId,
+                isActive: true,
+                lastUsedAt: new Date(),
+                updatedAt: new Date(),
+            });
+            return { success: true, message: 'FCM token updated' };
+        }
+
+        const token = this.fcmTokenRepo.create({
+            brokerCode: dto.brokerCode,
+            fcmToken: dto.fcmToken,
+            deviceId: dto.deviceId,
+            isActive: true,
+            lastUsedAt: new Date(),
+        });
+
+        await this.fcmTokenRepo.save(token);
+        return { success: true, message: 'FCM token saved' };
+    }
+
     private getTierPrice(tier: string): number {
         switch (tier) {
             case 'fibrous':
@@ -895,6 +1000,14 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             transactionCode: data.transactionCode,
             timestamp: new Date().toISOString(),
         });
+
+        await this.sendFcmNotification(data.brokerCode, 'Property Payment Received', `You received a payment of UGX ${data.amount} for a property. Net amount: UGX ${data.netAmount}.`, {
+            type: 'PROPERTY_PAYMENT',
+            propertyId: data.propertyId,
+            amount: String(data.amount),
+            netAmount: String(data.netAmount),
+            transactionCode: data.transactionCode,
+        });
     }
 
     private async handleBrokerBookingCreated(data: { brokerCode: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; amount: number; transactionCode: string }) {
@@ -919,6 +1032,14 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             amount: data.amount,
             transactionCode: data.transactionCode,
             timestamp: new Date().toISOString(),
+        });
+
+        await this.sendFcmNotification(data.brokerCode, 'New Booking Created', `New booking for ${data.propertyTitle} by ${data.customerName}. Amount: UGX ${data.amount}.`, {
+            type: 'BOOKING_CREATED',
+            propertyId: data.propertyId,
+            propertyTitle: data.propertyTitle,
+            amount: String(data.amount),
+            transactionCode: data.transactionCode,
         });
     }
 

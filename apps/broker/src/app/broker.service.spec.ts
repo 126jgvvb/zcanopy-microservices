@@ -32,6 +32,7 @@ describe('BrokerService', () => {
     payoutsRepo = repoMock();
     walletTxRepo = repoMock();
     const feedbackRepo = repoMock();
+    const fcmTokenRepo = repoMock();
     clients = { redis: client(), property: client(), payment: client(), admin: client() };
     const otpStore = { generateAndStore: jest.fn(), verify: jest.fn(), ttlSeconds: 300 } as any;
     service = new BrokerService(
@@ -39,6 +40,7 @@ describe('BrokerService', () => {
       payoutsRepo,
       walletTxRepo,
       feedbackRepo,
+      fcmTokenRepo,
       clients.redis,
       clients.property,
       clients.payment,

@@ -5,6 +5,7 @@
 
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app/app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { join } from 'path';
@@ -14,7 +15,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
-  const port = process.env.PORT || 3000;
+  const configService = app.get(ConfigService);
+  const port = configService.get<number>('PORT') || 3003;
 
   //gRDC config
 app.connectMicroservice<MicroserviceOptions>({
@@ -22,7 +24,7 @@ app.connectMicroservice<MicroserviceOptions>({
   options: {
     host: `0.0.0.0:${port}`,
     package:"broker",
-    protoPath: join(__dirname, 'proto/broker.proto'),
+    protoPath: join(__dirname, '../../broker/src/proto/broker.proto'),
   },
 },);
 
@@ -31,8 +33,9 @@ app.connectMicroservice<MicroserviceOptions>({
 app.connectMicroservice<MicroserviceOptions>({
   transport: Transport.REDIS,
   options: {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: Number(process.env.REDIS_PORT) || 6379,
+    host: configService.get<string>('REDIS_HOST') || 'localhost',
+    port: Number(configService.get<string>('REDIS_PORT') || '6379'),
+    password: configService.get<string>('REDIS_PASSWORD') || undefined,
   },
 },);
 
