@@ -5,19 +5,19 @@ export class BrokerFeedbackEntity {
   @PrimaryGeneratedColumn()
   id!: string;
 
-  @Column()
+  @Column({default:''})
   brokerCode!: string;
 
-  @Column()
+  @Column({default:''})
   brokerId!: string;
 
-  @Column()
+  @Column({default:''})
   email!: string;
 
-  @Column()
+  @Column({default:''})
   phone!: string;
 
-  @Column({ type: 'text' })
+  @Column({type:'text',default:''})
   content!: string;
 
   @Column({ default: 'pending' })

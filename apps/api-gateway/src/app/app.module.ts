@@ -29,7 +29,7 @@ import { join } from 'path';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/api-gateway/.env' }),
     HttpModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'zcanopy-secret-key-change-in-production',
@@ -41,9 +41,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.AUTH_SERVICE_URL || 'localhost:50050',
-            package: 'auth',
-            protoPath: join(__dirname, '../../auth-server/src/proto/auth.proto'),
+            url: process.env.AUTH_SERVICE_URL || 'localhost:3002',
+            package: 'auth.v1',
+            protoPath: join(process.cwd(), 'apps/auth-server/src/proto/auth.proto'),
           },
         }),
       },
@@ -52,9 +52,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.BROKER_SERVICE_URL || 'localhost:50051',
-            package: 'broker',
-            protoPath: join(__dirname, '../../broker/src/proto/broker.proto'),
+            url: process.env.BROKER_SERVICE_URL || 'localhost:3003',
+            package: 'broker.v1',
+            protoPath: join(process.cwd(), 'apps/broker/src/proto/broker.proto'),
           },
         }),
       },
@@ -63,9 +63,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.PROPERTY_SERVICE_URL || 'localhost:50052',
-            package: 'property',
-            protoPath: join(__dirname, '../../property/src/proto/property.proto'),
+            url: process.env.PROPERTY_SERVICE_URL || 'localhost:3004',
+            package: 'property.v1',
+            protoPath: join(process.cwd(), 'apps/property/src/proto/property.proto'),
           },
         }),
       },
@@ -74,9 +74,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.PAYMENT_SERVICE_URL || 'localhost:50053',
-            package: 'payment',
-            protoPath: join(__dirname, '../../payment/src/proto/payment.proto'),
+            url: process.env.PAYMENT_SERVICE_URL || 'localhost:3005',
+            package: 'payment.v1',
+            protoPath: join(process.cwd(), 'apps/payment/src/proto/payment.proto'),
           },
         }),
       },
@@ -85,9 +85,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.ADMIN_SERVICE_URL || 'localhost:50054',
-            package: 'admin',
-            protoPath: join(__dirname, '../../admin/src/proto/admin.proto'),
+            url: process.env.ADMIN_SERVICE_URL || 'localhost:3006',
+            package: 'admin.v1',
+            protoPath: join(process.cwd(), 'apps/admin/src/proto/admin.proto'),
           },
         }),
       },
@@ -96,8 +96,11 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.REDIS,
           options: {
-            host: process.env.NOTIFICATION_SERVICE_HOST || 'localhost',
-            port: Number(process.env.NOTIFICATION_SERVICE_PORT) || 6379,
+            host: process.env.REDIS_HOST || 'localhost',
+            port: Number(process.env.REDIS_PORT) || 6379,
+            password: process.env.REDIS_PASSWORD || undefined,
+            retryAttempts: 10,
+            retryDelay: 3000,
           },
         }),
       },

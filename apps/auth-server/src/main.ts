@@ -21,8 +21,8 @@ async function bootstrap() {
     options: {
       host: `0.0.0.0`,
       url: `0.0.0.0:${port}`,
-      package: 'auth',
-      protoPath: join(__dirname, '../../auth-server/src/proto/auth.proto'),
+      package: 'auth.v1',
+      protoPath: join(__dirname, './proto/auth.proto'),
     },
   });
 

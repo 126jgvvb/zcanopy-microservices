@@ -11,25 +11,25 @@ export class BrokerWalletTransactionEntity {
   @Column()
   brokerCode!: string;
 
-  @Column()
+@Column({default:''})
+  brokerId!: string;
+
+  @Column({default:''})
+  brokerCode!: string;
+
+  @Column({default:''})
   type!: string;
 
-  @Column()
+  @Column({default:0})
   amount!: number;
 
-  @Column()
+  @Column({default:0})
   balanceAfter!: number;
 
-  @Column()
-  referenceNumber?: string;
-
-  @Column()
-  transactionCode?: string;
-
-  @Column()
+  @Column({default:''})
   reason!: string;
 
-  @Column()
+  @Column({default:''})
   createdBy!: string;
 
   @CreateDateColumn()

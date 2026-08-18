@@ -81,6 +81,22 @@
       "name": "Customer",
       "item": [
         {
+          "name": "Issue Customer Session",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/customer/session",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"device-001\",\n  \"ttlSeconds\": 86400\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Get Customer Properties",
           "request": {
             "method": "GET",
@@ -551,6 +567,19 @@
             "method": "DELETE",
             "url": "{{baseUrl}}/properties/prop-123",
             "params": []
+          }
+        },
+        {
+          "name": "Get Property Clients",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/listings/get_property_clients",
+            "params": [
+              {
+                "key": "property_id",
+                "value": "prop-123"
+              }
+            ]
           }
         }
       ]
@@ -1501,6 +1530,80 @@
               }
             }
           }
+        },
+        {
+          "name": "Delete Broker Account",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/gate-way/delete-user-account",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"BROKER123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get User by Email",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/get-user-by-email",
+            "params": [
+              {
+                "key": "email",
+                "value": "broker@example.com"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Get User by Username",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/get-user-by-username",
+            "params": [
+              {
+                "key": "username",
+                "value": "broker_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "Request Reset Password OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/request-reset-password-otp",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"broker@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Request Account Deletion OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/users/request-account-deletion-otp",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"BROKER123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -1530,7 +1633,7 @@
             "url": "{{baseUrl}}/auth/dev-login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"dev@zcanopy.com\",\n  \"password\": \"dev123\"\n}",
+              "raw": "{\n  \"email\": \"admin@zcanopy.dev\",\n  \"password\": \"admin123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
+import { BrokerController } from './broker.controller';
 import { AppService } from './app.service';
 import { BrokerService } from './broker.service';
 import { BrokerEntity } from '../entity/broker.entity';
@@ -16,7 +17,7 @@ import { join } from 'path';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/broker/.env' }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -40,6 +41,9 @@ import { join } from 'path';
           options: {
             host: process.env.REDIS_HOST || 'localhost',
             port: Number(process.env.REDIS_PORT) || 6379,
+            password: process.env.REDIS_PASSWORD || undefined,
+            retryAttempts: 10,
+            retryDelay: 3000,
           },
         }),
       },
@@ -48,9 +52,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.PROPERTY_SERVICE_URL || 'localhost:50052',
-            package: 'property',
-            protoPath: join(__dirname, '../../property/src/proto/property.proto'),
+            url: process.env.PROPERTY_SERVICE_URL || 'localhost:3004',
+            package: 'property.v1',
+            protoPath: join(process.cwd(), 'apps/property/src/proto/property.proto'),
           },
         }),
       },
@@ -59,9 +63,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.PAYMENT_SERVICE_URL || 'localhost:50051',
-            package: 'payment',
-            protoPath: join(__dirname, '../../payment/src/proto/payment.proto'),
+            url: process.env.PAYMENT_SERVICE_URL || 'localhost:3005',
+            package: 'payment.v1',
+            protoPath: join(process.cwd(), 'apps/payment/src/proto/payment.proto'),
           },
         }),
       },
@@ -70,15 +74,15 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.ADMIN_SERVICE_URL || 'localhost:50053',
-            package: 'admin',
-            protoPath: join(__dirname, '../../admin/src/proto/admin.proto'),
+            url: process.env.ADMIN_SERVICE_URL || 'localhost:3006',
+            package: 'admin.v1',
+            protoPath: join(process.cwd(), 'apps/admin/src/proto/admin.proto'),
           },
         }),
       },
     ]),
   ],
-  controllers: [AppController],
+  controllers: [AppController,BrokerController],
   providers: [AppService, BrokerService, OtpStoreService, redisOtpProvider],
 })
 export class AppModule {}

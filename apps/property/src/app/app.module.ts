@@ -15,7 +15,7 @@ import { join } from 'path';
 @Module({
   imports: [
     HttpModule,
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/property/.env' }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -37,9 +37,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.AUTH_SERVICE_URL || 'localhost:50055',
-            package: 'auth',
-            protoPath: join(__dirname, '../../auth-server/src/proto/auth.proto'),
+            url: process.env.AUTH_SERVICE_URL || 'localhost:3002',
+            package: 'auth.v1',
+            protoPath: join(process.cwd(), 'apps/auth-server/src/proto/auth.proto'),
           },
         }),
       },
@@ -48,9 +48,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.BROKER_SERVICE_URL || 'localhost:50051',
-            package: 'broker',
-            protoPath: join(__dirname, '../../broker/src/proto/broker.proto'),
+            url: process.env.BROKER_SERVICE_URL || 'localhost:3003',
+            package: 'broker.v1',
+            protoPath: join(process.cwd(), 'apps/broker/src/proto/broker.proto'),
           },
         }),
       },

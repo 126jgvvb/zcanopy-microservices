@@ -19,6 +19,7 @@ service BrokerService{
   rpc GetWalletTransactions (GetWalletTransactionsRequest) returns (GetWalletTransactionsResponse);
   rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
   rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
+  rpc SaveBrokerFcmToken (SaveBrokerFcmTokenRequest) returns (SaveBrokerFcmTokenResponse);
   rpc RequestOtp (RequestOtpRequest) returns (RequestOtpResponse);
   rpc ResendOtp (ResendOtpRequest) returns (ResendOtpResponse);
   rpc LoginBroker (LoginBrokerRequest) returns (LoginBrokerResponse);
@@ -35,6 +36,56 @@ service BrokerService{
   rpc RequestUnsubscribeOtp (RequestUnsubscribeOtpRequest) returns (RequestUnsubscribeOtpResponse);
   rpc UnsubscribeBroker (UnsubscribeBrokerRequest) returns (UnsubscribeBrokerResponse);
   rpc SetupBrokerAccount (SetupBrokerAccountRequest) returns (SetupBrokerAccountResponse);
+  rpc ProcessPropertyPayment (ProcessPropertyPaymentRequest) returns (ProcessPropertyPaymentResponse);
+  rpc SaveUserInfo (SaveUserInfoRequest) returns (SaveUserInfoResponse);
+  rpc UpdateUserField (UpdateUserFieldRequest) returns (UpdateUserFieldResponse);
+  rpc DeleteBrokerAccount (DeleteBrokerAccountRequest) returns (DeleteBrokerAccountResponse);
+}
+
+message SaveBrokerFcmTokenRequest {
+  string brokerCode = 1;
+  string fcmToken = 2;
+  string deviceId = 3;
+}
+
+message SaveBrokerFcmTokenResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SaveUserInfoRequest {
+  string userId = 1;
+  string username = 2;
+  string email = 3;
+  string phoneNumber = 4;
+  string photoURL = 5;
+  string accountType = 6;
+}
+
+message SaveUserInfoResponse {
+  bool success = 1;
+  string message = 2;
+  Broker user = 3;
+}
+
+message UpdateUserFieldRequest {
+  string id = 1;
+  map<string, string> fields = 2;
+}
+
+message UpdateUserFieldResponse {
+  bool success = 1;
+  string message = 2;
+  Broker user = 3;
+}
+
+message DeleteBrokerAccountRequest {
+  string brokerCode = 1;
+}
+
+message DeleteBrokerAccountResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message GetAllBrokersRequest {
@@ -495,4 +546,24 @@ message SearchBrokersRequest {
 
 message SearchBrokersResponse {
   repeated Broker brokers = 1;
+}
+
+message ProcessPropertyPaymentRequest {
+  string customerPhone = 1;
+  string customerEmail = 2;
+  string customerName = 3;
+  double amount = 4;
+  string reasonForPayment = 5;
+  string propertyId = 6;
+  string brokerId = 7;
+}
+
+message ProcessPropertyPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  string transactionId = 3;
+  string referenceNumber = 4;
+  string transactionCode = 5;
+  double netAmount = 6;
+  string date = 7;
 }

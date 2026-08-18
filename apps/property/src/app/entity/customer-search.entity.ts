@@ -5,24 +5,24 @@ export class CustomerSearchEntity{
  @PrimaryGeneratedColumn()
  id!:string;
 
- @Column()
- sessionId!:string;
+@Column({default:''})
+  sessionId!:string;
 
- @Column()
- sessionToken!:string;
+  @Column({default:''})
+  sessionToken!:string;
 
- @Column()
- query!:string;
+  @Column({default:''})
+  query!:string;
 
- @Column()
- location!:string;
+  @Column({default:''})
+  location!:string;
 
- @Column()
- radius!:number;
+  @Column({default:0})
+  radius!:number;
 
- @Column()
- propertyType!:string;
+  @Column({default:''})
+  propertyType!:string;
 
- @Column()
- createdAt!:Date;
+  @Column({default:new Date()})
+  createdAt!:Date;
 }

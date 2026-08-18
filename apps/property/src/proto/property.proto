@@ -24,6 +24,9 @@ service PropertyService {
   rpc GetBookingByCode (GetBookingByCodeRequest) returns (GetBookingByCodeResponse);
   rpc GetBookingsByPhone (GetBookingsByPhoneRequest) returns (GetBookingsByPhoneResponse);
   rpc GetPropertyClients (GetPropertyClientsRequest) returns (GetPropertyClientsResponse);
+  rpc DeclineBooking (DeclineBookingRequest) returns (DeclineBookingResponse);
+  rpc SearchPropertiesByBrokerTitle (SearchPropertiesByBrokerTitleRequest) returns (SearchPropertiesByBrokerTitleResponse);
+  rpc DeletePropertiesByBrokerCode (DeletePropertiesByBrokerCodeRequest) returns (DeletePropertiesByBrokerCodeResponse);
 }
 
 message Coordinates {
@@ -412,6 +415,41 @@ message PropertyClient {
 message GetPropertyClientsResponse {
   repeated PropertyClient clients = 1;
   int32 total = 2;
+}
+
+message DeclineBookingRequest {
+  string transactionCode = 1;
+}
+
+message DeclineBookingResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+
+message SearchPropertiesByBrokerTitleRequest {
+  string query = 1;
+  string sessionToken = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  double lat = 5;
+  double lng = 6;
+  double radiusKm = 7;
+}
+
+message SearchPropertiesByBrokerTitleResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
+message DeletePropertiesByBrokerCodeRequest {
+  string brokerCode = 1;
+}
+
+message DeletePropertiesByBrokerCodeResponse {
+  bool success = 1;
+  string message = 2;
+  int32 deletedCount = 3;
 }
 
 message CustomerBooking {

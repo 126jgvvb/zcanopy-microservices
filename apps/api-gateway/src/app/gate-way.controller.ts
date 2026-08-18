@@ -37,9 +37,10 @@ export class GateWayController {
     @Query('longitude') lng: string,
   ) {
     this.logger.log(`Get current location for lat=${lat} lng=${lng}`);
-    throw new NotFoundException(
-      'Reverse-geocoding is not provided by the current backend',
-    );
+    return this.proxyService.forwardToProperty('ResolveLocationName', {
+      lat: Number(lat),
+      lng: Number(lng),
+    });
   }
 
   @Post('initiate-payment')
@@ -57,10 +58,15 @@ export class GateWayController {
   @ApiOperation({ summary: 'Request password reset OTP for broker' })
   async getChangePasswordOtp(@Body() body: any) {
     this.logger.log(`Request change password OTP for ${body.email ?? body.phoneNumber}`);
-    return {
-      success: true,
-      message: 'Password reset OTP sent to your email/phone',
-    };
+    const channel = body.email ? 'email' : 'phone';
+    const destination = body.email || body.phoneNumber;
+    if (!destination) {
+      return { success: false, message: 'email or phoneNumber is required' };
+    }
+    return this.proxyService.forwardToBroker('ResendOtp', {
+      email: destination,
+      channel,
+    });
   }
 
   @Post('validate-session')
@@ -87,19 +93,17 @@ export class GateWayController {
   @ApiOperation({ summary: 'Decline a booking request' })
   async declineBookingRequest(@Body() body: any) {
     this.logger.log(`Decline booking ${body.bookingId}`);
-    return {
-      success: true,
-      message: 'Booking declined successfully',
-    };
+    return this.proxyService.forwardToProperty('DeclineBooking', {
+      transactionCode: body.bookingId,
+    });
   }
 
   @Post('delete-user-account')
   @ApiOperation({ summary: 'Legacy delete user account' })
   async deleteUserAccount(@Body() body: any) {
     this.logger.log('Legacy delete user account');
-    return {
-      success: true,
-      message: 'Account deletion requested',
-    };
+    return this.proxyService.forwardToBroker('DeleteBrokerAccount', {
+      brokerCode: body.userID ?? body.userId,
+    });
   }
 }

@@ -5,24 +5,24 @@ export class InvitationCodeEntity {
   @PrimaryGeneratedColumn()
   id!: string;
 
-  @Column()
+  @Column({default:'00000'})
   code!: string;
 
-  @Column()
+  @Column({default:'invitation'})
   role!: string;
 
-  @Column()
+  @Column({default:'super admin'})
   createdBy!: string;
 
-  @Column()
+  @Column({default:true})
   isUsed!: boolean;
 
-  @Column()
+  @Column({default:'super admin'})
   usedBy?: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({default:new Date()})
   createdAt!: Date;
 
-  @Column()
+  @Column({default:new Date()})
   expiresAt!: Date;
 }

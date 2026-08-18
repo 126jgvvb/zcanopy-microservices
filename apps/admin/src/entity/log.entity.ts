@@ -5,18 +5,18 @@ export class LogEntity {
   @PrimaryGeneratedColumn()
   id!: string;
 
-  @Column()
+  @Column({default:'1'})
   level!: string;
 
-  @Column()
+  @Column({default:'unknown'})
   service!: string;
 
-  @Column()
+  @Column({default:'this is a default message'})
   message!: string;
 
-  @Column()
+  @Column({default:'no meta-data'})
   metadata!: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({default:new Date()})
   timestamp!: Date;
 }

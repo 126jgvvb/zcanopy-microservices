@@ -8,16 +8,16 @@ export class CustomerPropertyAccessEntity {
   @Column()
   sessionToken!: string;
 
-  @Column()
+@Column({default:''})
+  sessionToken!: string;
+
+  @Column({default:''})
   brokerCode!: string;
 
-  @Column({ nullable: true })
-  propertyId?: string;
-
-  @Column()
+  @Column({default:''})
   paymentStatus!: string;
 
-  @Column()
+  @Column({default:0})
   amount!: number;
 
   @Column({ nullable: true })

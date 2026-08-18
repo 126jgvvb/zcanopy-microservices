@@ -15,6 +15,7 @@ export class PaymentController {
   @Get('transactions')
   @ApiOperation({ summary: 'Get transactions' })
   async getTransactions(@Query() query: any) {
+    this.logger.log(`Get transactions request: ${JSON.stringify(query)}`);
     return this.proxyService.forwardToPayment('GetTransactions', query);
   }
 }

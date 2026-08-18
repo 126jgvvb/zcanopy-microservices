@@ -90,6 +90,29 @@ export class SetupBrokerAccountDto {
     deviceId!: string;
 }
 
+export class ValidateBrokerDto {
+  email!: string;
+  password!: string;
+}
+
+export class GetBrokerByIdDto {
+  id!: string;
+}
+
 export class SearchBrokersDto {
-    query!: string;
+  query!: string;
+}
+
+export class SaveUserInfoDto {
+  userId!: string;
+  username?: string;
+  email?: string;
+  phoneNumber?: string;
+  photoURL?: string;
+  accountType?: string;
+}
+
+export class UpdateUserFieldDto {
+  id!: number;
+  fields!: Record<string, string>;
 }

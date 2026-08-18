@@ -6,43 +6,43 @@ export class AdminMessageEntity {
   @PrimaryGeneratedColumn()
   id!: string;
 
-  @Column()
-  adminId!: string;
+  @Column({type:'integer',default:1})
+  adminId!: number;
 
-  @Column()
+  @Column({default:'delos'})
   adminUsername!: string;
 
-  @Column()
+  @Column({default:'agnes'})
   recipientType!: string;
 
-  @Column()
+  @Column({default:'107000000000'})
   recipientPhone?: string;
 
-  @Column()
+  @Column({default:'agnes@gmail.com'})
   recipientEmail?: string;
 
-  @Column()
+  @Column({default:'agnes'})
   recipientName?: string;
 
-  @Column()
+  @Column({default:'emergency'})
   messageType!: string;
 
-  @Column()
+  @Column({default:'any'})
   subject?: string;
 
-  @Column()
+  @Column({default:'hello world'})
   body!: string;
 
-  @Column()
+  @Column({default:'any'})
   channel!: string;
 
-  @Column()
+  @Column({default:'any'})
   status!: string;
 
-  @Column()
+  @Column({default:'time laps'})
   errorMessage?: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({default:new Date()})
   sentAt!: Date;
 
   @ManyToOne(() => AdminEntity, { eager: false })

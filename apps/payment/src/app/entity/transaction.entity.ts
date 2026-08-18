@@ -6,39 +6,39 @@ export class TransactionEntity{
  @PrimaryGeneratedColumn()
  id!:string;
 
- @Column()
- propertyID!:string;
+@Column({default:''})
+  propertyID!:string;
 
- @Column()
- clientPhone!:string;
+  @Column({default:''})
+  clientPhone!:string;
 
- @Column()
- provider!:string;
+  @Column({default:''})
+  provider!:string;
 
- @Column()
- referenceNumber!:string;
+  @Column({default:''})
+  referenceNumber!:string;
 
- @Column()
- amount!:number;
+  @Column({default:0})
+  amount!:number;
 
- @Column()
- platformCommission!:number; 
+  @Column({default:0})
+  platformCommission!:number;
 
- @Column()
- createdAt!:Date;
+  @Column({default:new Date()})
+  createdAt!:Date;
 
- @Column()
- paymentStatus!:string
+  @Column({default:''})
+  paymentStatus!:string
 
- @Column()
- reasonForPayment!:string;
+  @Column({default:''})
+  reasonForPayment!:string;
 
- @Column()
- customerName!:string;
+  @Column({default:''})
+  customerName!:string;
 
- @Column()
- customerEmail!:string;
+  @Column({default:''})
+  customerEmail!:string;
 
- @Column()
- transactionCode!:string;
+  @Column({default:''})
+  transactionCode!:string;
 }

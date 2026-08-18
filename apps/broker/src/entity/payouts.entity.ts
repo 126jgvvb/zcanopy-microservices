@@ -6,44 +6,44 @@ export class PayoutsEntity{
  @PrimaryGeneratedColumn()
  id!:string;
 
- @Column()
- brokerId!:string;
+@Column({default:''})
+  brokerId!:string;
 
- @Column()
- propertyId!:string;
+  @Column({default:''})
+  propertyId!:string;
 
- @Column()
- customerPhone!:string;
+  @Column({default:''})
+  customerPhone!:string;
 
- @Column()
- customerName!:string;
+  @Column({default:''})
+  customerName!:string;
 
- @Column()
- grossAmount!:number;
+  @Column({default:0})
+  grossAmount!:number;
 
- @Column()
- platformCommission!:number;
+  @Column({default:0})
+  platformCommission!:number;
 
- @Column()
- bookingCommission!:number;
+  @Column({default:0})
+  bookingCommission!:number;
 
- @Column()
- netAmount!:number;
+  @Column({default:0})
+  netAmount!:number;
 
- @Column()
- transactionID!:string;
+  @Column({default:''})
+  transactionID!:string;
 
- @Column()
- transactionCode!:string;
+  @Column({default:''})
+  transactionCode!:string;
 
- @Column()
- payoutStatus!:string;
+  @Column({default:'PENDING'})
+  payoutStatus!:string;
 
- @Column()
- provider!:string;
+  @Column({default:''})
+  provider!:string;
 
- @Column()
- recipient_phone!:string;
+  @Column({default:''})
+  recipient_phone!:string;
 
  @CreateDateColumn()
  createdAt!:Date;

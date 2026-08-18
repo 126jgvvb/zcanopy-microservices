@@ -28,54 +28,54 @@ export class PropertyEntity {
   @PrimaryGeneratedColumn()
   id!: string;
 
-  @Column()
+  @Column({default:''})
   title!: string;
 
-  @Column()
+  @Column({default:''})
   description!: string;
 
-  @Column()
+  @Column({default:''})
   propertyType!: string;
 
-  @Column({ type: 'json', nullable: true })
+  @Column({type:'json',nullable:true})
   imageUrl!: string[];
 
-  @Column({ type: 'json', nullable: true })
+  @Column({type:'json',nullable:true})
   videoUrl!: string[];
 
-  @Column({ type: 'json', nullable: true })
+  @Column({type:'json',nullable:true})
   postgis_spatial_field!: GeoSpatialField | null;
 
-  @Column()
+  @Column({default:false})
   isAvailable!: boolean;
 
-  @Column()
+  @Column({default:new Date()})
   createdAt!: Date;
 
-  @Column({ nullable: true })
+  @Column({nullable:true})
   updatedAt!: Date;
 
-  @Column()
+  @Column({default:''})
   location!: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({type:'text',nullable:true})
   subCounty!: string | null;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({type:'text',nullable:true})
   district!: string | null;
 
-  @Column()
+  @Column({default:''})
   brokersUniqueCode!: string;
 
-  @Column({ type: 'json', nullable: true })
+  @Column({type:'json',nullable:true})
   allowedViewers!: AllowedViewer[];
 
-  @Column()
+  @Column({default:0})
   photoCount!: number;
 
-  @Column()
+  @Column({default:0})
   videoCount!: number;
 
-  @Column({ nullable: true })
+  @Column({nullable:true})
   bookingStatus!: string;
 }

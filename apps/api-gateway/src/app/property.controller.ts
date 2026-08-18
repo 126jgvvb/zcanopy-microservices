@@ -15,18 +15,21 @@ export class PropertyController {
   @Get()
   @ApiOperation({ summary: 'Get all properties' })
   async getProperties(@Query() query: any) {
+    this.logger.log(`Get properties request: ${JSON.stringify(query)}`);
     return this.proxyService.forwardToProperty('GetProperties', query);
   }
 
   @Get('locations')
   @ApiOperation({ summary: 'Get property locations for map' })
   async getPropertyLocations() {
+    this.logger.log('Get property locations request');
     return this.proxyService.forwardToProperty('GetPropertyLocations', {});
   }
 
   @Get('resolve-location-name')
   @ApiOperation({ summary: 'Resolve sub-county/district from coordinates' })
   async resolveLocationName(@Query('lat') lat: string, @Query('long') long: string) {
+    this.logger.log(`Resolve location request for lat=${lat}, lng=${long}`);
     return this.proxyService.forwardToProperty('ResolveLocationName', {
       lat: Number(lat),
       lng: Number(long),
@@ -36,36 +39,49 @@ export class PropertyController {
   @Post()
   @ApiOperation({ summary: 'Create property' })
   async createProperty(@Body() body: any) {
+    this.logger.log(`Create property request for broker ${body.brokersUniqueCode}`);
     return this.proxyService.forwardToProperty('CreateProperty', body);
   }
 
   @Get('bookings/:brokerCode')
   @ApiOperation({ summary: 'Get broker bookings' })
   async getBrokerBookings(@Param('brokerCode') brokerCode: string) {
+    this.logger.log(`Get broker bookings request for broker ${brokerCode}`);
     return this.proxyService.forwardToProperty('GetBrokerBookings', { brokerCode });
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update property details' })
   async updateProperty(@Param('id') id: string, @Body() body: any) {
+    this.logger.log(`Update property request for id ${id}`);
     return this.proxyService.forwardToProperty('UpdateProperty', { id, ...body });
   }
 
   @Post(':id')
   @ApiOperation({ summary: 'Update property details (POST alias for broker app)' })
   async updatePropertyPost(@Param('id') id: string, @Body() body: any) {
+    this.logger.log(`Update property POST request for id ${id}`);
     return this.proxyService.forwardToProperty('UpdateProperty', { id, ...body });
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete property' })
   async deleteProperty(@Param('id') id: string) {
+    this.logger.log(`Delete property request for id ${id}`);
     return this.proxyService.forwardToProperty('DeleteProperty', { id });
+  }
+
+  @Delete('broker/:brokerCode')
+  @ApiOperation({ summary: 'Delete all properties for a broker' })
+  async deletePropertiesByBroker(@Param('brokerCode') brokerCode: string) {
+    this.logger.log(`Delete properties for broker ${brokerCode}`);
+    return this.proxyService.forwardToProperty('DeletePropertiesByBrokerCode', { brokerCode });
   }
 
   @Post(':id/delete')
   @ApiOperation({ summary: 'Delete property (POST alias)' })
   async deletePropertyPost(@Param('id') id: string) {
+    this.logger.log(`Delete property POST request for id ${id}`);
     return this.proxyService.forwardToProperty('DeleteProperty', { id });
   }
 }

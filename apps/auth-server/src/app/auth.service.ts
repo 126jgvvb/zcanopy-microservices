@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ClientProxy } from '@nestjs/microservices';
+import type { ClientGrpc } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { lastValueFrom } from 'rxjs';
 import Redis from 'ioredis';
@@ -94,14 +94,29 @@ interface StoredSession {
   location: { lat: number; lng: number; updatedAt: number } | null;
 }
 
+interface AdminServiceClient {
+  validateAdmin(data: { email: string; password: string }): any;
+  getAdminById(data: { id: string }): any;
+}
+
+interface BrokerServiceClient {
+  validateBroker(data: { email: string; password: string }): any;
+  getBrokerById(data: { id: string }): any;
+  loginBroker(data: { brokerCode: string; password?: string; deviceId?: string; googleId?: string }): any;
+  setupBrokerAccount(data: { brokerCode: string; password: string; deviceId: string }): any;
+}
+
 @Injectable()
 export class AuthService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(AuthService.name);
   private redis!: Redis;
 
+  private adminServiceRpc!: AdminServiceClient;
+  private brokerServiceRpc!: BrokerServiceClient;
+
   constructor(
-    @Inject('ADMIN_CLIENT') private readonly adminClient: ClientProxy,
-    @Inject('BROKER_CLIENT') private readonly brokerClient: ClientProxy,
+    @Inject('ADMIN_CLIENT') private readonly adminClient: ClientGrpc,
+    @Inject('BROKER_CLIENT') private readonly brokerClient: ClientGrpc,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -111,6 +126,10 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       port: Number(process.env.REDIS_PORT) || 6379,
       password: process.env.REDIS_PASSWORD || undefined,
     });
+
+    // Extract gRPC service wrappers
+    this.adminServiceRpc = this.adminClient.getService<AdminServiceClient>('AdminService');
+    this.brokerServiceRpc = this.brokerClient.getService<BrokerServiceClient>('BrokerService');
   }
 
   async onModuleDestroy() {
@@ -120,108 +139,133 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
   }
 
   async validateAdmin(email: string, password: string): Promise<any> {
-    const admin = await lastValueFrom(
-      this.adminClient.send('ValidateAdmin', { email, password }),
-    );
-    return admin;
+    try {
+      const admin = await lastValueFrom(
+        this.adminServiceRpc.validateAdmin({ email, password }),
+      );
+      return admin;
+    } catch (err) {
+      this.logger.error(`Failed to validate admin ${email}:`, err);
+      throw err;
+    }
   }
 
   async validateBroker(email: string, password: string): Promise<any> {
-    const broker = await lastValueFrom(
-      this.brokerClient.send('ValidateBroker', { email, password }),
-    );
-    return broker;
+    try {
+      const broker = await lastValueFrom(
+        this.brokerServiceRpc.validateBroker({ email, password }),
+      );
+      return broker;
+    } catch (err) {
+      this.logger.error(`Failed to validate broker ${email}:`, err);
+      throw err;
+    }
   }
 
   async login(dto: { email: string; password: string; type: 'admin' | 'broker' }): Promise<LoginResponse> {
-    let user: any;
-    let role: string;
+    try {
+      let user: any;
+      let role: string;
 
-    if (dto.type === 'admin') {
-      user = await this.validateAdmin(dto.email, dto.password);
-      role = user.role || 'admin';
-    } else {
-      user = await this.validateBroker(dto.email, dto.password);
-      role = 'broker';
-    }
+      if (dto.type === 'admin') {
+        user = await this.validateAdmin(dto.email, dto.password);
+        role = user.role || 'admin';
+      } else {
+        user = await this.validateBroker(dto.email, dto.password);
+        role = 'broker';
+      }
 
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      role,
-      type: dto.type,
-    };
-
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
-
-    this.logger.log(`User ${user.email} logged in successfully`);
-
-    return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
+      const payload: JwtPayload = {
+        sub: user.id,
         email: user.email,
-        username: user.username,
         role,
         type: dto.type,
-      },
-    };
+      };
+
+      const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+      const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+
+      this.logger.log(`User ${user.email} logged in successfully`);
+
+      return {
+        accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          role,
+          type: dto.type,
+        },
+      };
+    } catch (err) {
+      this.logger.error(`Login failed for ${dto.email}:`, err);
+      throw err;
+    }
   }
 
   async loginBroker(dto: { brokerCode: string; password?: string; deviceId?: string; googleId?: string }): Promise<any> {
-    const broker = await lastValueFrom(
-      this.brokerClient.send('LoginBroker', {
-        brokerCode: dto.brokerCode,
-        password: dto.password,
-        deviceId: dto.deviceId,
-        googleId: dto.googleId,
-      }),
-    );
+    try {
+      const broker: any = await lastValueFrom(
+        this.brokerServiceRpc.loginBroker({
+          brokerCode: dto.brokerCode,
+          password: dto.password,
+          deviceId: dto.deviceId,
+          googleId: dto.googleId,
+        }),
+      );
 
-    if (!broker.success) {
-      throw new BadRequestException(broker.message || 'Login failed');
+      if (!broker.success) {
+        throw new BadRequestException(broker.message || 'Login failed');
+      }
+
+      return {
+        success: true,
+        message: 'Login successful',
+        id: broker.broker.id,
+        email: broker.broker.email,
+        username: broker.broker.username,
+        brokerCode: broker.broker.brokerCode,
+        isVerified: broker.broker.isVerified,
+      };
+    } catch (err) {
+      this.logger.error(`Broker login failed for ${dto.brokerCode}:`, err);
+      throw err;
     }
-
-    return {
-      success: true,
-      message: 'Login successful',
-      id: broker.broker.id,
-      email: broker.broker.email,
-      username: broker.broker.username,
-      brokerCode: broker.broker.brokerCode,
-      isVerified: broker.broker.isVerified,
-    };
   }
 
   async setupBroker(dto: { brokerCode: string; password: string; deviceId: string }): Promise<any> {
-    const result = await lastValueFrom(
-      this.brokerClient.send('SetupBrokerAccount', {
-        brokerCode: dto.brokerCode,
-        password: dto.password,
-        deviceId: dto.deviceId,
-      }),
-    );
+    try {
+      const result: any = await lastValueFrom(
+        this.brokerServiceRpc.setupBrokerAccount({
+          brokerCode: dto.brokerCode,
+          password: dto.password,
+          deviceId: dto.deviceId,
+        }),
+      );
 
-    if (!result.success) {
-      throw new BadRequestException(result.message || 'Broker setup failed');
+      if (!result.success) {
+        throw new BadRequestException(result.message || 'Broker setup failed');
+      }
+
+      const broker = result.broker || {};
+
+      return {
+        success: true,
+        message: result.message || 'Broker account setup successful',
+        id: broker.id,
+        email: broker.email,
+        username: broker.username,
+        brokerCode: broker.brokerCode,
+        isVerified: broker.isVerified,
+        sessionToken: result.sessionToken,
+        sessionId: result.sessionId,
+        deviceId: result.deviceId,
+      };
+    } catch (err) {
+      this.logger.error(`Broker setup failed for ${dto.brokerCode}:`, err);
+      throw err;
     }
-
-    const broker = result.broker || {};
-
-    return {
-      success: true,
-      message: result.message || 'Broker account setup successful',
-      id: broker.id,
-      email: broker.email,
-      username: broker.username,
-      brokerCode: broker.brokerCode,
-      isVerified: broker.isVerified,
-      sessionToken: result.sessionToken,
-      sessionId: result.sessionId,
-      deviceId: result.deviceId,
-    };
   }
 
   async refreshToken(token: string): Promise<LoginResponse> {
@@ -233,12 +277,12 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
 
       if (payload.type === 'admin') {
         user = await lastValueFrom(
-          this.adminClient.send('GetAdminById', { id: payload.sub }),
+          this.adminServiceRpc.getAdminById({ id: payload.sub }),
         );
         role = user?.role || 'admin';
       } else {
         user = await lastValueFrom(
-          this.brokerClient.send('GetBrokerById', { id: payload.sub }),
+          this.brokerServiceRpc.getBrokerById({ id: payload.sub }),
         );
         role = 'broker';
       }
@@ -300,45 +344,50 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
    * with a TTL. Returns a signed session token the client uses on later calls.
    */
   async createCustomerSession(dto: { deviceId: string; ttlSeconds?: number }): Promise<CustomerSessionResponse> {
-    if (!dto.deviceId) {
-      throw new BadRequestException('deviceId is required to start a customer session');
-    }
+    try {
+      if (!dto.deviceId) {
+        throw new BadRequestException('deviceId is required to start a customer session');
+      }
 
-    const ttl = dto.ttlSeconds && dto.ttlSeconds > 0 ? dto.ttlSeconds : this.getCustomerSessionTtl();
-    const sessionId = randomUUID();
-    const now = Date.now();
+      const ttl = dto.ttlSeconds && dto.ttlSeconds > 0 ? dto.ttlSeconds : this.getCustomerSessionTtl();
+      const sessionId = randomUUID();
+      const now = Date.now();
 
-    const stored: StoredSession = {
-      sessionId,
-      deviceId: dto.deviceId,
-      createdAt: now,
-      lastActivityAt: now,
-      location: null,
-    };
-
-    await this.redis.set(this.sessionKey(sessionId), JSON.stringify(stored), 'EX', ttl);
-    await this.redis.set(this.deviceKey(dto.deviceId), sessionId, 'EX', ttl);
-
-    const sessionToken = this.jwtService.sign(
-      {
-        sub: sessionId,
-        email: '',
-        role: 'customer',
-        type: 'customer',
+      const stored: StoredSession = {
+        sessionId,
         deviceId: dto.deviceId,
-      } as JwtPayload,
-      { expiresIn: `${ttl}s` },
-    );
+        createdAt: now,
+        lastActivityAt: now,
+        location: null,
+      };
 
-    this.logger.log(`Created customer session ${sessionId} for device ${dto.deviceId} (ttl=${ttl}s)`);
+      await this.redis.set(this.sessionKey(sessionId), JSON.stringify(stored), 'EX', ttl);
+      await this.redis.set(this.deviceKey(dto.deviceId), sessionId, 'EX', ttl);
 
-    return {
-      sessionToken,
-      sessionId,
-      deviceId: dto.deviceId,
-      expiresAt: now + ttl * 1000,
-      ttlSeconds: ttl,
-    };
+      const sessionToken = this.jwtService.sign(
+        {
+          sub: sessionId,
+          email: '',
+          role: 'customer',
+          type: 'customer',
+          deviceId: dto.deviceId,
+        } as JwtPayload,
+        { expiresIn: `${ttl}s` },
+      );
+
+      this.logger.log(`Created customer session ${sessionId} for device ${dto.deviceId} (ttl=${ttl}s)`);
+
+      return {
+        sessionToken,
+        sessionId,
+        deviceId: dto.deviceId,
+        expiresAt: now + ttl * 1000,
+        ttlSeconds: ttl,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to create customer session for device ${dto.deviceId}:`, err);
+      throw err;
+    }
   }
 
   /**
@@ -347,14 +396,31 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
    */
   async validateCustomerSession(sessionToken: string): Promise<ValidateCustomerSessionResponse> {
     try {
-      const payload = this.jwtService.verify(sessionToken) as JwtPayload;
-      if (payload.type !== 'customer' || !payload.sub) {
+      let payload: JwtPayload | null = null;
+
+      try {
+        payload = this.jwtService.verify(sessionToken) as JwtPayload;
+      } catch (jwtError) {
+        this.logger.warn(`JWT verification failed for customer session token, trying fallback lookup: ${jwtError}`);
+      }
+
+      let sessionId: string | undefined;
+      let deviceId: string | undefined;
+
+      if (payload && payload.type === 'customer' && payload.sub) {
+        sessionId = payload.sub;
+      } else if (this.isUuid(sessionToken)) {
+        sessionId = sessionToken;
+      }
+
+      if (!sessionId) {
+        this.logger.warn(`Invalid customer session token format: ${sessionToken}`);
         return { valid: false, sessionId: '', deviceId: '' };
       }
 
-      const sessionId = payload.sub;
       const raw = await this.redis.get(this.sessionKey(sessionId));
       if (!raw) {
+        this.logger.warn(`Customer session not found in Redis for sessionId=${sessionId}`);
         return { valid: false, sessionId: '', deviceId: '' };
       }
 
@@ -365,21 +431,42 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       await this.redis.set(this.deviceKey(data.deviceId), sessionId, 'EX', ttl);
 
       return { valid: true, sessionId, deviceId: data.deviceId };
-    } catch {
+    } catch (err) {
+      this.logger.error(`Failed to validate customer session: ${err}`);
       return { valid: false, sessionId: '', deviceId: '' };
     }
   }
 
+  private isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  }
+
   async getCustomerSession(sessionToken: string): Promise<GetCustomerSessionResponse> {
     try {
-      const payload = this.jwtService.verify(sessionToken) as JwtPayload;
-      if (payload.type !== 'customer' || !payload.sub) {
+      let payload: JwtPayload | null = null;
+
+      try {
+        payload = this.jwtService.verify(sessionToken) as JwtPayload;
+      } catch (jwtError) {
+        this.logger.warn(`JWT verification failed for getCustomerSession, trying fallback lookup: ${jwtError}`);
+      }
+
+      let sessionId: string | undefined;
+
+      if (payload && payload.type === 'customer' && payload.sub) {
+        sessionId = payload.sub;
+      } else if (this.isUuid(sessionToken)) {
+        sessionId = sessionToken;
+      }
+
+      if (!sessionId) {
+        this.logger.warn(`Invalid customer session token format for getCustomerSession: ${sessionToken}`);
         return { found: false };
       }
 
-      const sessionId = payload.sub;
       const raw = await this.redis.get(this.sessionKey(sessionId));
       if (!raw) {
+        this.logger.warn(`Customer session not found in Redis for sessionId=${sessionId}`);
         return { found: false };
       }
 
@@ -397,7 +484,8 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         locationUpdatedAt: data.location?.updatedAt,
         ttlSecondsRemaining: ttl,
       };
-    } catch {
+    } catch (err) {
+      this.logger.error(`Failed to get customer session: ${err}`);
       return { found: false };
     }
   }
@@ -407,89 +495,114 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
    * system can retrieve nearby properties. Refreshes the session TTL.
    */
   async updateCustomerLocation(dto: { sessionToken: string; lat: number; lng: number }): Promise<{ success: boolean }> {
-    const validation = await this.validateCustomerSession(dto.sessionToken);
-    if (!validation.valid) {
-      throw new BadRequestException('Invalid customer session');
+    try {
+      const validation = await this.validateCustomerSession(dto.sessionToken);
+      if (!validation.valid) {
+        throw new BadRequestException('Invalid customer session');
+      }
+
+      const raw = await this.redis.get(this.sessionKey(validation.sessionId));
+      if (!raw) {
+        throw new BadRequestException('Customer session not found');
+      }
+
+      const data = JSON.parse(raw) as StoredSession;
+      data.location = { lat: dto.lat, lng: dto.lng, updatedAt: Date.now() };
+      data.lastActivityAt = Date.now();
+
+      const ttl = this.getCustomerSessionTtl();
+      await this.redis.set(this.sessionKey(validation.sessionId), JSON.stringify(data), 'EX', ttl);
+
+      return { success: true };
+    } catch (err) {
+      this.logger.error(`Failed to update customer location for session ${dto.sessionToken}:`, err);
+      throw err;
     }
-
-    const raw = await this.redis.get(this.sessionKey(validation.sessionId));
-    if (!raw) {
-      throw new BadRequestException('Customer session not found');
-    }
-
-    const data = JSON.parse(raw) as StoredSession;
-    data.location = { lat: dto.lat, lng: dto.lng, updatedAt: Date.now() };
-    data.lastActivityAt = Date.now();
-
-    const ttl = this.getCustomerSessionTtl();
-    await this.redis.set(this.sessionKey(validation.sessionId), JSON.stringify(data), 'EX', ttl);
-
-    return { success: true };
   }
 
   async revokeCustomerSession(sessionToken: string): Promise<{ success: boolean }> {
     try {
-      const payload = this.jwtService.verify(sessionToken) as JwtPayload;
-      if (payload.type !== 'customer' || !payload.sub) {
+      let sessionId: string | undefined;
+
+      try {
+        const payload = this.jwtService.verify(sessionToken) as JwtPayload;
+        if (payload.type === 'customer' && payload.sub) {
+          sessionId = payload.sub;
+        }
+      } catch (jwtError) {
+        this.logger.warn(`JWT verification failed for revokeCustomerSession, trying fallback lookup: ${jwtError}`);
+        if (this.isUuid(sessionToken)) {
+          sessionId = sessionToken;
+        }
+      }
+
+      if (!sessionId) {
+        this.logger.warn(`Invalid customer session token format for revokeCustomerSession: ${sessionToken}`);
         return { success: false };
       }
 
-      const raw = await this.redis.get(this.sessionKey(payload.sub));
+      const raw = await this.redis.get(this.sessionKey(sessionId));
       if (raw) {
         const data = JSON.parse(raw) as StoredSession;
         await this.redis.del(this.deviceKey(data.deviceId));
       }
-      await this.redis.del(this.sessionKey(payload.sub));
+      await this.redis.del(this.sessionKey(sessionId));
 
       return { success: true };
-    } catch {
+    } catch (err) {
+      this.logger.error(`Failed to revoke customer session: ${err}`);
       return { success: false };
     }
   }
 
   async getActiveCustomerSessions(): Promise<{ sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }>; total: number }> {
-    const sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }> = [];
-    let cursor = '0';
+    try {
+      const sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }> = [];
+      let cursor = '0';
 
-    do {
-      const result = await (this.redis as any).scan(cursor, 'MATCH', 'customer:session:*', 'COUNT', '100');
-      cursor = result[0];
-      const keys = result[1] as string[];
+      do {
+        const result = await (this.redis as any).scan(cursor, 'MATCH', 'customer:session:*', 'COUNT', '100');
+        cursor = result[0];
+        const keys = result[1] as string[];
 
-      for (const key of keys) {
-        const raw = await this.redis.get(key);
-        if (!raw) continue;
+        for (const key of keys) {
+          const raw = await this.redis.get(key);
+          if (!raw) continue;
 
-        try {
-          const data = JSON.parse(raw) as StoredSession & { ttlSecondsRemaining?: number };
-          const sessionId = data.sessionId || key.replace('customer:session:', '');
-          
-          let ttlSecondsRemaining;
           try {
-            ttlSecondsRemaining = await (this.redis as any).ttl(key);
+            const data = JSON.parse(raw) as StoredSession & { ttlSecondsRemaining?: number };
+            const sessionId = data.sessionId || key.replace('customer:session:', '');
+            
+            let ttlSecondsRemaining;
+            try {
+              ttlSecondsRemaining = await (this.redis as any).ttl(key);
+            } catch {
+              ttlSecondsRemaining = undefined;
+            }
+
+            sessions.push({
+              sessionId,
+              deviceId: data.deviceId,
+              createdAt: data.createdAt,
+              lastActivityAt: data.lastActivityAt,
+              locationLat: data.location?.lat,
+              locationLng: data.location?.lng,
+              locationUpdatedAt: data.location?.updatedAt,
+              ttlSecondsRemaining,
+            });
           } catch {
-            ttlSecondsRemaining = undefined;
+            // skip unparseable session
           }
-
-          sessions.push({
-            sessionId,
-            deviceId: data.deviceId,
-            createdAt: data.createdAt,
-            lastActivityAt: data.lastActivityAt,
-            locationLat: data.location?.lat,
-            locationLng: data.location?.lng,
-            locationUpdatedAt: data.location?.updatedAt,
-            ttlSecondsRemaining,
-          });
-        } catch {
-          // skip unparseable session
         }
-      }
-    } while (cursor !== '0');
+      } while (cursor !== '0');
 
-    sessions.sort((a, b) => b.lastActivityAt - a.lastActivityAt);
+      sessions.sort((a, b) => b.lastActivityAt - a.lastActivityAt);
 
-    return { sessions, total: sessions.length };
+      return { sessions, total: sessions.length };
+    } catch (err) {
+      this.logger.error('Failed to get active customer sessions:', err);
+      throw err;
+    }
   }
 
   private brokerSessionKey(sessionId: string): string {
@@ -501,39 +614,44 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
   }
 
   async createBrokerSession(dto: { brokerCode: string; deviceId: string; ttlSeconds?: number }): Promise<BrokerSessionResponse> {
-    if (!dto.brokerCode || !dto.deviceId) {
-      throw new BadRequestException('brokerCode and deviceId are required');
+    try {
+      if (!dto.brokerCode || !dto.deviceId) {
+        throw new BadRequestException('brokerCode and deviceId are required');
+      }
+
+      const ttl = dto.ttlSeconds && dto.ttlSeconds > 0 ? dto.ttlSeconds : 7 * 24 * 60 * 60;
+      const sessionId = randomUUID();
+      const now = Date.now();
+      const expiresAt = now + ttl * 1000;
+
+      const sessionData = {
+        sessionId,
+        brokerCode: dto.brokerCode,
+        deviceId: dto.deviceId,
+        createdAt: now,
+        lastActivityAt: now,
+      };
+
+      await this.redis.set(this.brokerSessionKey(sessionId), JSON.stringify(sessionData), 'EX', ttl);
+      await this.redis.sadd(this.brokerSessionsKey(dto.brokerCode), sessionId);
+      await this.redis.expire(this.brokerSessionsKey(dto.brokerCode), ttl);
+
+      const sessionToken = Buffer.from(`${sessionId}:${dto.brokerCode}:${Date.now()}`).toString('base64');
+
+      this.logger.log(`Created broker session ${sessionId} for broker ${dto.brokerCode} on device ${dto.deviceId}`);
+
+      return {
+        sessionToken,
+        sessionId,
+        deviceId: dto.deviceId,
+        brokerCode: dto.brokerCode,
+        expiresAt,
+        ttlSeconds: ttl,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to create broker session for ${dto.brokerCode}:`, err);
+      throw err;
     }
-
-    const ttl = dto.ttlSeconds && dto.ttlSeconds > 0 ? dto.ttlSeconds : 7 * 24 * 60 * 60;
-    const sessionId = randomUUID();
-    const now = Date.now();
-    const expiresAt = now + ttl * 1000;
-
-    const sessionData = {
-      sessionId,
-      brokerCode: dto.brokerCode,
-      deviceId: dto.deviceId,
-      createdAt: now,
-      lastActivityAt: now,
-    };
-
-    await this.redis.set(this.brokerSessionKey(sessionId), JSON.stringify(sessionData), 'EX', ttl);
-    await this.redis.sadd(this.brokerSessionsKey(dto.brokerCode), sessionId);
-    await this.redis.expire(this.brokerSessionsKey(dto.brokerCode), ttl);
-
-    const sessionToken = Buffer.from(`${sessionId}:${dto.brokerCode}:${Date.now()}`).toString('base64');
-
-    this.logger.log(`Created broker session ${sessionId} for broker ${dto.brokerCode} on device ${dto.deviceId}`);
-
-    return {
-      sessionToken,
-      sessionId,
-      deviceId: dto.deviceId,
-      brokerCode: dto.brokerCode,
-      expiresAt,
-      ttlSeconds: ttl,
-    };
   }
 
   async validateBrokerSession(sessionToken: string): Promise<ValidateBrokerSessionResponse> {

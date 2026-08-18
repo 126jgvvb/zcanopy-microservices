@@ -10,7 +10,7 @@ import { join } from 'path';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/auth-server/.env' }),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'zcanopy-secret-key-change-in-production',
       signOptions: { expiresIn: '15m' },
@@ -21,9 +21,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.ADMIN_SERVICE_URL || 'localhost:50053',
-            package: 'admin',
-            protoPath: join(__dirname, '../../admin/src/proto/admin.proto'),
+            url: process.env.ADMIN_SERVICE_URL || 'localhost:3006',
+            package: 'admin.v1',
+            protoPath: join(__dirname, './proto/admin.proto'),
           },
         }),
       },
@@ -32,15 +32,15 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.BROKER_SERVICE_URL || 'localhost:50054',
-            package: 'broker',
-            protoPath: join(__dirname, '../../broker/src/proto/broker.proto'),
+            url: process.env.BROKER_SERVICE_URL || 'localhost:3003',
+            package: 'broker.v1',
+            protoPath: join(__dirname, './proto/broker.proto'),
           },
         }),
       },
     ]),
   ],
-  controllers: [AppController, AuthController],
-  providers: [AppService, AuthService],
+  controllers: [AuthController],
+  providers: [AuthService],
 })
 export class AppModule {}

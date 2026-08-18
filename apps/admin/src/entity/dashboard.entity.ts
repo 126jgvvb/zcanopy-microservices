@@ -20,16 +20,16 @@ export class DashaordEntity{
   @Column({ type: 'json', nullable: true })
   monthlyIncome!: any[];
 
-  @Column()
+  @Column({ type: 'numeric', default: 0 })
   currentCommission!:number;
 
-  @Column()
+  @Column({ type: 'numeric', default: 0 })
   platformCommission!:number;
 
-  @Column()
+  @Column({ type: 'numeric', default: 0 })
   bookingCommission!:number;
 
-  @Column()
+  @Column({ type: 'numeric', default: 10000 })
   minimumWithdrawal!:number;
 
   @Column({ type: 'json', nullable: true })
@@ -44,7 +44,7 @@ export class DashaordEntity{
  @Column({ type: 'simple-array', nullable: true })
  deletedInvoiceIds!: string[];
 
- @Column()
+ @Column({ type: 'date', default: new Date() })
  updatedAt!:Date
 }
 

@@ -4,7 +4,7 @@ import { firstValueFrom, lastValueFrom } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Inject } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientGrpc } from '@nestjs/microservices';
 import Redis from 'ioredis';
 import { TransactionEntity } from './entity/transaction.entity';
 
@@ -69,7 +69,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
     private readonly transactionRepo: Repository<TransactionEntity>,
     private readonly httpService: HttpService,
     @Inject('REDIS_CLIENT') private readonly redisClient: ClientProxy,
-    @Inject('ADMIN_CLIENT') private readonly adminClient: ClientProxy,
+    @Inject('ADMIN_CLIENT') private readonly adminClient: ClientGrpc,
   ) {}
 
   async onModuleInit() {
@@ -160,11 +160,11 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
         }),
       );
 
-      const commissions = await lastValueFrom(
-        this.adminClient.send('GetCommissions', {}),
-      );
+const commissions = await lastValueFrom(
+         this.adminClient.getService('AdminService').GetCommissions({}),
+       );
 
-      const iotecStatus = collectResult.data?.status || 'Pending';
+       const iotecStatus = collectResult.data?.status || 'Pending';
       const isSuccess = iotecStatus === 'Success' || collectResult.data?.code;
 
       const platformCommissionAmount = collectResult.data?.amount * (commissions.platformCommission / 100);
@@ -199,11 +199,11 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.error(`Subscription payment failed for broker ${dto.brokerId}: ${(error as Error).message}`);
 
-      const commissions = await lastValueFrom(
-        this.adminClient.send('GetCommissions', {}),
-      );
+const commissions = await lastValueFrom(
+         this.adminClient.getService('AdminService').GetCommissions({}),
+       );
 
-      const failedTransaction = this.transactionRepo.create({
+       const failedTransaction = this.transactionRepo.create({
         propertyID: dto.brokerCode,
         clientPhone: dto.phoneNumber,
         provider: 'iotec-collection',
@@ -323,9 +323,9 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
     let platformCommissionAmount = 0;
 
     try {
-      const commissions = await lastValueFrom(
-        this.adminClient.send('GetCommissions', {}),
-      );
+const commissions = await lastValueFrom(
+         this.adminClient.getService('AdminService').GetCommissions({}),
+       );
 
      
 
@@ -615,45 +615,50 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
     }
   }
 
-  async getTransactions(query: { page: number; limit: number; brokerId?: string; reason?: string }): Promise<{
+   async getTransactions(query: { page: number; limit: number; brokerId?: string; reason?: string }): Promise<{
     transactions: any[];
     total: number;
   }> {
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 10;
-    const where: any = {};
+    try {
+      const page = Number(query.page) || 1;
+      const limit = Number(query.limit) || 10;
+      const where: any = {};
 
-    if (query.brokerId) {
-      where.propertyID = query.brokerId;
+      if (query.brokerId) {
+        where.propertyID = query.brokerId;
+      }
+      if (query.reason) {
+        where.reasonForPayment = query.reason;
+      }
+
+      const [transactions, total] = await this.transactionRepo.findAndCount({
+        where,
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+
+      return {
+        transactions: transactions.map(t => ({
+          id: t.id,
+          propertyId: t.propertyID,
+          clientPhone: t.clientPhone,
+          amount: t.amount,
+          platformCommission: t.platformCommission,
+          paymentStatus: t.paymentStatus,
+          reasonForPayment: t.reasonForPayment,
+          createdAt: t.createdAt,
+          referenceNumber: t.referenceNumber,
+          transactionCode: t.transactionCode,
+          customerName: t.customerName,
+          customerEmail: t.customerEmail,
+        })),
+        total,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get transactions:`, err);
+      throw err;
     }
-    if (query.reason) {
-      where.reasonForPayment = query.reason;
-    }
-
-    const [transactions, total] = await this.transactionRepo.findAndCount({
-      where,
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    return {
-      transactions: transactions.map(t => ({
-        id: t.id,
-        propertyId: t.propertyID,
-        clientPhone: t.clientPhone,
-        amount: t.amount,
-        platformCommission: t.platformCommission,
-        paymentStatus: t.paymentStatus,
-        reasonForPayment: t.reasonForPayment,
-        createdAt: t.createdAt,
-        referenceNumber: t.referenceNumber,
-        transactionCode: t.transactionCode,
-        customerName: t.customerName,
-        customerEmail: t.customerEmail,
-      })),
-      total,
-    };
   }
 
   private generateReference(): string {

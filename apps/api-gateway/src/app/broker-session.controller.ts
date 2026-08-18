@@ -17,6 +17,7 @@ export class BrokerSessionController {
   @Post('logout-user')
   @ApiOperation({ summary: 'Log the broker out and revoke the active session' })
   async logoutBroker(@Body() body: any) {
+    this.logger.log(`Logout broker request for ${body.brokerCode}`);
     return this.proxyService.forwardToBroker('LogoutBroker', {
       brokerCode: body.brokerCode,
       sessionId: body.sessionId,
@@ -26,6 +27,7 @@ export class BrokerSessionController {
   @Post('unsubscribe-user/request-otp')
   @ApiOperation({ summary: 'Send a confirmation OTP to the broker email before unsubscribing' })
   async requestUnsubscribeOtp(@Body() body: any) {
+    this.logger.log(`Request unsubscribe OTP for broker ${body.brokerCode}`);
     return this.proxyService.forwardToBroker('RequestUnsubscribeOtp', {
       brokerCode: body.brokerCode,
     });
@@ -34,6 +36,7 @@ export class BrokerSessionController {
   @Post('unsubscribe-user')
   @ApiOperation({ summary: 'Unsubscribe (deactivate) the broker account after email OTP confirmation' })
   async unsubscribeBroker(@Body() body: any) {
+    this.logger.log(`Unsubscribe broker request for ${body.brokerCode}`);
     return this.proxyService.forwardToBroker('UnsubscribeBroker', {
       brokerCode: body.brokerCode,
       password: body.password,
@@ -46,6 +49,7 @@ export class BrokerSessionController {
   @Post('withdraw')
   @ApiOperation({ summary: 'Withdraw broker wallet funds to mobile money' })
   async withdrawBroker(@Body() body: any) {
+    this.logger.log(`Withdraw broker request for ${body.brokerCode}, amount=${body.amount}`);
     return this.proxyService.forwardToBroker('Withdraw', {
       amount: Number(body.amount),
       phoneNumber: body.phoneNumber,

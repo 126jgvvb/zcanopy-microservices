@@ -5,10 +5,10 @@ export class BrokerFcmTokenEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column({default:''})
   brokerCode!: string;
 
-  @Column()
+  @Column({default:''})
   fcmToken!: string;
 
   @Column({ nullable: true })

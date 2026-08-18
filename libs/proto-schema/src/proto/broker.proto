@@ -1,4 +1,4 @@
-syntax="proto3"
+syntax="proto3";
 
 package broker.v1;
 
@@ -8,6 +8,7 @@ service BrokerService{
   rpc ValidateBroker (ValidateBrokerRequest) returns (ValidateBrokerResponse);
   rpc CreateBroker (CreateBrokerRequest) returns (CreateBrokerResponse);
   rpc UpdateBroker (UpdateBrokerRequest) returns (UpdateBrokerResponse);
+  rpc UpdateBrokerSettings (UpdateBrokerSettingsRequest) returns (UpdateBrokerSettingsResponse);
   rpc DeleteBroker (DeleteBrokerRequest) returns (DeleteBrokerResponse);
   rpc GetPendingVerifications (GetPendingVerificationsRequest) returns (GetPendingVerificationsResponse);
   rpc GetRecentSignups (GetRecentSignupsRequest) returns (GetRecentSignupsResponse);
@@ -18,6 +19,73 @@ service BrokerService{
   rpc GetWalletTransactions (GetWalletTransactionsRequest) returns (GetWalletTransactionsResponse);
   rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
   rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
+  rpc SaveBrokerFcmToken (SaveBrokerFcmTokenRequest) returns (SaveBrokerFcmTokenResponse);
+  rpc RequestOtp (RequestOtpRequest) returns (RequestOtpResponse);
+  rpc ResendOtp (ResendOtpRequest) returns (ResendOtpResponse);
+  rpc LoginBroker (LoginBrokerRequest) returns (LoginBrokerResponse);
+  rpc CreateBrokerSession (CreateBrokerSessionRequest) returns (CreateBrokerSessionResponse);
+  rpc GetBrokerSessions (GetBrokerSessionsRequest) returns (GetBrokerSessionsResponse);
+  rpc RevokeBrokerSession (RevokeBrokerSessionRequest) returns (RevokeBrokerSessionResponse);
+  rpc GetBrokerByCode (GetBrokerByCodeRequest) returns (GetBrokerByCodeResponse);
+  rpc SearchBrokers (SearchBrokersRequest) returns (SearchBrokersResponse);
+  rpc GetAvailableTiers (GetAvailableTiersRequest) returns (GetAvailableTiersResponse);
+  rpc ProcessSubscriptionPayment (ProcessSubscriptionPaymentRequest) returns (ProcessSubscriptionPaymentResponse);
+  rpc SubmitBrokerFeedback (SubmitBrokerFeedbackRequest) returns (SubmitBrokerFeedbackResponse);
+  rpc GetBrokerMessages (GetBrokerMessagesRequest) returns (GetBrokerMessagesResponse);
+  rpc LogoutBroker (LogoutBrokerRequest) returns (LogoutBrokerResponse);
+  rpc RequestUnsubscribeOtp (RequestUnsubscribeOtpRequest) returns (RequestUnsubscribeOtpResponse);
+  rpc UnsubscribeBroker (UnsubscribeBrokerRequest) returns (UnsubscribeBrokerResponse);
+  rpc SetupBrokerAccount (SetupBrokerAccountRequest) returns (SetupBrokerAccountResponse);
+  rpc ProcessPropertyPayment (ProcessPropertyPaymentRequest) returns (ProcessPropertyPaymentResponse);
+  rpc SaveUserInfo (SaveUserInfoRequest) returns (SaveUserInfoResponse);
+  rpc UpdateUserField (UpdateUserFieldRequest) returns (UpdateUserFieldResponse);
+  rpc DeleteBrokerAccount (DeleteBrokerAccountRequest) returns (DeleteBrokerAccountResponse);
+}
+
+message SaveBrokerFcmTokenRequest {
+  string brokerCode = 1;
+  string fcmToken = 2;
+  string deviceId = 3;
+}
+
+message SaveBrokerFcmTokenResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SaveUserInfoRequest {
+  string userId = 1;
+  string username = 2;
+  string email = 3;
+  string phoneNumber = 4;
+  string photoURL = 5;
+  string accountType = 6;
+}
+
+message SaveUserInfoResponse {
+  bool success = 1;
+  string message = 2;
+  Broker user = 3;
+}
+
+message UpdateUserFieldRequest {
+  string id = 1;
+  map<string, string> fields = 2;
+}
+
+message UpdateUserFieldResponse {
+  bool success = 1;
+  string message = 2;
+  Broker user = 3;
+}
+
+message DeleteBrokerAccountRequest {
+  string brokerCode = 1;
+}
+
+message DeleteBrokerAccountResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message GetAllBrokersRequest {
@@ -77,6 +145,15 @@ message UpdateBrokerResponse {
   Broker broker = 1;
 }
 
+message UpdateBrokerSettingsRequest {
+  string brokerCode = 1;
+  bool bookingNotificationsEnabled = 2;
+}
+
+message UpdateBrokerSettingsResponse {
+  Broker broker = 1;
+}
+
 message DeleteBrokerRequest {
   string id = 1;
 }
@@ -122,6 +199,7 @@ message GetBrokerDashboardResponse {
   repeated Booking bookings = 3;
   double walletBalance = 4;
   repeated WalletTransaction walletTransactions = 5;
+  double minimumWithdrawal = 6;
 }
 
 message CreditWalletRequest {
@@ -197,6 +275,211 @@ message GetWalletResponse {
   string name = 4;
 }
 
+message RequestOtpRequest {
+  string email = 1;
+  string phoneNumber = 2;
+  string username = 3;
+}
+
+message RequestOtpResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
+}
+
+message ResendOtpRequest {
+  string email = 1;
+  string phoneNumber = 2;
+  string channel = 3; // "email" | "phone"
+}
+
+message ResendOtpResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
+}
+
+message LoginBrokerRequest {
+  string brokerCode = 1;
+  string password = 2;
+  string deviceId = 3;
+  string googleId = 4;
+}
+
+message LoginBrokerResponse {
+  bool success = 1;
+  string message = 2;
+  Broker broker = 3;
+  string sessionToken = 4;
+  string sessionId = 5;
+  string deviceId = 6;
+  int64 expiresAt = 7;
+  int32 ttlSeconds = 8;
+}
+
+message CreateBrokerSessionRequest {
+  string brokerCode = 1;
+  string deviceId = 2;
+  int32 ttlSeconds = 3;
+}
+
+message CreateBrokerSessionResponse {
+  string sessionToken = 1;
+  string sessionId = 2;
+  string deviceId = 3;
+  int64 expiresAt = 4;
+  int32 ttlSeconds = 5;
+}
+
+message GetBrokerSessionsRequest {
+  string brokerCode = 1;
+}
+
+message BrokerSession {
+  string sessionId = 1;
+  string deviceId = 2;
+  int64 createdAt = 3;
+  int64 lastActivityAt = 4;
+  int64 expiresAt = 5;
+}
+
+message GetBrokerSessionsResponse {
+  repeated BrokerSession sessions = 1;
+}
+
+message RevokeBrokerSessionRequest {
+  string brokerCode = 1;
+  string sessionId = 2;
+}
+
+message RevokeBrokerSessionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetBrokerByCodeRequest {
+  string brokerCode = 1;
+}
+
+message GetBrokerByCodeResponse {
+  Broker broker = 1;
+}
+
+message GetAvailableTiersRequest {}
+
+message GetAvailableTiersResponse {
+  repeated TierConfig tiers = 1;
+}
+
+message SubmitBrokerFeedbackRequest {
+  string brokerCode = 1;
+  string email = 2;
+  string phone = 3;
+  string content = 4;
+}
+
+message SubmitBrokerFeedbackResponse {
+  bool success = 1;
+  string message = 2;
+  string feedbackId = 3;
+}
+
+message ProcessSubscriptionPaymentRequest {
+  string phoneNumber = 1;
+  string tier = 2;
+  string brokerId = 3;
+}
+
+message ProcessSubscriptionPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  string proofCode = 3;
+  string tier = 4;
+  string transactionId = 5;
+  string referenceNumber = 6;
+}
+
+message GetBrokerMessagesRequest {
+  string brokerId = 1;
+}
+
+message GetBrokerMessagesResponse {
+  repeated BrokerMessage messages = 1;
+  CategorizedMessages categorized = 2;
+  int32 total = 3;
+}
+
+message CategorizedMessages {
+  repeated BrokerMessage adminMessages = 1;
+  repeated BrokerMessage systemMessages = 2;
+  repeated BrokerMessage bookingMessages = 3;
+  repeated BrokerMessage propertyMessages = 4;
+  repeated BrokerMessage otherMessages = 5;
+}
+
+message LogoutBrokerRequest {
+  string brokerCode = 1;
+  string sessionId = 2;
+}
+
+message LogoutBrokerResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message UnsubscribeBrokerRequest {
+  string brokerCode = 1;
+  string password = 2;
+  string googleId = 3;
+  string sessionId = 4;
+  string emailOtp = 5;
+}
+
+message UnsubscribeBrokerResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message RequestUnsubscribeOtpRequest {
+  string brokerCode = 1;
+}
+
+message RequestUnsubscribeOtpResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
+}
+
+message SetupBrokerAccountRequest {
+  string brokerCode = 1;
+  string password = 2;
+  string deviceId = 3;
+}
+
+message SetupBrokerAccountResponse {
+  bool success = 1;
+  string message = 2;
+  Broker broker = 3;
+  string sessionToken = 4;
+  string sessionId = 5;
+  string deviceId = 6;
+  int64 expiresAt = 7;
+  int32 ttlSeconds = 8;
+}
+
+message TierConfig {
+  string tier = 1;
+  string name = 2;
+  double price = 3;
+  string currency = 4;
+  int32 expiryDays = 5;
+  repeated string advantages = 6;
+  int32 maxProperties = 7;
+  int32 maxPhotosPerProperty = 8;
+  int32 maxVideosPerProperty = 9;
+  int32 maxVideoSizeMB = 10;
+}
+
 message Broker {
   string id = 1;
   string username = 2;
@@ -214,7 +497,12 @@ message Broker {
   bool isActive = 14;
   bool isDeleted = 15;
   double walletBalance = 16;
-  string subscriptionExpiresAt = 17;
+  string title = 17;
+  string brokerImage = 18;
+  repeated string ninImages = 19;
+  string googleId = 20;
+  string deviceId = 21;
+  string subscriptionExpiresAt = 22;
 }
 
 message BrokerMessage {
@@ -250,4 +538,32 @@ message WalletTransaction {
   string transactionCode = 7;
   string createdBy = 8;
   string createdAt = 9;
+}
+
+message SearchBrokersRequest {
+  string query = 1;
+}
+
+message SearchBrokersResponse {
+  repeated Broker brokers = 1;
+}
+
+message ProcessPropertyPaymentRequest {
+  string customerPhone = 1;
+  string customerEmail = 2;
+  string customerName = 3;
+  double amount = 4;
+  string reasonForPayment = 5;
+  string propertyId = 6;
+  string brokerId = 7;
+}
+
+message ProcessPropertyPaymentResponse {
+  bool success = 1;
+  string message = 2;
+  string transactionId = 3;
+  string referenceNumber = 4;
+  string transactionCode = 5;
+  double netAmount = 6;
+  string date = 7;
 }

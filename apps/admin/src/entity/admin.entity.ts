@@ -2,49 +2,49 @@ import {Entity, Column,PrimaryGeneratedColumn} from 'typeorm';
 
 @Entity()
 export class AdminEntity{
- @PrimaryGeneratedColumn()
- id!:string;
+@PrimaryGeneratedColumn()
+  id!:string;
 
- @Column()
- username!:string;
+@Column({default:''})
+  username!:string;
 
- @Column()
- email!: string;
+  @Column({default:''})
+  email!: string;
 
- @Column()
- passwordHash!:string;
+  @Column({default:''})
+  passwordHash!:string;
 
- @Column()
- role!:string;
+  @Column({default:'admin'})
+  role!:string;
 
- @Column()
- isActive!:boolean;
+  @Column({default:true})
+  isActive!:boolean;
 
- @Column()
- lastLoggedIn!:Date;
+  @Column({default:new Date()})
+  lastLoggedIn!:Date;
 
- @Column()
- createdAt!:Date
+  @Column({default:new Date()})
+  createdAt!:Date
 
- @Column()
- phoneNumber!:string;
+  @Column({default:''})
+  phoneNumber!:string;
 
-@Column({ type: 'simple-array' })
+  @Column({type:'simple-array',default:[]})
   otherAdmins!: string[]
 
- @Column()
- status!:string;
+  @Column({default:'active'})
+  status!:string;
 
- @Column()
- isDeleted!:boolean;
+  @Column({default:false})
+  isDeleted!:boolean;
 
- @Column()
- handledMessages!:number;
+  @Column({default:0})
+  handledMessages!:number;
 
- @Column()
- sentEmails!:number;
+  @Column({default:0})
+  sentEmails!:number;
 
- @Column()
- sentSms!:number;
+  @Column({default:0})
+  sentSms!:number;
 
 }

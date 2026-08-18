@@ -4,6 +4,7 @@ import { PaymentService } from './payment.service';
 import type {
   ProcessPaymentDto,
   ProcessPropertyPaymentDto,
+  ProcessCustomerPaymentDto,
   WithdrawDto,
   GetWalletDto,
 } from './payment.service';
@@ -46,5 +47,12 @@ export class PaymentController {
   async getTransactions(dto: any) {
     this.logger.log(`Received get-transactions request`);
     return this.paymentService.getTransactions(dto);
+  }
+
+  @GrpcMethod('PaymentService', 'ProcessCustomerPayment')
+  async processCustomerPayment(dto: ProcessCustomerPaymentDto) {
+    this.logger.log(`Received process-customer-payment request for user ${dto.userId}`);
+    const result = await this.paymentService.processCustomerPayment(dto);
+    return result;
   }
 }

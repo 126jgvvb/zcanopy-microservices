@@ -75,7 +75,7 @@ export class AdminController {
   }
 
   @GrpcMethod('AdminService', 'GenerateInvitationCode')
-  async generateInvitationCode(dto: any) {
+  async generateInvitationCode(dto: { superAdminId: number; role: string; expiryHours: number }) {
     this.logger.log(`Received generateInvitationCode request from ${dto.superAdminId}`);
     return this.adminService.generateInvitationCode(dto);
   }

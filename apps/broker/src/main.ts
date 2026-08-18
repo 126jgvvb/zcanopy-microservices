@@ -19,28 +19,31 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') || 3003;
 
   //gRDC config
-app.connectMicroservice<MicroserviceOptions>({
-  transport: Transport.GRPC,
-  options: {
-    host: `0.0.0.0:${port}`,
-    package:"broker",
-    protoPath: join(__dirname, '../../broker/src/proto/broker.proto'),
-  },
-},);
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.GRPC,
+    options: {
+      host: `0.0.0.0`,
+      url: `0.0.0.0:${port}`,
+      package: 'broker.v1',
+      protoPath: join(__dirname, '../../broker/src/proto/broker.proto'),
+    },
+  },);
 
 
 //redis configuration
-app.connectMicroservice<MicroserviceOptions>({
-  transport: Transport.REDIS,
-  options: {
-    host: configService.get<string>('REDIS_HOST') || 'localhost',
-    port: Number(configService.get<string>('REDIS_PORT') || '6379'),
-    password: configService.get<string>('REDIS_PASSWORD') || undefined,
-  },
-},);
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.REDIS,
+    options: {
+      host: configService.get<string>('REDIS_HOST') || 'localhost',
+      port: Number(configService.get<string>('REDIS_PORT') || '6379'),
+      password: configService.get<string>('REDIS_PASSWORD') || undefined,
+      retryAttempts: 10,
+      retryDelay: 3000,
+    },
+  },);
 
 
- // app.startAllMicroservices();
+  await app.startAllMicroservices();
   await app.listen(port);
   Logger.log( `Broker Application is running on: http://localhost:${port}/${globalPrefix}`,);
 }

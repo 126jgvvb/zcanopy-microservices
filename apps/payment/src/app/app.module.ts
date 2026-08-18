@@ -12,7 +12,7 @@ import { join } from 'path';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/payment/.env' }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -48,9 +48,9 @@ import { join } from 'path';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.ADMIN_SERVICE_URL || 'localhost:50053',
-            package: 'admin',
-            protoPath: join(__dirname, '../../admin/src/proto/admin.proto'),
+            url: process.env.ADMIN_SERVICE_URL || 'localhost:3006',
+            package: 'admin.v1',
+            protoPath: join(process.cwd(), 'apps/admin/src/proto/admin.proto'),
           },
         }),
       },

@@ -27,43 +27,43 @@ export class BrokerEntity{
  @PrimaryGeneratedColumn()
  id!:string;
 
-  @Column()
+  @Column({default: 'delos-broker'})
   username!:string;
 
-  @Column()
+  @Column({default: 'Delos Broker'})
   title!:string;
 
-  @Column()
+  @Column({default: 'delos-broker@gmail.com'})
   email!: string;
 
- @Column()
+ @Column({default: '+2348123456789'})
  phoneNumber!: string;
 
- @Column()
+ @Column({default: 'password'})
  password!: string;
 
- @Column()
+ @Column({default: new Date()})
  createdAt!: Date;
 
- @Column()
+ @Column({default: new Date()})
  updatedAt!: Date;
 
- @Column()
+ @Column({default: new Date()})
  deletedAt!: Date;
 
- @Column()
+ @Column({default: true})
  isActive!: boolean;
 
- @Column()
+ @Column({default: false})
  isDeleted!: boolean;
 
- @Column()
+ @Column({default: false})
  isVerified!: boolean;
 
- @Column()
+ @Column({default: false})
  isEmailVerified!: boolean;
 
- @Column()
+ @Column({default: false})
  isPhoneVerified!: boolean;
 
   @Column({ type: 'json', nullable: true })
@@ -72,40 +72,40 @@ export class BrokerEntity{
   @Column({ type: 'json', nullable: true })
   messages!: BrokerMessage[];
 
- @Column()
+ @Column({default: 'kirinya'})
  location!:string;
 
- @Column()
+ @Column({default: new Date()})
  lastLogin!:Date;
 
- @Column()
+ @Column({default: 'DELOS-BROKER-001'})
  brokerCode!:string;
 
- @Column()
+ @Column({default: 'PROP'})
  subscriptionTier!:string;
 
- @Column()
+ @Column({default: 10})
  maxProperties!:number;
 
- @Column()
+ @Column({default: 10})
  maxPhotosPerProperty!:number;
 
- @Column()
+ @Column({default: 10})
  maxVideosPerProperty!:number;
 
- @Column()
+ @Column({default: 50})
  maxVideoSizeMB!:number;
 
- @Column()
+ @Column({default: 'DELOS-BROKER-001'})
  paymentProofCode!:string;
 
   @Column({ type: 'json', nullable: true })
   ninImages!: string[];
 
- @Column()
+ @Column({default: 'https://delos.com/broker/image.jpg'})
  brokerImage!:string;
 
-  @Column()
+  @Column({default: 0})
   walletBalance!:number;
 
   @Column({ nullable: true })

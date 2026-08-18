@@ -214,55 +214,80 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   }
 
   async sendEmailOtp(payload: OtpNotificationPayload) {
-    if (!payload.email) {
-      throw new Error('Cannot send email OTP: "email" is missing from payload');
+    try {
+      if (!payload.email) {
+        throw new Error('Cannot send email OTP: "email" is missing from payload');
+      }
+      const body = this.buildMessage(payload, 'email');
+      const subject = 'Your verification code';
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'otp', channel: 'email', title: subject, content: body, recipient: payload.email, result });
+      return this.result('email', payload.email);
+    } catch (err) {
+      this.logger.error(`Failed to send email OTP: ${(err as Error).message}`);
+      throw err;
     }
-    const body = this.buildMessage(payload, 'email');
-    const subject = 'Your verification code';
-    const result = await this.dispatchEmail(payload.email, subject, body);
-    await this.saveNotification({ type: 'otp', channel: 'email', title: subject, content: body, recipient: payload.email, result });
-    return this.result('email', payload.email);
   }
 
   async sendSmsOtp(payload: OtpNotificationPayload) {
-    if (!payload.phoneNumber) {
-      throw new Error('Cannot send sms OTP: "phoneNumber" is missing from payload');
+    try {
+      if (!payload.phoneNumber) {
+        throw new Error('Cannot send sms OTP: "phoneNumber" is missing from payload');
+      }
+      const body = this.buildMessage(payload, 'sms');
+      const result = await this.dispatchSms(payload.phoneNumber, body);
+      await this.saveNotification({ type: 'otp', channel: 'sms', title: 'OTP Code', content: body, recipient: payload.phoneNumber, result });
+      return this.result('sms', payload.phoneNumber);
+    } catch (err) {
+      this.logger.error(`Failed to send SMS OTP: ${(err as Error).message}`);
+      throw err;
     }
-    const body = this.buildMessage(payload, 'sms');
-    const result = await this.dispatchSms(payload.phoneNumber, body);
-    await this.saveNotification({ type: 'otp', channel: 'sms', title: 'OTP Code', content: body, recipient: payload.phoneNumber, result });
-    return this.result('sms', payload.phoneNumber);
   }
 
   async sendWhatsappOtp(payload: OtpNotificationPayload) {
-    if (!payload.phoneNumber) {
-      throw new Error('Cannot send whatsapp OTP: "phoneNumber" is missing from payload');
+    try {
+      if (!payload.phoneNumber) {
+        throw new Error('Cannot send whatsapp OTP: "phoneNumber" is missing from payload');
+      }
+      const body = this.buildMessage(payload, 'whatsapp');
+      const result = await this.dispatchWhatsapp(payload.phoneNumber, body);
+      await this.saveNotification({ type: 'otp', channel: 'whatsapp', title: 'OTP Code', content: body, recipient: payload.phoneNumber, result });
+      return this.result('whatsapp', payload.phoneNumber);
+    } catch (err) {
+      this.logger.error(`Failed to send WhatsApp OTP: ${(err as Error).message}`);
+      throw err;
     }
-    const body = this.buildMessage(payload, 'whatsapp');
-    const result = await this.dispatchWhatsapp(payload.phoneNumber, body);
-    await this.saveNotification({ type: 'otp', channel: 'whatsapp', title: 'OTP Code', content: body, recipient: payload.phoneNumber, result });
-    return this.result('whatsapp', payload.phoneNumber);
   }
 
   async sendPaymentEmail(payload: PaymentNotificationPayload) {
-    if (!payload.email) {
-      throw new Error('Cannot send payment email: "email" is missing from payload');
+    try {
+      if (!payload.email) {
+        throw new Error('Cannot send payment email: "email" is missing from payload');
+      }
+      const subject = `Payment Confirmation - ${payload.invoice.tier} Subscription`;
+      const body = this.buildPaymentMessage(payload);
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'payment', channel: 'email', title: subject, content: body, recipient: payload.email, result });
+      return this.result('email', payload.email);
+    } catch (err) {
+      this.logger.error(`Failed to send payment email: ${(err as Error).message}`);
+      throw err;
     }
-    const subject = `Payment Confirmation - ${payload.invoice.tier} Subscription`;
-    const body = this.buildPaymentMessage(payload);
-    const result = await this.dispatchEmail(payload.email, subject, body);
-    await this.saveNotification({ type: 'payment', channel: 'email', title: subject, content: body, recipient: payload.email, result });
-    return this.result('email', payload.email);
   }
 
   async sendPaymentSms(payload: PaymentNotificationPayload) {
-    if (!payload.phoneNumber) {
-      throw new Error('Cannot send payment SMS: "phoneNumber" is missing from payload');
+    try {
+      if (!payload.phoneNumber) {
+        throw new Error('Cannot send payment SMS: "phoneNumber" is missing from payload');
+      }
+      const body = this.buildPaymentMessage(payload);
+      const result = await this.dispatchSms(payload.phoneNumber, body);
+      await this.saveNotification({ type: 'payment', channel: 'sms', title: 'Payment Confirmation', content: body, recipient: payload.phoneNumber, result });
+      return this.result('sms', payload.phoneNumber);
+    } catch (err) {
+      this.logger.error(`Failed to send payment SMS: ${(err as Error).message}`);
+      throw err;
     }
-    const body = this.buildPaymentMessage(payload);
-    const result = await this.dispatchSms(payload.phoneNumber, body);
-    await this.saveNotification({ type: 'payment', channel: 'sms', title: 'Payment Confirmation', content: body, recipient: payload.phoneNumber, result });
-    return this.result('sms', payload.phoneNumber);
   }
 
   async sendPropertyPaymentEmail(payload: {
@@ -271,14 +296,19 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     invoice: PropertyPaymentInvoice;
     purpose?: string;
   }) {
-    if (!payload.email) {
-      throw new Error('Cannot send property payment email: "email" is missing from payload');
+    try {
+      if (!payload.email) {
+        throw new Error('Cannot send property payment email: "email" is missing from payload');
+      }
+      const subject = `Property Payment Confirmation`;
+      const body = this.buildPropertyPaymentMessage(payload);
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'payment', channel: 'email', title: subject, content: body, recipient: payload.email, result });
+      return this.result('email', payload.email);
+    } catch (err) {
+      this.logger.error(`Failed to send property payment email: ${(err as Error).message}`);
+      throw err;
     }
-    const subject = `Property Payment Confirmation`;
-    const body = this.buildPropertyPaymentMessage(payload);
-    const result = await this.dispatchEmail(payload.email, subject, body);
-    await this.saveNotification({ type: 'payment', channel: 'email', title: subject, content: body, recipient: payload.email, result });
-    return this.result('email', payload.email);
   }
 
   async sendPropertyPaymentSms(payload: {
@@ -287,13 +317,18 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     invoice: PropertyPaymentInvoice;
     purpose?: string;
   }) {
-    if (!payload.phoneNumber) {
-      throw new Error('Cannot send property payment SMS: "phoneNumber" is missing from payload');
+    try {
+      if (!payload.phoneNumber) {
+        throw new Error('Cannot send property payment SMS: "phoneNumber" is missing from payload');
+      }
+      const body = this.buildPropertyPaymentMessage(payload);
+      const result = await this.dispatchSms(payload.phoneNumber, body);
+      await this.saveNotification({ type: 'payment', channel: 'sms', title: 'Property Payment Confirmation', content: body, recipient: payload.phoneNumber, result });
+      return this.result('sms', payload.phoneNumber);
+    } catch (err) {
+      this.logger.error(`Failed to send property payment SMS: ${(err as Error).message}`);
+      throw err;
     }
-    const body = this.buildPropertyPaymentMessage(payload);
-    const result = await this.dispatchSms(payload.phoneNumber, body);
-    await this.saveNotification({ type: 'payment', channel: 'sms', title: 'Property Payment Confirmation', content: body, recipient: payload.phoneNumber, result });
-    return this.result('sms', payload.phoneNumber);
   }
 
   async sendAdminMessage(payload: {
@@ -304,80 +339,115 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     body: string;
     recipientName?: string;
   }) {
-    if (payload.channel === 'email' && payload.recipientEmail) {
-      const result = await this.dispatchEmail(payload.recipientEmail, payload.subject || 'Message from Admin', payload.body);
-      await this.saveNotification({
-        type: 'admin_message',
-        channel: 'email',
-        title: payload.subject || 'Message from Admin',
-        content: payload.body,
-        recipient: payload.recipientEmail,
-        result,
-      });
-      return this.result('email', payload.recipientEmail);
-    }
+    try {
+      if (payload.channel === 'email' && payload.recipientEmail) {
+        const result = await this.dispatchEmail(payload.recipientEmail, payload.subject || 'Message from Admin', payload.body);
+        await this.saveNotification({
+          type: 'admin_message',
+          channel: 'email',
+          title: payload.subject || 'Message from Admin',
+          content: payload.body,
+          recipient: payload.recipientEmail,
+          result,
+        });
+        return this.result('email', payload.recipientEmail);
+      }
 
-    if (payload.channel === 'sms' && payload.recipientPhone) {
-      const result = await this.dispatchSms(payload.recipientPhone, payload.body);
-      await this.saveNotification({
-        type: 'admin_message',
-        channel: 'sms',
-        title: 'Admin Message',
-        content: payload.body,
-        recipient: payload.recipientPhone,
-        result,
-      });
-      return this.result('sms', payload.recipientPhone);
-    }
+      if (payload.channel === 'sms' && payload.recipientPhone) {
+        const result = await this.dispatchSms(payload.recipientPhone, payload.body);
+        await this.saveNotification({
+          type: 'admin_message',
+          channel: 'sms',
+          title: 'Admin Message',
+          content: payload.body,
+          recipient: payload.recipientPhone,
+          result,
+        });
+        return this.result('sms', payload.recipientPhone);
+      }
 
-    throw new Error(`Invalid channel or missing recipient for ${payload.channel}`);
+      throw new Error(`Invalid channel or missing recipient for ${payload.channel}`);
+    } catch (err) {
+      this.logger.error(`Failed to send admin message: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   async sendBrokerApprovalEmail(payload: BrokerApprovalPayload) {
-    const subject = 'Broker Account Approved';
-    const body = `Hi ${payload.username}, your broker account has been approved. Your broker code is ${payload.brokerCode}.`;
-    const result = await this.dispatchEmail(payload.email, subject, body);
-    await this.saveNotification({ type: 'broker_approval', channel: 'email', title: subject, content: body, recipient: payload.email, result });
-    return this.result('email', payload.email);
+    try {
+      const subject = 'Broker Account Approved';
+      const body = `Hi ${payload.username}, your broker account has been approved. Your broker code is ${payload.brokerCode}.`;
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'broker_approval', channel: 'email', title: subject, content: body, recipient: payload.email, result });
+      return this.result('email', payload.email);
+    } catch (err) {
+      this.logger.error(`Failed to send broker approval email: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   async sendBrokerApprovalSms(payload: BrokerApprovalPayload) {
-    const body = `Hi ${payload.username}, your broker account has been approved. Your broker code is ${payload.brokerCode}.`;
-    const result = await this.dispatchSms(payload.phoneNumber, body);
-    await this.saveNotification({ type: 'broker_approval', channel: 'sms', title: 'Broker Account Approved', content: body, recipient: payload.phoneNumber, result });
-    return this.result('sms', payload.phoneNumber);
+    try {
+      const body = `Hi ${payload.username}, your broker account has been approved. Your broker code is ${payload.brokerCode}.`;
+      const result = await this.dispatchSms(payload.phoneNumber, body);
+      await this.saveNotification({ type: 'broker_approval', channel: 'sms', title: 'Broker Account Approved', content: body, recipient: payload.phoneNumber, result });
+      return this.result('sms', payload.phoneNumber);
+    } catch (err) {
+      this.logger.error(`Failed to send broker approval SMS: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   async sendBrokerCreated(payload: BrokerCreatedPayload) {
-    const subject = 'New Broker Signup';
-    const body = `New broker ${payload.username} (${payload.email}) signed up and is awaiting approval.`;
-    const result = await this.dispatchEmail('admin@zcanopy.com', subject, body);
-    await this.saveNotification({ type: 'broker_created', channel: 'email', title: subject, content: body, recipient: 'admin@zcanopy.com', result });
-    return { success: true };
+    try {
+      const subject = 'New Broker Signup';
+      const body = `New broker ${payload.username} (${payload.email}) signed up and is awaiting approval.`;
+      const result = await this.dispatchEmail('admin@zcanopy.com', subject, body);
+      await this.saveNotification({ type: 'broker_created', channel: 'email', title: subject, content: body, recipient: 'admin@zcanopy.com', result });
+      return { success: true };
+    } catch (err) {
+      this.logger.error(`Failed to send broker created notification: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   async sendBrokerCodeCreated(payload: { email: string; username: string; brokerCode: string }) {
-    const subject = 'Your Broker Account Code';
-    const body = `Hi ${payload.username}, your broker account has been created. Your broker code is ${payload.brokerCode}.`;
-    const result = await this.dispatchEmail(payload.email, subject, body);
-    await this.saveNotification({ type: 'broker_code_created', channel: 'email', title: subject, content: body, recipient: payload.email, result });
-    return { success: true };
+    try {
+      const subject = 'Your Broker Account Code';
+      const body = `Hi ${payload.username}, your broker account has been created. Your broker code is ${payload.brokerCode}.`;
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'broker_code_created', channel: 'email', title: subject, content: body, recipient: payload.email, result });
+      return { success: true };
+    } catch (err) {
+      this.logger.error(`Failed to send broker code created notification: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   async sendPaymentFailed(payload: PaymentFailedPayload) {
-    const subject = `Payment Failed - ${payload.tier}`;
-    const body = `Payment for ${payload.tier} tier failed for broker ${payload.username}: ${payload.message}`;
-    const result = await this.dispatchEmail('admin@zcanopy.com', subject, body);
-    await this.saveNotification({ type: 'payment_failed', channel: 'email', title: subject, content: body, recipient: 'admin@zcanopy.com', result });
-    return { success: true };
+    try {
+      const subject = `Payment Failed - ${payload.tier}`;
+      const body = `Payment for ${payload.tier} tier failed for broker ${payload.username}: ${payload.message}`;
+      const result = await this.dispatchEmail('admin@zcanopy.com', subject, body);
+      await this.saveNotification({ type: 'payment_failed', channel: 'email', title: subject, content: body, recipient: 'admin@zcanopy.com', result });
+      return { success: true };
+    } catch (err) {
+      this.logger.error(`Failed to send payment failed notification: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   async sendBrokerLoginNewDevice(payload: BrokerLoginNewDevicePayload) {
-    const subject = 'New Device Login Detected';
-    const body = `Hi ${payload.username}, a new device login was detected for your broker account (${payload.brokerCode}). If this was not you, please secure your account immediately.`;
-    const result = await this.dispatchEmail(payload.email, subject, body);
-    await this.saveNotification({ type: 'broker_new_device', channel: 'email', title: subject, content: body, recipient: payload.email, result });
-    return { success: true };
+    try {
+      const subject = 'New Device Login Detected';
+      const body = `Hi ${payload.username}, a new device login was detected for your broker account (${payload.brokerCode}). If this was not you, please secure your account immediately.`;
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'broker_new_device', channel: 'email', title: subject, content: body, recipient: payload.email, result });
+      return { success: true };
+    } catch (err) {
+      this.logger.error(`Failed to send broker login new device notification: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   async sendFcmNotification(brokerCode: string, title: string, body: string, data?: Record<string, string>, tokens?: string[]) {
@@ -458,29 +528,34 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     brokerCode?: string;
     read?: boolean;
   }) {
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 20;
+    try {
+      const page = Number(query.page) || 1;
+      const limit = Number(query.limit) || 20;
 
-    const where: Record<string, unknown> = {};
-    if (query.status) where.status = query.status;
-    if (query.type) where.type = query.type;
-    if (query.channel) where.channel = query.channel;
-    if (query.recipient) where.recipient = query.recipient;
-    if (query.brokerCode) where.brokerCode = query.brokerCode;
-    if (typeof query.read === 'boolean') where.read = query.read;
+      const where: Record<string, unknown> = {};
+      if (query.status) where.status = query.status;
+      if (query.type) where.type = query.type;
+      if (query.channel) where.channel = query.channel;
+      if (query.recipient) where.recipient = query.recipient;
+      if (query.brokerCode) where.brokerCode = query.brokerCode;
+      if (typeof query.read === 'boolean') where.read = query.read;
 
-    const [notifications, total] = await this.notificationRepo.findAndCount({
-      where,
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+      const [notifications, total] = await this.notificationRepo.findAndCount({
+        where,
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
 
-    const unreadCount = await this.notificationRepo.count({
-      where: { ...where, read: false },
-    });
+      const unreadCount = await this.notificationRepo.count({
+        where: { ...where, read: false },
+      });
 
-    return { notifications, total, page, limit, unreadCount };
+      return { notifications, total, page, limit, unreadCount };
+    } catch (err) {
+      this.logger.error(`Failed to get notifications: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   /**
@@ -496,48 +571,53 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     brokerCode?: string;
     all?: boolean;
   }) {
-    // Ownership is mandatory: without a recipient/brokerCode we refuse to
-    // mutate anything (prevents cross-account and system-wide updates).
-    if (!query.recipient && !query.brokerCode) {
-      return { success: false, updated: 0, message: 'An owner (recipient or brokerCode) is required' };
-    }
+    try {
+      // Ownership is mandatory: without a recipient/brokerCode we refuse to
+      // mutate anything (prevents cross-account and system-wide updates).
+      if (!query.recipient && !query.brokerCode) {
+        return { success: false, updated: 0, message: 'An owner (recipient or brokerCode) is required' };
+      }
 
-    const ownerWhere: Record<string, unknown> = {};
-    if (query.recipient) ownerWhere.recipient = query.recipient;
-    if (query.brokerCode) ownerWhere.brokerCode = query.brokerCode;
+      const ownerWhere: Record<string, unknown> = {};
+      if (query.recipient) ownerWhere.recipient = query.recipient;
+      if (query.brokerCode) ownerWhere.brokerCode = query.brokerCode;
 
-    const rawIds: Array<number | undefined> = [];
-    if (query.id !== undefined && query.id !== null) rawIds.push(Number(query.id));
-    if (Array.isArray(query.ids)) rawIds.push(...query.ids.map((i) => Number(i)));
-    const ids = rawIds.filter((i): i is number => typeof i === 'number' && Number.isInteger(i));
+      const rawIds: Array<number | undefined> = [];
+      if (query.id !== undefined && query.id !== null) rawIds.push(Number(query.id));
+      if (Array.isArray(query.ids)) rawIds.push(...query.ids.map((i) => Number(i)));
+      const ids = rawIds.filter((i): i is number => typeof i === 'number' && Number.isInteger(i));
 
-    if (ids.length > 0) {
-      // Scope the id-based update to the owner so a caller can only mark their
-      // own notifications, even if they guess another owner's ids.
-      const result = await this.notificationRepo
-        .createQueryBuilder()
-        .update(NotificationEntity)
-        .set({ read: true })
-        .whereInIds(ids)
-        .andWhere(
-          query.brokerCode ? 'brokerCode = :brokerCode' : 'recipient = :recipient',
-          query.brokerCode ? { brokerCode: query.brokerCode } : { recipient: query.recipient },
-        )
-        .execute();
+      if (ids.length > 0) {
+        // Scope the id-based update to the owner so a caller can only mark their
+        // own notifications, even if they guess another owner's ids.
+        const result = await this.notificationRepo
+          .createQueryBuilder()
+          .update(NotificationEntity)
+          .set({ read: true })
+          .whereInIds(ids)
+          .andWhere(
+            query.brokerCode ? 'brokerCode = :brokerCode' : 'recipient = :recipient',
+            query.brokerCode ? { brokerCode: query.brokerCode } : { recipient: query.recipient },
+          )
+          .execute();
+        const updated = result.affected || 0;
+        this.logger.log(`Marked ${updated} notification(s) as read by id (scoped to owner)`);
+        return { success: true, updated };
+      }
+
+      if (!query.all) {
+        return { success: false, updated: 0, message: 'Provide an id/ids to mark, or set all=true' };
+      }
+
+      // Bulk mark all of this owner's unread notifications.
+      const result = await this.notificationRepo.update({ ...ownerWhere, read: false }, { read: true });
       const updated = result.affected || 0;
-      this.logger.log(`Marked ${updated} notification(s) as read by id (scoped to owner)`);
+      this.logger.log(`Marked ${updated} notification(s) as read (bulk, scoped to owner)`);
       return { success: true, updated };
+    } catch (err) {
+      this.logger.error(`Failed to mark notifications as read: ${(err as Error).message}`);
+      throw err;
     }
-
-    if (!query.all) {
-      return { success: false, updated: 0, message: 'Provide an id/ids to mark, or set all=true' };
-    }
-
-    // Bulk mark all of this owner's unread notifications.
-    const result = await this.notificationRepo.update({ ...ownerWhere, read: false }, { read: true });
-    const updated = result.affected || 0;
-    this.logger.log(`Marked ${updated} notification(s) as read (bulk, scoped to owner)`);
-    return { success: true, updated };
   }
 
   // ---------------------------------------------------------------------------
@@ -641,20 +721,24 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     result: DispatchResult;
     brokerCode?: string;
   }) {
-    const notification = this.notificationRepo.create({
-      type: opts.type,
-      channel: opts.channel,
-      title: opts.title,
-      content: opts.content,
-      recipient: opts.recipient,
-      status: opts.result.success ? 'sent' : 'failed',
-      providerMessageId: opts.result.messageId,
-      error: opts.result.error,
-      brokerCode: opts.brokerCode,
-      read: false,
-    });
-    const saved = await this.notificationRepo.save(notification);
-    this.logger.log(`Saved notification id=${saved.id} type=${opts.type} channel=${opts.channel} status=${saved.status} recipient=${opts.recipient}`);
+    try {
+      const notification = this.notificationRepo.create({
+        type: opts.type,
+        channel: opts.channel,
+        title: opts.title,
+        content: opts.content,
+        recipient: opts.recipient,
+        status: opts.result.success ? 'sent' : 'failed',
+        providerMessageId: opts.result.messageId,
+        error: opts.result.error,
+        brokerCode: opts.brokerCode,
+        read: false,
+      });
+      const saved = await this.notificationRepo.save(notification);
+      this.logger.log(`Saved notification id=${saved.id} type=${opts.type} channel=${opts.channel} status=${saved.status} recipient=${opts.recipient}`);
+    } catch (err) {
+      this.logger.error(`Failed to save notification: ${(err as Error).message}`);
+    }
   }
 
   // ---------------------------------------------------------------------------

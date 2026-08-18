@@ -22,7 +22,7 @@ async function bootstrap() {
     options: {
       host: `0.0.0.0`,
       url: `0.0.0.0:${port}`,
-      package: 'property',
+      package: 'property.v1',
       protoPath: join(__dirname, '../../property/src/proto/property.proto'),
     },
   });

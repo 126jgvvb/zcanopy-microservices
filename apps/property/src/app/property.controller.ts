@@ -32,6 +32,10 @@ interface UpdatePropertyRequest {
   lng?: number;
 }
 
+interface GetPropertyLocationsResponse {
+  locations:any
+}
+
 @Controller()
 export class PropertyController {
   private readonly logger = new Logger(PropertyController.name);
@@ -68,9 +72,9 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'GetPropertyLocations')
-  async getPropertyLocations() {
+  async getPropertyLocations():Promise<GetPropertyLocationsResponse> {
     this.logger.log(`Received get-property-locations request`);
-    return this.propertyService.getPropertyLocations();
+    return await this.propertyService.getPropertyLocations();
   }
 
   @GrpcMethod('PropertyService', 'GetBrokerBookings')
@@ -180,5 +184,23 @@ export class PropertyController {
   async getPropertyClients(dto: { propertyId: string }) {
     this.logger.log(`Received get-property-clients request for property ${dto.propertyId}`);
     return this.propertyService.GetPropertyClients(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'DeclineBooking')
+  async declineBooking(dto: { transactionCode: string }) {
+    this.logger.log(`Received decline-booking request for transactionCode=${dto.transactionCode}`);
+    return this.propertyService.declineBooking(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'SearchPropertiesByBrokerTitle')
+  async searchPropertiesByBrokerTitle(dto: { query: string; sessionToken?: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number }) {
+    this.logger.log(`Received search-properties-by-broker-title request for query=${dto.query}`);
+    return this.propertyService.SearchPropertiesByBrokerTitle(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'DeletePropertiesByBrokerCode')
+  async deletePropertiesByBrokerCode(dto: { brokerCode: string }) {
+    this.logger.log(`Received delete-properties-by-broker-code request for brokerCode=${dto.brokerCode}`);
+    return this.propertyService.deletePropertiesByBrokerCode(dto.brokerCode);
   }
 }

@@ -16,7 +16,7 @@ import Redis from 'ioredis';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/admin/.env' }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -49,9 +49,9 @@ import Redis from 'ioredis';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.BROKER_SERVICE_URL || 'localhost:50051',
-            package: 'broker',
-            protoPath: join(__dirname, '../../broker/src/proto/broker.proto'),
+            url: process.env.BROKER_SERVICE_URL || 'localhost:3003',
+            package: 'broker.v1',
+            protoPath: join(process.cwd(), 'apps/broker/src/proto/broker.proto'),
           },
         }),
       },
@@ -60,9 +60,9 @@ import Redis from 'ioredis';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.PROPERTY_SERVICE_URL || 'localhost:50052',
-            package: 'property',
-            protoPath: join(__dirname, '../../property/src/proto/property.proto'),
+            url: process.env.PROPERTY_SERVICE_URL || 'localhost:3004',
+            package: 'property.v1',
+            protoPath: join(process.cwd(), 'apps/property/src/proto/property.proto'),
           },
         }),
       },
@@ -71,9 +71,9 @@ import Redis from 'ioredis';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.PAYMENT_SERVICE_URL || 'localhost:50053',
-            package: 'payment',
-            protoPath: join(__dirname, '../../payment/src/proto/payment.proto'),
+            url: process.env.PAYMENT_SERVICE_URL || 'localhost:3005',
+            package: 'payment.v1',
+            protoPath: join(process.cwd(), 'apps/payment/src/proto/payment.proto'),
           },
         }),
       },
@@ -82,9 +82,9 @@ import Redis from 'ioredis';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.AUTH_SERVICE_URL || 'localhost:50050',
-            package: 'auth',
-            protoPath: join(__dirname, '../../auth-server/src/proto/auth.proto'),
+            url: process.env.AUTH_SERVICE_URL || 'localhost:3002',
+            package: 'auth.v1',
+            protoPath: join(process.cwd(), 'apps/auth-server/src/proto/auth.proto'),
           },
         }),
       },

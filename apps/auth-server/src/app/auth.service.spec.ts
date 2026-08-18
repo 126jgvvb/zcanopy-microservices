@@ -27,14 +27,29 @@ describe('AuthService - customer sessions', () => {
   let service: AuthService;
   let redis: FakeRedis;
   let jwt: JwtService;
-  const adminClient = { send: jest.fn(() => of({})) } as any;
-  const brokerClient = { send: jest.fn(() => of({})) } as any;
+  const adminClient = {
+  getService: jest.fn(() => ({
+    validateAdmin: jest.fn(() => of({})),
+    getAdminById: jest.fn(() => of({})),
+  })),
+} as any;
+
+const brokerClient = {
+  getService: jest.fn(() => ({
+    validateBroker: jest.fn(() => of({})),
+    getBrokerById: jest.fn(() => of({})),
+    loginBroker: jest.fn(() => of({})),
+    setupBrokerAccount: jest.fn(() => of({})),
+  })),
+} as any;
 
   beforeEach(() => {
     redis = new FakeRedis();
     jwt = new JwtService({ secret: 'test-secret' });
     service = new AuthService(adminClient, brokerClient, jwt);
     (service as any).redis = redis;
+    (service as any).adminServiceRpc = adminClient.getService('AdminService');
+    (service as any).brokerServiceRpc = brokerClient.getService('BrokerService');
   });
 
   describe('createCustomerSession', () => {
@@ -137,6 +152,47 @@ describe('AuthService - customer sessions', () => {
       expect(redis.store.has('customer:device:dev-7')).toBe(false);
       const validation = await service.validateCustomerSession(created.sessionToken);
       expect(validation.valid).toBe(false);
+    });
+  });
+});
+
+describe('AuthService - admin auth', () => {
+  let service: AuthService;
+  let redis: FakeRedis;
+  let jwt: JwtService;
+
+  beforeEach(() => {
+    redis = new FakeRedis();
+    jwt = new JwtService({ secret: 'test-secret' });
+    service = new AuthService(adminClient, brokerClient, jwt);
+    (service as any).redis = redis;
+    (service as any).adminServiceRpc = adminClient.getService('AdminService');
+    (service as any).brokerServiceRpc = brokerClient.getService('BrokerService');
+  });
+
+  describe('login', () => {
+    it('logs in as admin and returns admin type in token', async () => {
+      const adminMock = { id: 'a1', email: 'admin@zcanopy.com', username: 'admin', role: 'admin' };
+      (service as any).adminServiceRpc.validateAdmin.mockReturnValue(of(adminMock));
+
+      const result = await service.login({ email: 'admin@zcanopy.com', password: 'admin123', type: 'admin' });
+
+      expect(result.user.type).toBe('admin');
+      expect(result.user.role).toBe('admin');
+      expect(result.user.email).toBe('admin@zcanopy.com');
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('refreshes an admin token by calling getAdminById', async () => {
+      const adminMock = { id: 'a1', email: 'admin@zcanopy.com', username: 'admin', role: 'admin' };
+      (service as any).adminServiceRpc.getAdminById.mockReturnValue(of(adminMock));
+
+      const adminToken = jwt.sign({ sub: 'a1', email: 'admin@zcanopy.com', role: 'admin', type: 'admin' });
+      const result = await service.refreshToken(adminToken);
+
+      expect(result.user.type).toBe('admin');
+      expect(result.user.role).toBe('admin');
     });
   });
 });

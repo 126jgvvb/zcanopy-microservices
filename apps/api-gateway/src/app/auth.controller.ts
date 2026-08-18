@@ -83,14 +83,14 @@ export class UsersController {
   @ApiOperation({ summary: 'Get user by email' })
   async getUserByEmail(@Query('email') email: string) {
     this.logger.log(`Get user by email: ${email}`);
-    return { success: true };
+    return this.proxyService.forwardToBroker('SearchBrokers', { query: email });
   }
 
   @Get('get-user-by-username')
   @ApiOperation({ summary: 'Get user by username' })
   async getUserByUsername(@Query('username') username: string) {
     this.logger.log(`Get user by username: ${username}`);
-    return { success: true };
+    return this.proxyService.forwardToBroker('SearchBrokers', { query: username });
   }
 
   @Get('get-user-profile')
@@ -104,21 +104,25 @@ export class UsersController {
   @ApiOperation({ summary: 'Save user information' })
   async saveUserInfo(@Body() body: any) {
     this.logger.log(`Save user info for ${body.userId}`);
-    return { success: true };
+    return this.proxyService.forwardToBroker('SaveUserInfo', body);
   }
 
   @Post('update-user-field')
   @ApiOperation({ summary: 'Update a specific user field' })
   async updateUserField(@Body() body: any) {
     this.logger.log(`Update user ${body.id} field`);
-    return { success: true };
+    return this.proxyService.forwardToBroker('UpdateUserField', body);
   }
 
   @Post('update_fcm_token')
   @ApiOperation({ summary: 'Update FCM push notification token' })
   async updateFcmToken(@Body() body: any) {
     this.logger.log(`Update FCM token for user ${body.userId}`);
-    return { success: true, message: 'FCM token updated' };
+    return this.proxyService.forwardToBroker('SaveBrokerFcmToken', {
+      brokerCode: body.userId,
+      fcmToken: body.fcmToken,
+      deviceId: body.deviceId,
+    });
   }
 
   @Post('logout-user')
@@ -138,20 +142,27 @@ export class UsersController {
   @ApiOperation({ summary: 'Request password reset OTP' })
   async requestResetPasswordOtp(@Body() body: any) {
     this.logger.log(`Request reset password OTP for ${body.email}`);
-    return { success: true, message: 'OTP sent to email' };
+    return this.proxyService.forwardToBroker('ResendOtp', {
+      email: body.email,
+      channel: 'email',
+    });
   }
 
   @Post('request-account-deletion-otp')
   @ApiOperation({ summary: 'Request account deletion OTP' })
   async requestAccountDeletionOtp(@Body() body: any) {
     this.logger.log(`Request account deletion OTP for ${body.userId}`);
-    return { success: true, message: 'Deletion OTP sent' };
+    return this.proxyService.forwardToBroker('RequestUnsubscribeOtp', {
+      brokerCode: body.userId,
+    });
   }
 
   @Post('get-account-deletion-code')
   @ApiOperation({ summary: 'Get account deletion code for broker' })
   async getAccountDeletionCode(@Body() body: any) {
     this.logger.log(`Get account deletion code for ${body.email ?? body.userID}`);
-    return { success: true, message: 'Deletion code sent' };
+    return this.proxyService.forwardToBroker('RequestUnsubscribeOtp', {
+      brokerCode: body.userId ?? body.userID ?? body.email,
+    });
   }
 }
