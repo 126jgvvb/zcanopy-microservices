@@ -88,6 +88,7 @@ export class SetupBrokerAccountDto {
     brokerCode!: string;
     password!: string;
     deviceId!: string;
+    brokerBrandName?: string;
 }
 
 export class ValidateBrokerDto {
@@ -115,4 +116,28 @@ export class SaveUserInfoDto {
 export class UpdateUserFieldDto {
   id!: number;
   fields!: Record<string, string>;
+}
+
+export class RegisterBrokerDto {
+  fullName!: string;
+  email!: string;
+  phoneNumber!: string;
+  idFrontUrl?: string;
+  idBackUrl?: string;
+}
+
+export class SendBrokerOtpDto {
+  email!: string;
+  phoneNumber!: string;
+}
+
+export class VerifyBrokerOtpDto {
+  email!: string;
+  phoneNumber!: string;
+  emailCode!: string;
+  phoneCode!: string;
+}
+
+export class GetFeaturedPropertiesDto {
+  limit?: number;
 }

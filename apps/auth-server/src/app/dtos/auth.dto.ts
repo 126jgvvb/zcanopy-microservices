@@ -45,4 +45,7 @@ export class BrokerSetupDto {
   @IsString()
   @IsNotEmpty()
   deviceId: string;
+
+  @IsString()
+  brokerBrandName?: string;
 }

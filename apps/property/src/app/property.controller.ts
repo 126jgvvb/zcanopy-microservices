@@ -203,4 +203,10 @@ export class PropertyController {
     this.logger.log(`Received delete-properties-by-broker-code request for brokerCode=${dto.brokerCode}`);
     return this.propertyService.deletePropertiesByBrokerCode(dto.brokerCode);
   }
+
+  @GrpcMethod('PropertyService', 'GetFeaturedProperties')
+  async getFeaturedProperties(dto: { limit: number }) {
+    this.logger.log(`Received get-featured-properties request with limit=${dto.limit}`);
+    return this.propertyService.getFeaturedProperties(dto.limit);
+  }
 }

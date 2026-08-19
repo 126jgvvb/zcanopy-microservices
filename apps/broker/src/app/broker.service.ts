@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
-import { BrokerDto, RequestOtpDto, ResendOtpDto, LoginBrokerDto, CreateBrokerSessionDto, GetBrokerSessionsDto, RevokeBrokerSessionDto, GetBrokerByCodeDto, UpdateBrokerSettingsDto, GetAvailableTiersDto, SubmitBrokerFeedbackDto, GetBrokerMessagesDto, LogoutBrokerDto, UnsubscribeBrokerDto, RequestUnsubscribeOtpDto, SetupBrokerAccountDto, SearchBrokersDto, ValidateBrokerDto, GetBrokerByIdDto, SaveUserInfoDto, UpdateUserFieldDto } from './dtos/broker-dto';
+import { BrokerDto, RequestOtpDto, ResendOtpDto, LoginBrokerDto, CreateBrokerSessionDto, GetBrokerSessionsDto, RevokeBrokerSessionDto, GetBrokerByCodeDto, UpdateBrokerSettingsDto, GetAvailableTiersDto, SubmitBrokerFeedbackDto, GetBrokerMessagesDto, LogoutBrokerDto, UnsubscribeBrokerDto, RequestUnsubscribeOtpDto, SetupBrokerAccountDto, SearchBrokersDto, ValidateBrokerDto, GetBrokerByIdDto, SaveUserInfoDto, UpdateUserFieldDto, RegisterBrokerDto, SendBrokerOtpDto, VerifyBrokerOtpDto } from './dtos/broker-dto';
 import { BrokerEntity } from '../entity/broker.entity';
 import { PayoutsEntity } from '../entity/payouts.entity';
 import { BrokerWalletTransactionEntity } from '../entity/broker-wallet-transaction.entity';
@@ -297,7 +297,192 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             throw err;
         }
     }
-        
+         
+
+    private readonly REGISTRATION_SESSION_TTL = 30 * 60;
+    private readonly REGISTRATION_SESSION_PREFIX = 'broker:registration:';
+
+    private registrationSessionKey(email: string): string {
+        return `${this.REGISTRATION_SESSION_PREFIX}${email}`;
+    }
+
+    async registerBroker(dto: RegisterBrokerDto) {
+        try {
+            if (!dto.fullName || !dto.email || !dto.phoneNumber) {
+                throw new BadRequestException('fullName, email and phoneNumber are required');
+            }
+
+            const session = {
+                fullName: dto.fullName,
+                email: dto.email,
+                phoneNumber: dto.phoneNumber,
+                idFrontUrl: dto.idFrontUrl || null,
+                idBackUrl: dto.idBackUrl || null,
+                createdAt: new Date().toISOString(),
+            };
+
+            await (this.redisClient as any).store.set(
+                this.registrationSessionKey(dto.email),
+                JSON.stringify(session),
+                'EX',
+                this.REGISTRATION_SESSION_TTL,
+            );
+
+            return {
+                brokerId: dto.email,
+                email: dto.email,
+                phoneNumber: dto.phoneNumber,
+                brokerCode: '',
+            };
+        } catch (err) {
+            this.logger.error(`Failed to register broker:`, err);
+            throw err;
+        }
+    }
+
+    async sendBrokerOtp(dto: SendBrokerOtpDto) {
+        try {
+            if (!dto.email || !dto.phoneNumber) {
+                throw new BadRequestException('Both email and phoneNumber are required');
+            }
+
+            const session = await (this.redisClient as any).store.get(this.registrationSessionKey(dto.email));
+            if (!session) {
+                throw new BadRequestException('Registration session not found. Please start the registration flow again.');
+            }
+
+            const emailWait = await this.otpStore.checkAndSetCooldown('email', dto.email);
+            if (emailWait > 0) {
+                return {
+                    success: false,
+                    message: `Please wait ${emailWait} second(s) before requesting another email code`,
+                    waitSeconds: emailWait,
+                };
+            }
+
+            const phoneWait = await this.otpStore.checkAndSetCooldown('phone', dto.phoneNumber);
+            if (phoneWait > 0) {
+                return {
+                    success: false,
+                    message: `Please wait ${phoneWait} second(s) before requesting another phone code`,
+                    waitSeconds: phoneWait,
+                };
+            }
+
+            const emailOtp = await this.otpStore.generateAndStore('email', dto.email);
+            const phoneOtp = await this.otpStore.generateAndStore('phone', dto.phoneNumber);
+
+            this.redisClient.emit('send_email_otp', {
+                otp: emailOtp,
+                email: dto.email,
+                ttlSeconds: this.otpStore.ttlSeconds,
+                purpose: 'broker-registration',
+            });
+
+            this.redisClient.emit('send_sms_otp', {
+                otp: phoneOtp,
+                phoneNumber: dto.phoneNumber,
+                ttlSeconds: this.otpStore.ttlSeconds,
+                purpose: 'broker-registration',
+            });
+
+            return {
+                success: true,
+                message: 'OTP codes sent to the provided email and phone number',
+                expiresInSeconds: this.otpStore.ttlSeconds,
+            };
+        } catch (err) {
+            this.logger.error('Failed to send broker OTP:', err);
+            throw err;
+        }
+    }
+
+    async verifyBrokerOtp(dto: VerifyBrokerOtpDto) {
+        try {
+            if (!dto.email || !dto.phoneNumber || !dto.emailCode || !dto.phoneCode) {
+                throw new BadRequestException('email, phoneNumber, emailCode and phoneCode are required');
+            }
+
+            const isEmailValid = await this.otpStore.verify('email', dto.email, dto.emailCode);
+            if (!isEmailValid) {
+                throw new BadRequestException('Invalid or expired email OTP');
+            }
+
+            const isPhoneValid = await this.otpStore.verify('phone', dto.phoneNumber, dto.phoneCode);
+            if (!isPhoneValid) {
+                throw new BadRequestException('Invalid or expired phone OTP');
+            }
+
+            const sessionRaw = await (this.redisClient as any).store.get(this.registrationSessionKey(dto.email));
+            if (!sessionRaw) {
+                throw new BadRequestException('Registration session expired or not found. Please start again.');
+            }
+
+            const session = JSON.parse(sessionRaw);
+
+            const brokerCode = await this.generateUniqueBrokerCode();
+            const subscriptionTier = 'prop';
+            const subscriptionLimits = this.getSubscriptionLimits(subscriptionTier);
+
+            const newBroker = this.brokerRepo.create({
+                username: session.fullName,
+                title: session.fullName,
+                phoneNumber: session.phoneNumber,
+                email: session.email,
+                brokerImage: session.idFrontUrl || 'https://delos.com/broker/image.jpg',
+                ninImages: [session.idFrontUrl, session.idBackUrl].filter(Boolean) as string[],
+                brokerCode,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                isActive: true,
+                isDeleted: false,
+                isVerified: false,
+                subscriptionTier,
+                maxProperties: subscriptionLimits.maxProperties,
+                maxPhotosPerProperty: subscriptionLimits.maxPhotosPerProperty,
+                maxVideosPerProperty: subscriptionLimits.maxVideosPerProperty,
+                maxVideoSizeMB: subscriptionLimits.maxVideoSizeMB,
+                isEmailVerified: true,
+                isPhoneVerified: true,
+            });
+
+            await this.brokerRepo.save(newBroker);
+
+            await (this.redisClient as any).store.del(this.registrationSessionKey(dto.email));
+
+            this.redisClient.emit('broker_code_created', {
+                brokerId: newBroker.id,
+                username: newBroker.username,
+                email: newBroker.email,
+                brokerCode: newBroker.brokerCode,
+            });
+
+            this.redisClient.emit('broker_created', {
+                brokerId: newBroker.id,
+                username: newBroker.username,
+                email: newBroker.email,
+                phoneNumber: newBroker.phoneNumber,
+                brokerCode: newBroker.brokerCode,
+                createdAt: newBroker.createdAt,
+            });
+
+            this.redisClient.emit('create_broker_wallet', {
+                brokerCode: newBroker.brokerCode,
+                phoneNumber: newBroker.phoneNumber,
+                currency: 'UGX',
+                brokerId: newBroker.id,
+            });
+
+            return {
+                success: true,
+                message: 'Broker registered successfully',
+                brokerCode: newBroker.brokerCode,
+            };
+        } catch (err) {
+            this.logger.error(`Failed to verify broker OTP:`, err);
+            throw err;
+        }
+    }
 
     async getAllBrokers(query: { page: number; limit: number }) {
         try {
@@ -1984,7 +2169,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
 
     async setupBrokerAccount(dto: SetupBrokerAccountDto) {
         try {
-            const { brokerCode, password, deviceId } = dto;
+            const { brokerCode, password, deviceId, brokerBrandName } = dto;
 
             if (!brokerCode) {
                 return {
@@ -2014,14 +2199,19 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 };
             }
 
-            // Set the password and bind the device for this broker's first sign-in.
-            await this.brokerRepo.update(broker.id, {
+            const updateData: Record<string, any> = {
                 password,
                 deviceId,
                 lastLogin: new Date(),
                 isActive: true,
                 updatedAt: new Date(),
-            });
+            };
+
+            if (brokerBrandName !== undefined && brokerBrandName.trim() !== '') {
+                updateData.brokerBrandName = brokerBrandName.trim();
+            }
+
+            await this.brokerRepo.update(broker.id, updateData);
 
             await this.invalidateBrokerCache(brokerCode);
 

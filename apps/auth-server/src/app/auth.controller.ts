@@ -112,7 +112,7 @@ export class AuthController {
   }
 
   @GrpcMethod('AuthService','GetActiveCustomerSessions')
-  async GetActiveCustomerSessions(dto:any): Promise<{ sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }>; total: number }> {
+  async GetActiveCustomerSessions(dto:{}): Promise<{ sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }>; total: number }> {
     this.logger.log('GetActiveCustomerSessions request');
     return this.authService.getActiveCustomerSessions();
   }

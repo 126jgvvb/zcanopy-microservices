@@ -218,6 +218,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       if (!payload.email) {
         throw new Error('Cannot send email OTP: "email" is missing from payload');
       }
+      console.log(`[OTP] Email OTP for ${payload.email}: ${payload.otp}`);
       const body = this.buildMessage(payload, 'email');
       const subject = 'Your verification code';
       const result = await this.dispatchEmail(payload.email, subject, body);
@@ -225,6 +226,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       return this.result('email', payload.email);
     } catch (err) {
       this.logger.error(`Failed to send email OTP: ${(err as Error).message}`);
+      console.log(`[OTP] Email OTP for ${payload.email}: ${payload.otp} (send failed)`);
       throw err;
     }
   }
@@ -234,12 +236,14 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       if (!payload.phoneNumber) {
         throw new Error('Cannot send sms OTP: "phoneNumber" is missing from payload');
       }
+      console.log(`[OTP] SMS OTP for ${payload.phoneNumber}: ${payload.otp}`);
       const body = this.buildMessage(payload, 'sms');
       const result = await this.dispatchSms(payload.phoneNumber, body);
       await this.saveNotification({ type: 'otp', channel: 'sms', title: 'OTP Code', content: body, recipient: payload.phoneNumber, result });
       return this.result('sms', payload.phoneNumber);
     } catch (err) {
       this.logger.error(`Failed to send SMS OTP: ${(err as Error).message}`);
+      console.log(`[OTP] SMS OTP for ${payload.phoneNumber}: ${payload.otp} (send failed)`);
       throw err;
     }
   }
@@ -249,12 +253,14 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       if (!payload.phoneNumber) {
         throw new Error('Cannot send whatsapp OTP: "phoneNumber" is missing from payload');
       }
+      console.log(`[OTP] WhatsApp OTP for ${payload.phoneNumber}: ${payload.otp}`);
       const body = this.buildMessage(payload, 'whatsapp');
       const result = await this.dispatchWhatsapp(payload.phoneNumber, body);
       await this.saveNotification({ type: 'otp', channel: 'whatsapp', title: 'OTP Code', content: body, recipient: payload.phoneNumber, result });
       return this.result('whatsapp', payload.phoneNumber);
     } catch (err) {
       this.logger.error(`Failed to send WhatsApp OTP: ${(err as Error).message}`);
+      console.log(`[OTP] WhatsApp OTP for ${payload.phoneNumber}: ${payload.otp} (send failed)`);
       throw err;
     }
   }

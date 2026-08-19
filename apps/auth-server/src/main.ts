@@ -16,11 +16,13 @@ async function bootstrap() {
   });
   const port = configService.get<number>('PORT') || 3002;
 
+  const grpcPort = configService.get<number>('GRPC_PORT') || 50051;
+
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
       host: `0.0.0.0`,
-      url: `0.0.0.0:${port}`,
+      url: `0.0.0.0:${grpcPort}`,
       package: 'auth.v1',
       protoPath: join(__dirname, './proto/auth.proto'),
     },
@@ -29,7 +31,7 @@ async function bootstrap() {
   await app.startAllMicroservices();
   await app.listen(port);
   Logger.log(
-    `🚀 Auth service is running on: http://localhost:${port}/${globalPrefix} (gRPC on ${port})`,
+    `🚀 Auth service is running on: http://localhost:${port}/${globalPrefix} (gRPC on ${grpcPort})`,
   );
 }
 

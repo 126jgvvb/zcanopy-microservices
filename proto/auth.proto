@@ -4,16 +4,43 @@ package auth.v1;
 
 service AuthService {
   rpc Login (LoginRequest) returns (LoginResponse);
+  rpc LoginBroker (LoginBrokerRequest) returns (LoginBrokerResponse);
   rpc RefreshToken (RefreshTokenRequest) returns (LoginResponse);
   rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
   rpc IssueCustomerSession (IssueCustomerSessionRequest) returns (IssueCustomerSessionResponse);
   rpc ValidateCustomerSession (ValidateCustomerSessionRequest) returns (ValidateCustomerSessionResponse);
+  rpc GetCustomerSession (GetCustomerSessionRequest) returns (GetCustomerSessionResponse);
+  rpc UpdateCustomerLocation (UpdateCustomerLocationRequest) returns (UpdateCustomerLocationResponse);
+  rpc RevokeCustomerSession (RevokeCustomerSessionRequest) returns (RevokeCustomerSessionResponse);
+  rpc IssueBrokerSession (IssueBrokerSessionRequest) returns (IssueBrokerSessionResponse);
+  rpc ValidateBrokerSession (ValidateBrokerSessionRequest) returns (ValidateBrokerSessionResponse);
+  rpc GetBrokerSession (GetBrokerSessionRequest) returns (GetBrokerSessionResponse);
+  rpc RevokeBrokerSession (RevokeBrokerSessionRequest) returns (RevokeBrokerSessionResponse);
+  rpc GetActiveCustomerSessions (GetActiveCustomerSessionsRequest) returns (GetActiveCustomerSessionsResponse);
+  rpc SetupBroker (SetupBrokerRequest) returns (SetupBrokerResponse);
 }
 
 message LoginRequest {
   string email = 1;
   string password = 2;
   string type = 3;
+}
+
+message LoginBrokerRequest {
+  string brokerCode = 1;
+  string password = 2;
+  string deviceId = 3;
+  string googleId = 4;
+}
+
+message LoginBrokerResponse {
+  bool success = 1;
+  string message = 2;
+  string id = 3;
+  string email = 4;
+  string username = 5;
+  string brokerCode = 6;
+  bool isVerified = 7;
 }
 
 message LoginResponse {
@@ -43,12 +70,16 @@ message ValidateTokenResponse {
 }
 
 message IssueCustomerSessionRequest {
-  string sessionId = 1;
+  string deviceId = 1;
   int32 ttlSeconds = 2;
 }
 
 message IssueCustomerSessionResponse {
   string sessionToken = 1;
+  string sessionId = 2;
+  string deviceId = 3;
+  int64 expiresAt = 4;
+  int32 ttlSeconds = 5;
 }
 
 message ValidateCustomerSessionRequest {
@@ -58,4 +89,125 @@ message ValidateCustomerSessionRequest {
 message ValidateCustomerSessionResponse {
   bool valid = 1;
   string sessionId = 2;
+  string deviceId = 3;
+}
+
+message GetCustomerSessionRequest {
+  string sessionToken = 1;
+}
+
+message GetCustomerSessionResponse {
+  bool found = 1;
+  string sessionId = 2;
+  string deviceId = 3;
+  int64 createdAt = 4;
+  int64 lastActivityAt = 5;
+  double locationLat = 6;
+  double locationLng = 7;
+  int64 locationUpdatedAt = 8;
+  int64 ttlSecondsRemaining = 9;
+}
+
+message UpdateCustomerLocationRequest {
+  string sessionToken = 1;
+  double lat = 2;
+  double lng = 3;
+}
+
+message UpdateCustomerLocationResponse {
+  bool success = 1;
+}
+
+message RevokeCustomerSessionRequest {
+  string sessionToken = 1;
+}
+
+message RevokeCustomerSessionResponse {
+  bool success = 1;
+}
+
+message IssueBrokerSessionRequest {
+  string brokerCode = 1;
+  string deviceId = 2;
+  int32 ttlSeconds = 3;
+}
+
+message IssueBrokerSessionResponse {
+  string sessionToken = 1;
+  string sessionId = 2;
+  string deviceId = 3;
+  int64 expiresAt = 4;
+  int32 ttlSeconds = 5;
+}
+
+message ValidateBrokerSessionRequest {
+  string sessionToken = 1;
+}
+
+message ValidateBrokerSessionResponse {
+  bool valid = 1;
+  string sessionId = 2;
+  string deviceId = 3;
+  string brokerCode = 4;
+}
+
+message GetBrokerSessionRequest {
+  string sessionToken = 1;
+}
+
+message GetBrokerSessionResponse {
+  bool found = 1;
+  string sessionId = 2;
+  string deviceId = 3;
+  string brokerCode = 4;
+  int64 createdAt = 5;
+  int64 lastActivityAt = 6;
+  int64 ttlSecondsRemaining = 7;
+}
+
+message RevokeBrokerSessionRequest {
+  string sessionToken = 1;
+}
+
+message RevokeBrokerSessionResponse {
+  bool success = 1;
+}
+
+message GetActiveCustomerSessionsRequest {}
+
+message ActiveCustomerSession {
+  string sessionId = 1;
+  string deviceId = 2;
+  int64 createdAt = 3;
+  int64 lastActivityAt = 4;
+  double locationLat = 5;
+  double locationLng = 6;
+  int64 locationUpdatedAt = 7;
+  int64 ttlSecondsRemaining = 8;
+}
+
+message GetActiveCustomerSessionsResponse {
+  repeated ActiveCustomerSession sessions = 1;
+  int32 total = 2;
+}
+
+message SetupBrokerRequest {
+  string brokerCode = 1;
+  string password = 2;
+  string deviceId = 3;
+  string brokerBrandName = 4;
+}
+
+message SetupBrokerResponse {
+  bool success = 1;
+  string message = 2;
+  string id = 3;
+  string email = 4;
+  string username = 5;
+  string brokerCode = 6;
+  bool isVerified = 7;
+  string sessionToken = 8;
+  string sessionId = 9;
+  string deviceId = 10;
+  string brokerBrandName = 11;
 }

@@ -27,6 +27,7 @@ service PropertyService {
   rpc DeclineBooking (DeclineBookingRequest) returns (DeclineBookingResponse);
   rpc SearchPropertiesByBrokerTitle (SearchPropertiesByBrokerTitleRequest) returns (SearchPropertiesByBrokerTitleResponse);
   rpc DeletePropertiesByBrokerCode (DeletePropertiesByBrokerCodeRequest) returns (DeletePropertiesByBrokerCodeResponse);
+  rpc GetFeaturedProperties (GetFeaturedPropertiesRequest) returns (GetFeaturedPropertiesResponse);
 }
 
 message Coordinates {
@@ -450,6 +451,15 @@ message DeletePropertiesByBrokerCodeResponse {
   bool success = 1;
   string message = 2;
   int32 deletedCount = 3;
+}
+
+message GetFeaturedPropertiesRequest {
+  int32 limit = 1;
+}
+
+message GetFeaturedPropertiesResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
 }
 
 message CustomerBooking {

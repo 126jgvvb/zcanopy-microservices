@@ -126,6 +126,9 @@ export class BrokerEntity{
   @Column({ type: 'timestamp', nullable: true })
   subscriptionExpiresAt?: Date | null;
 
+  @Column({ nullable: true })
+  brokerBrandName?: string;
+
 }
 
 

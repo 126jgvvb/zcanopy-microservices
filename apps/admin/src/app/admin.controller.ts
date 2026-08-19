@@ -213,9 +213,9 @@ export class AdminController {
   }
 
   @GrpcMethod('AdminService', 'GetActiveCustomerSessions')
-  async getActiveCustomerSessions() {
+  async getActiveCustomerSessions(dto:any) {
     this.logger.log('Received getActiveCustomerSessions request');
-    return this.adminService.getActiveCustomerSessions();
+    return this.adminService.getActiveCustomerSessions(dto);
   }
 
   @GrpcMethod('AdminService', 'GetInvoices')

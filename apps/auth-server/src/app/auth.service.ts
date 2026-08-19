@@ -103,7 +103,7 @@ interface BrokerServiceClient {
   validateBroker(data: { email: string; password: string }): any;
   getBrokerById(data: { id: string }): any;
   loginBroker(data: { brokerCode: string; password?: string; deviceId?: string; googleId?: string }): any;
-  setupBrokerAccount(data: { brokerCode: string; password: string; deviceId: string }): any;
+  setupBrokerAccount(data: { brokerCode: string; password: string; deviceId: string; brokerBrandName?: string }): any;
 }
 
 @Injectable()
@@ -234,13 +234,14 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async setupBroker(dto: { brokerCode: string; password: string; deviceId: string }): Promise<any> {
+  async setupBroker(dto: { brokerCode: string; password: string; deviceId: string; brokerBrandName?: string }): Promise<any> {
     try {
       const result: any = await lastValueFrom(
         this.brokerServiceRpc.setupBrokerAccount({
           brokerCode: dto.brokerCode,
           password: dto.password,
           deviceId: dto.deviceId,
+          brokerBrandName: dto.brokerBrandName,
         }),
       );
 
@@ -257,6 +258,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         email: broker.email,
         username: broker.username,
         brokerCode: broker.brokerCode,
+        brokerBrandName: broker.brokerBrandName,
         isVerified: broker.isVerified,
         sessionToken: result.sessionToken,
         sessionId: result.sessionId,

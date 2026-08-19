@@ -7,6 +7,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthController } from './auth.controller';
 import { BrokerController } from './broker.controller';
+import { BrokerPublicController } from './broker-public.controller';
 import { BrokerSessionController } from './broker-session.controller';
 import { PropertyController } from './property.controller';
 import { PaymentController } from './payment.controller';
@@ -19,6 +20,7 @@ import { PaymentLegacyController } from './payment-legacy.controller';
 import { GateWayController } from './gate-way.controller';
 import { NotificationController } from './notification.controller';
 import { UsersController } from './auth.controller';
+import { PublicController } from './public.controller';
 import { ProxyService } from './proxy.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { EncryptionService } from './encryption/encryption.service';
@@ -106,7 +108,7 @@ import { join } from 'path';
       },
     ]),
   ],
-  controllers: [AppController, AuthController, BrokerController, BrokerSessionController, PropertyController, PaymentController, AdminController, CustomerController, ListingsController, SubscriptionsController, BookingsController, PaymentLegacyController, GateWayController, NotificationController, UsersController],
+  controllers: [AppController, AuthController, BrokerController, BrokerPublicController, BrokerSessionController, PropertyController, PaymentController, AdminController, CustomerController, ListingsController, SubscriptionsController, BookingsController, PaymentLegacyController, GateWayController, NotificationController, UsersController, PublicController],
   providers: [AppService, EncryptionInterceptor, EncryptionMiddleware, ProxyService, JwtAuthGuard, EncryptionService, CryptoService],
 })
 export class AppModule {}

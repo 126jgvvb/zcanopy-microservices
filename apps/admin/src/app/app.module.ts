@@ -82,7 +82,7 @@ import Redis from 'ioredis';
         useFactory: () => ({
           transport: Transport.GRPC,
           options: {
-            url: process.env.AUTH_SERVICE_URL || 'localhost:3002',
+            url: process.env.AUTH_SERVICE_URL || 'localhost:50051',
             package: 'auth.v1',
             protoPath: join(process.cwd(), 'apps/auth-server/src/proto/auth.proto'),
           },

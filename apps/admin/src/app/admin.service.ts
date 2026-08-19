@@ -1073,7 +1073,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
           const isPaid = rawStatus === 'success' || rawStatus === 'paid' || rawStatus === 'completed';
           const isFailed =
             rawStatus === 'failed' ||
-            rawStatus === 'declined' ||
+            rawStatus === 'declined' ||  
             rawStatus === 'cancelled' ||
             rawStatus === 'canceled' ||
             rawStatus === 'error';
@@ -1226,11 +1226,12 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getActiveCustomerSessions(): Promise<{ sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }>; total: number }> {
+  async getActiveCustomerSessions(dto:{}): Promise<{ sessions: Array<{ sessionId: string; deviceId: string; createdAt: number; lastActivityAt: number; locationLat?: number; locationLng?: number; locationUpdatedAt?: number; ttlSecondsRemaining?: number }>; total: number }> {
     try {
       const result = await lastValueFrom(
         this.authClient.getService('AuthService').getActiveCustomerSessions({}),
       );
+
       return result;
     } catch (err) {
       this.logger.error('Failed to get active customer sessions:', err);

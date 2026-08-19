@@ -2,7 +2,7 @@ import { Controller, Logger } from '@nestjs/common';
 import { BrokerService } from './broker.service';
 import { GrpcMethod } from '@nestjs/microservices';
 import { BrokerEntity } from '../entity/broker.entity';
-import { BrokerDto, RequestOtpDto, ResendOtpDto, LoginBrokerDto, CreateBrokerSessionDto, GetBrokerSessionsDto, RevokeBrokerSessionDto, GetBrokerByCodeDto, UpdateBrokerSettingsDto, GetAvailableTiersDto, SubmitBrokerFeedbackDto, GetBrokerMessagesDto, LogoutBrokerDto, UnsubscribeBrokerDto, RequestUnsubscribeOtpDto, SetupBrokerAccountDto, SearchBrokersDto, ValidateBrokerDto, GetBrokerByIdDto, SaveUserInfoDto, UpdateUserFieldDto } from './dtos/broker-dto';
+import { BrokerDto, RequestOtpDto, ResendOtpDto, LoginBrokerDto, CreateBrokerSessionDto, GetBrokerSessionsDto, RevokeBrokerSessionDto, GetBrokerByCodeDto, UpdateBrokerSettingsDto, GetAvailableTiersDto, SubmitBrokerFeedbackDto, GetBrokerMessagesDto, LogoutBrokerDto, UnsubscribeBrokerDto, RequestUnsubscribeOtpDto, SetupBrokerAccountDto, SearchBrokersDto, ValidateBrokerDto, GetBrokerByIdDto, SaveUserInfoDto, UpdateUserFieldDto, RegisterBrokerDto, SendBrokerOtpDto, VerifyBrokerOtpDto } from './dtos/broker-dto';
 
 interface GetAllBrokersRequest {
   page: number;
@@ -261,6 +261,24 @@ export class BrokerController {
   async deleteBrokerAccount(dto: { brokerCode: string }) {
     this.logger.log(`deleteBrokerAccount called for brokerCode=${dto.brokerCode}`);
     return this.brokerService.deleteBrokerAccount(dto);
+  }
+
+  @GrpcMethod('BrokerService','RegisterBroker')
+  async registerBroker(dto: RegisterBrokerDto) {
+    this.logger.log(`registerBroker called for email=${dto.email}`);
+    return this.brokerService.registerBroker(dto);
+  }
+
+  @GrpcMethod('BrokerService','SendBrokerOtp')
+  async sendBrokerOtp(dto: SendBrokerOtpDto) {
+    this.logger.log(`sendBrokerOtp called for email=${dto.email}`);
+    return this.brokerService.sendBrokerOtp(dto);
+  }
+
+  @GrpcMethod('BrokerService','VerifyBrokerOtp')
+  async verifyBrokerOtp(dto: VerifyBrokerOtpDto) {
+    this.logger.log(`verifyBrokerOtp called for email=${dto.email}`);
+    return this.brokerService.verifyBrokerOtp(dto);
   }
 
 }

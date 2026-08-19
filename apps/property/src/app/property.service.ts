@@ -1323,4 +1323,37 @@ const result = await lastValueFrom(
       throw err;
     }
   }
+
+  async getFeaturedProperties(limit = 6): Promise<{ properties: any[]; total: number }> {
+    try {
+      const properties = await this.propertyRepo.find({
+        order: { createdAt: 'DESC' },
+        take: limit,
+      });
+
+      return {
+        properties: properties.map(p => ({
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          propertyType: p.propertyType,
+          location: p.location,
+          brokersUniqueCode: p.brokersUniqueCode,
+          isAvailable: p.isAvailable,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+          photoCount: p.photoCount,
+          videoCount: p.videoCount,
+          postgisSpatialField: p.postgis_spatial_field ? JSON.stringify(p.postgis_spatial_field) : null,
+          imageUrl: p.imageUrl,
+          videoUrl: p.videoUrl,
+          bookingState: this.computeBookingState(p),
+        })),
+        total: properties.length,
+      };
+    } catch (err) {
+      this.logger.error('Failed to get featured properties:', err);
+      throw err;
+    }
+  }
 }

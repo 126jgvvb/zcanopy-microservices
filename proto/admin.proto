@@ -466,6 +466,7 @@ message Broker {
   bool isDeleted = 15;
   double walletBalance = 16;
   string subscriptionExpiresAt = 17;
+  string brokerBrandName = 18;
 }
 
 message Property {

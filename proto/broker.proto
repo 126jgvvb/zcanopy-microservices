@@ -40,6 +40,9 @@ service BrokerService{
   rpc SaveUserInfo (SaveUserInfoRequest) returns (SaveUserInfoResponse);
   rpc UpdateUserField (UpdateUserFieldRequest) returns (UpdateUserFieldResponse);
   rpc DeleteBrokerAccount (DeleteBrokerAccountRequest) returns (DeleteBrokerAccountResponse);
+  rpc RegisterBroker (RegisterBrokerRequest) returns (RegisterBrokerResponse);
+  rpc SendBrokerOtp (SendBrokerOtpRequest) returns (SendBrokerOtpResponse);
+  rpc VerifyBrokerOtp (VerifyBrokerOtpRequest) returns (VerifyBrokerOtpResponse);
 }
 
 message SaveBrokerFcmTokenRequest {
@@ -86,6 +89,45 @@ message DeleteBrokerAccountRequest {
 message DeleteBrokerAccountResponse {
   bool success = 1;
   string message = 2;
+}
+
+message RegisterBrokerRequest {
+  string fullName = 1;
+  string email = 2;
+  string phoneNumber = 3;
+  string idFrontUrl = 4;
+  string idBackUrl = 5;
+}
+
+message RegisterBrokerResponse {
+  string brokerId = 1;
+  string email = 2;
+  string phoneNumber = 3;
+  string brokerCode = 4;
+}
+
+message SendBrokerOtpRequest {
+  string email = 1;
+  string phoneNumber = 2;
+}
+
+message SendBrokerOtpResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
+}
+
+message VerifyBrokerOtpRequest {
+  string email = 1;
+  string phoneNumber = 2;
+  string emailCode = 3;
+  string phoneCode = 4;
+}
+
+message VerifyBrokerOtpResponse {
+  bool success = 1;
+  string message = 2;
+  string brokerCode = 3;
 }
 
 message GetAllBrokersRequest {
@@ -503,6 +545,7 @@ message Broker {
   string googleId = 20;
   string deviceId = 21;
   string subscriptionExpiresAt = 22;
+  string brokerBrandName = 23;
 }
 
 message BrokerMessage {

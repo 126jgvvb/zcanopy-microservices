@@ -1248,7 +1248,7 @@
             "url": "{{baseUrl}}/auth/broker/setup",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"brokerCode\": \"BROKER123\",\n  \"password\": \"password123\",\n  \"deviceId\": \"device-001\"\n}",
+              "raw": "{\n  \"brokerCode\": \"BROKER123\",\n  \"password\": \"password123\",\n  \"deviceId\": \"device-001\",\n  \"brokerBrandName\": \"My Broker Brand\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1884,6 +1884,77 @@
                 }
               }
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public Broker",
+      "item": [
+        {
+          "name": "Register Broker",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/broker/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Alice Namuli\",\n  \"email\": \"alice@example.com\",\n  \"phoneNumber\": \"+256701234567\",\n  \"idFrontUrl\": \"https://example.com/id-front.jpg\",\n  \"idBackUrl\": \"https://example.com/id-back.jpg\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Send Broker OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/broker/otp/send",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"phoneNumber\": \"+256701234567\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Verify Broker OTP",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/broker/otp/verify",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice@example.com\",\n  \"phoneNumber\": \"+256701234567\",\n  \"emailCode\": \"123456\",\n  \"phoneCode\": \"654321\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "Get Featured Properties",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/public/properties/featured",
+            "params": [
+              {
+                "key": "limit",
+                "value": "6"
+              }
+            ]
           }
         }
       ]
