@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/notifications"
+method: GET
+order: 13000

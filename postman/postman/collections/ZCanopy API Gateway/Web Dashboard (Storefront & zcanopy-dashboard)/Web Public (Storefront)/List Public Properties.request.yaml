@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/web/public/properties"
+method: GET
+order: 1000

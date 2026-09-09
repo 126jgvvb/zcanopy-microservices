@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/broker/login"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "brokerCode": "BROKER123",
+      "password": "password123",
+      "deviceId": "device-001"
+    }
+order: 2000

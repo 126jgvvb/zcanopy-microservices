@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/customer/broker-properties"
+method: GET
+order: 5000

@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/listings/nearby"
+method: GET
+order: 1000

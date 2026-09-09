@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/subscriptions/cancel"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "reason": "no longer needed"
+    }
+order: 15000

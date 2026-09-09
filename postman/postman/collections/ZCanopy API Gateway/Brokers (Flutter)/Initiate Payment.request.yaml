@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/gate-way/initiate-payment"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "userId": "user-id-123",
+      "phoneNumber": "0700000000",
+      "amount": 10000
+    }
+order: 14000

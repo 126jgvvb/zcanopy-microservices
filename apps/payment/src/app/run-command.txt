@@ -1,0 +1,1 @@
+nx run-many -t serve --projects=api-gateway,auth-server,admin,broker,property,notification,payment     

@@ -1,0 +1,11 @@
+info:
+  name: Web Dashboard (Storefront & zcanopy-dashboard)
+  type: folder
+  seq: 14
+
+request:
+  auth: inherit
+
+docs:
+  content: Endpoints consumed by zcanopy-storefront and zcanopy-dashboard frontends. All routes in this folder are implemented by WebBrokerController / WebCustomerController / WebPublicController / WebAuthController in apps/api-gateway.
+  type: text/markdown

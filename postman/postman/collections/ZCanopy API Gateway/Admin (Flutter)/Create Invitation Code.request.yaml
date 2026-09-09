@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/invitation-code"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "role": "admin",
+      "expiryHours": 24
+    }
+order: 5000

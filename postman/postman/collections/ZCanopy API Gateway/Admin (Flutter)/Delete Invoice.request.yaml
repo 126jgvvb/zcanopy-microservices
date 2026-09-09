@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/invoices/invoice-id-123"
+method: DELETE
+order: 18000

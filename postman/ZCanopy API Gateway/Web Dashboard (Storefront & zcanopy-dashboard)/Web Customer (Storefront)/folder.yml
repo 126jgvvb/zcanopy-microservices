@@ -1,0 +1,7 @@
+info:
+  name: Web Customer (Storefront)
+  type: folder
+  seq: 4
+
+request:
+  auth: inherit

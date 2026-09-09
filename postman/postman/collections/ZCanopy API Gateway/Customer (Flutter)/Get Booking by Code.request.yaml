@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/bookings/code/{{txnCode}}"
+method: GET
+order: 6000

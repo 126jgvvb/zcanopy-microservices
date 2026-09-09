@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/web/broker/help"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "subject": "Cannot see bookings",
+      "message": "Please assist."
+    }
+order: 21000

@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/notifications/get_notifications"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "sessionToken": "{{customerSessionToken}}",
+      "page": 1,
+      "limit": 10,
+      "status": "unread",
+      "type": "booking",
+      "channel": "push",
+      "read": false
+    }
+order: 14000

@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/users/update-user-field"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "id": "user-id-123",
+      "fields": {
+        "phoneNumber": "0700000000"
+      }
+    }
+order: 2000

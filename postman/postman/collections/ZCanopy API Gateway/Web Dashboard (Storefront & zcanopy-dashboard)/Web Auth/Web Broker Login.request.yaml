@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/web/auth/broker/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "brokerCode": "BROKER123",
+      "password": "password123",
+      "deviceId": "web-dashboard"
+    }
+order: 2000

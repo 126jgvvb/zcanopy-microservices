@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/customer/bookings"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "sessionToken": "{{customerSessionToken}}",
+      "propertyId": "prop-123",
+      "customerName": "John Doe",
+      "customerPhone": "0700000000",
+      "customerEmail": "john@example.com",
+      "date": "2024-12-01",
+      "amount": 10000,
+      "reason": "Property viewing",
+      "status": "confirmed"
+    }
+order: 6000

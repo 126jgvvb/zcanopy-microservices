@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/email"
+method: PUT
+body:
+  type: json
+  content: |-
+    {
+      "email": "newadmin@zcanopy.com"
+    }
+order: 21000

@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/properties"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "brokersUniqueCode": "BROKER123",
+      "title": "Bungalow in Ntinda",
+      "description": "Spacious 3-bedroom bungalow",
+      "propertyType": "House",
+      "location": "Ntinda, Kampala",
+      "lat": 0.3476,
+      "lng": 32.5825,
+      "imageUrl": ["https://picsum.photos/400/200?1"],
+      "subCounty": "Ntinda",
+      "district": "Kampala Central"
+    }
+order: 2000

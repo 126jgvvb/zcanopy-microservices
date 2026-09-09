@@ -1,0 +1,25 @@
+info:
+  name: Update User Field
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/users/update-user-field"
+  body:
+    type: json
+    data: |-
+      {
+        "id": "user-id-123",
+        "fields": {
+          "phoneNumber": "0700000000"
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

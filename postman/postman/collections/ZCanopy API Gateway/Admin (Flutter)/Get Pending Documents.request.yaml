@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/pending/documents"
+method: GET
+order: 11000

@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{baseUrl}}/customer/bookings/retrieve"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "code": "CODE123",
+      "phoneNumber": "0700000000"
+    }
+order: 12000

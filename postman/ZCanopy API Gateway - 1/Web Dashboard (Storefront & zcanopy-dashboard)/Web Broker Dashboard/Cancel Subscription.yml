@@ -1,0 +1,27 @@
+info:
+  name: Cancel Subscription
+  type: http
+  seq: 15
+
+http:
+  method: POST
+  url: "{{baseUrl}}/subscriptions/cancel"
+  headers:
+    - name: Authorization
+      value: Bearer {{accessToken}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "reason": "no longer needed"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

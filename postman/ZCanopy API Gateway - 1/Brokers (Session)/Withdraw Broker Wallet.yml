@@ -1,0 +1,25 @@
+info:
+  name: Withdraw Broker Wallet
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/brokers/withdraw"
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 50000,
+        "phoneNumber": "0700000000",
+        "provider": "mtn",
+        "payeeName": "John Doe"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

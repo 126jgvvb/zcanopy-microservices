@@ -1,0 +1,15 @@
+$kind: http-request
+name: Web Login (broker|customer)
+url: "{{baseUrl}}/web/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "user@example.com",
+      "password": "password123",
+      "type": "broker"
+    }
+order: 1000

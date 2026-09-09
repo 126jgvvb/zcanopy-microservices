@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/web/public/search"
+method: GET
+order: 4000

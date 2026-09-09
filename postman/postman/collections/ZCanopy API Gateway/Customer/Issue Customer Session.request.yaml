@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{baseUrl}}/customer/session"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "deviceId": "device-001",
+      "ttlSeconds": 86400
+    }
+order: 1000

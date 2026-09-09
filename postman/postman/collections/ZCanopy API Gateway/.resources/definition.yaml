@@ -1,0 +1,7 @@
+$kind: collection
+description: Postman collection for ZCanopy microservices API Gateway running on port 4000
+variables:
+  baseUrl: http://localhost:3000/api
+  accessToken: ""
+  sessionToken: ""
+  customerSessionToken: ""

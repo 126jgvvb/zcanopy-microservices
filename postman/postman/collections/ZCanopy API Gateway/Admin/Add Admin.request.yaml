@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/admins"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "email": "admin2@zcanopy.com",
+      "password": "admin123",
+      "role": "admin"
+    }
+order: 14000

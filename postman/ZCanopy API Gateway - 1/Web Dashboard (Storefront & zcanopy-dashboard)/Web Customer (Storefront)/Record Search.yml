@@ -1,0 +1,33 @@
+info:
+  name: Record Search
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/search/record"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: x-session-id
+      value: "{{webSessionId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "sessionToken": "{{customerSessionToken}}",
+        "query": "apartment in kololo",
+        "location": "Kampala",
+        "radius": 10,
+        "propertyType": "apartment",
+        "resultCount": 5,
+        "resultPropertyIds": ["p1", "p2", "p3"]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/property/locations"
+method: GET
+order: 7000

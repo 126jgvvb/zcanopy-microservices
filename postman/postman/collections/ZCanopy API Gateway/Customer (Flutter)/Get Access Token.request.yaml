@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/payment/access-token"
+method: GET
+order: 8000

@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/public/properties/featured"
+method: GET
+order: 1000

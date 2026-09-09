@@ -1,0 +1,12 @@
+$kind: http-request
+name: Freeze/Unfreeze Admin
+url: "{{baseUrl}}/admin/admins/{{adminId}}/freeze"
+method: PUT
+body:
+  type: json
+  content: |-
+    {
+      "freeze": false,
+      "updatedBy": "{{adminId}}"
+    }
+order: 4000

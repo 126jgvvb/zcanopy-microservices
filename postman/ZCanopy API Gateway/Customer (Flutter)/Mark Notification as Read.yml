@@ -1,0 +1,22 @@
+info:
+  name: Mark Notification as Read
+  type: http
+  seq: 15
+
+http:
+  method: POST
+  url: "{{baseUrl}}/notifications/mark_as_read"
+  body:
+    type: json
+    data: |-
+      {
+        "notificationId": "notification-id-123"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

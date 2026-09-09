@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/logs"
+method: GET
+order: 11000

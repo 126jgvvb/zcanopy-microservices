@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/gate-way/delete-user-account"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "userID": "BROKER123"
+    }
+order: 19000

@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/customer/properties/access-payment"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "sessionToken": "{{customerSessionToken}}",
+      "brokerCode": "BROKER123",
+      "propertyId": "prop-123",
+      "amount": 5000,
+      "customerEmail": "customer@example.com",
+      "customerPhone": "0700000000",
+      "customerName": "John Doe",
+      "careerExamples": "Real estate investor"
+    }
+order: 4000

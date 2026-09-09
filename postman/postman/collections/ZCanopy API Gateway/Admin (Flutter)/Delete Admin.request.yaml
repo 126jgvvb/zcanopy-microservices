@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/admins/{{adminId}}"
+method: DELETE
+body:
+  type: json
+  content: |-
+    {
+      "deletedBy": "{{adminId}}"
+    }
+order: 3000

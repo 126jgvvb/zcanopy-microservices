@@ -1,0 +1,28 @@
+info:
+  name: Update Broker Property
+  type: http
+  seq: 5
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/web/broker/properties/prop-123"
+  headers:
+    - name: Authorization
+      value: Bearer {{accessToken}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "title": "3 Bedroom House (Updated)",
+        "price": 260000
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

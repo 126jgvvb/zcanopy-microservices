@@ -1,0 +1,6 @@
+$kind: http-request
+url: "{{baseUrl}}/web/broker/subscription"
+method: GET
+headers:
+  Authorization: Bearer {{accessToken}}
+order: 12000

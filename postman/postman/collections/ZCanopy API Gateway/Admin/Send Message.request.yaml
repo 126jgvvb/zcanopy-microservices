@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/messages/send"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "recipient": "broker@example.com",
+      "message": "Welcome to ZCanopy",
+      "type": "system"
+    }
+order: 12000

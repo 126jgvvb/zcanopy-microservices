@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/properties"
+method: GET
+order: 4000

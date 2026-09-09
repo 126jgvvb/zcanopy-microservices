@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/admins/admin-id-123"
+method: DELETE
+order: 15000

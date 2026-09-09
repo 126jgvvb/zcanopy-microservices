@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/invoices/batch-delete"
+method: DELETE
+body:
+  type: json
+  content: |-
+    {
+      "invoiceIds": ["invoice-id-123", "invoice-id-456"]
+    }
+order: 19000

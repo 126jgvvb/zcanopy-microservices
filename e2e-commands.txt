@@ -1,0 +1,15 @@
+# Run tests for a specific microservice e2e project
+nx e2e auth-service-e2e
+
+# Run only tests affected by recent code changes
+nx affected:e2e
+
+
+nx run-many -t e2e --parallel=1   //it avoids port collisions
+
+
+nx run-many -t e2e --skip-nx-cache		//avoiding previous cache results
+
+nx run-many -t e2e --parallel=5			//increase parallelism
+
+   

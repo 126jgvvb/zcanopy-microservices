@@ -1,0 +1,69 @@
+import { Controller, Logger, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ProxyService } from './proxy.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { UnauthorizedException } from '@nestjs/common';
+
+/**
+ * Session-based broker endpoints used by the mobile app. The broker app
+ * authenticates with its `sessionID` (rather than a JWT bearer token), so
+ * these routes intentionally live outside the JWT-guarded `BrokerController`.
+ */
+@ApiTags('brokers-session')
+@Controller('brokers')
+export class BrokerSessionController {
+  private readonly logger = new Logger(BrokerSessionController.name);
+
+  constructor(private readonly proxyService: ProxyService) {}
+
+  @Post('logout-user')
+  @ApiOperation({ summary: 'Log the broker out and revoke the active session' })
+  async logoutBroker(@Body() body: any) {
+    this.logger.log(`Logout broker request for ${body.brokerCode}`);
+    return this.proxyService.forwardToBroker('LogoutBroker', {
+      brokerCode: body.brokerCode,
+      sessionId: body.sessionId,
+    });
+  }
+
+  @Post('unsubscribe-user/request-otp')
+  @ApiOperation({ summary: 'Send a confirmation OTP to the broker email before unsubscribing' })
+  async requestUnsubscribeOtp(@Body() body: any) {
+    this.logger.log(`Request unsubscribe OTP for broker ${body.brokerCode}`);
+    return this.proxyService.forwardToBroker('RequestUnsubscribeOtp', {
+      brokerCode: body.brokerCode,
+    });
+  }
+
+  @Post('unsubscribe-user')
+  @ApiOperation({ summary: 'Unsubscribe (deactivate) the broker account after email OTP confirmation' })
+  async unsubscribeBroker(@Body() body: any) {
+    this.logger.log(`Unsubscribe broker request for ${body.brokerCode}`);
+    return this.proxyService.forwardToBroker('UnsubscribeBroker', {
+      brokerCode: body.brokerCode,
+      password: body.password,
+      googleId: body.googleId,
+      sessionId: body.sessionId,
+      emailOtp: body.emailOtp,
+    });
+  }
+
+  @Post('withdraw')
+  @ApiOperation({ summary: 'Withdraw broker wallet funds to mobile money' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async withdrawBroker(@Req() req: any, @Body() body: any) {
+    const tokenBrokerCode = req.user?.brokerCode;
+    if (!tokenBrokerCode) {
+      throw new UnauthorizedException('Broker identity not found in token');
+    }
+    this.logger.log(`Withdraw broker request for ${tokenBrokerCode}, amount=${body.amount}, code=${tokenBrokerCode}`);
+    return this.proxyService.forwardToBroker('Withdraw', {
+      amount: Number(body.amount),
+      phoneNumber: body.phoneNumber,
+      provider: body.provider,
+      payeeName: body.payeeName,
+      brokerCode: tokenBrokerCode,
+    });
+  }
+}

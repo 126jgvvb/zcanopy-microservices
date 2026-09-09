@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/refresh"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "token": "{{accessToken}}"
+    }
+order: 3000

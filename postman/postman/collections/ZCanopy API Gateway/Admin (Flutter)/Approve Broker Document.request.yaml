@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/brokers/{{brokerId}}/approve-document"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "namesMatched": true,
+      "adminNotes": "Document verified"
+    }
+order: 8000

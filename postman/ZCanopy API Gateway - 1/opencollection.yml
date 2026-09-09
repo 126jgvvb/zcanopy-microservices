@@ -1,0 +1,29 @@
+opencollection: 1.0.0
+
+info:
+  name: ZCanopy API Gateway - 1
+
+request:
+  variables:
+    - name: baseUrl
+      value: http://localhost:3000/api
+    - name: accessToken
+      value: ""
+    - name: sessionToken
+      value: ""
+    - name: customerSessionToken
+      value: ""
+    - name: webSessionId
+      value: ""
+    - name: deviceId
+      value: device-001
+
+docs:
+  content: Postman collection for ZCanopy microservices API Gateway running on port 4000
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

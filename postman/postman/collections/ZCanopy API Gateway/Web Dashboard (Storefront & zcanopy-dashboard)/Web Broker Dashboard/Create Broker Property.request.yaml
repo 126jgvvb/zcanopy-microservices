@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/web/broker/properties"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "3 Bedroom House",
+      "description": "Spacious home",
+      "price": 250000,
+      "location": "Kampala"
+    }
+order: 4000

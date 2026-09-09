@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/web/broker/account/delete"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "password": "password123"
+    }
+order: 22000

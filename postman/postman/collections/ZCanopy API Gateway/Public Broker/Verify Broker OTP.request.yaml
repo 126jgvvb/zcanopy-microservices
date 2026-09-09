@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/broker/otp/verify"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "email": "alice@example.com",
+      "phoneNumber": "+256701234567",
+      "emailCode": "123456",
+      "phoneCode": "654321"
+    }
+order: 3000

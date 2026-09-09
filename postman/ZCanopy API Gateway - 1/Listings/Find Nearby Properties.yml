@@ -1,0 +1,16 @@
+info:
+  name: Find Nearby Properties
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/listings/nearby"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

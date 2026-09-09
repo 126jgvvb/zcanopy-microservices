@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/customer/properties/prop-123/details"
+method: GET
+order: 7000

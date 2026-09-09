@@ -1,0 +1,23 @@
+info:
+  name: Approve Broker Document
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/brokers/{{brokerId}}/approve-document"
+  body:
+    type: json
+    data: |-
+      {
+        "namesMatched": true,
+        "adminNotes": "Document verified"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

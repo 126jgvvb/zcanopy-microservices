@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/brokers/{{brokerId}}/tier"
+method: PUT
+body:
+  type: json
+  content: |-
+    {
+      "tier": "premium"
+    }
+order: 10000

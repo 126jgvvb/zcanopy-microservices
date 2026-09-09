@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/brokers/feedback/submit"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "brokerCode": "BROKER123",
+      "email": "broker@example.com",
+      "phone": "0700000000",
+      "content": "Great platform, but please add more filters."
+    }
+order: 11000

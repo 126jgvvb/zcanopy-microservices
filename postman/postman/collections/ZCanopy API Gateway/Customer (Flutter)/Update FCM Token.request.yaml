@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{baseUrl}}/users/update_fcm_token"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "userId": "user-id-123",
+      "fcmToken": "new-fcm-token"
+    }
+order: 3000

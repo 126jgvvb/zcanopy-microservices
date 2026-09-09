@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/listings/get-nearby-properties-to-plot"
+method: GET
+order: 8000

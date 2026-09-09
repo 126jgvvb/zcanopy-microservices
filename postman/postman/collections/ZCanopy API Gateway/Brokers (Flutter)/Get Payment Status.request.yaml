@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/payment/get_payment_status"
+method: GET
+order: 15000

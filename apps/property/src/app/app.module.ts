@@ -1,0 +1,76 @@
+import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { PropertyController } from './property.controller';
+import { PropertyService } from './property.service';
+import { PropertyEntity } from './entity/property.entity';
+import { CustomerSearchEntity } from './entity/customer-search.entity';
+import { CustomerPropertyAccessEntity } from './entity/customer-property-access.entity';
+import { CustomerFavoriteEntity } from './entity/customer-favorite.entity';
+import { CustomerCommentEntity } from './entity/customer-comment.entity';
+import { CustomerRatingEntity } from './entity/customer-rating.entity';
+import { join } from 'path';
+
+@Module({
+  imports: [
+    HttpModule,
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/property/.env' }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST') || 'localhost',
+        port: parseInt(config.get<string>('DB_PORT') || '5432'),
+        username: config.get<string>('DB_USERNAME') || 'rental',
+        password: config.get<string>('DB_PASSWORD') || 'rental123',
+        database: config.get<string>('DB_DATABASE') || 'rentaldb',
+        entities: [PropertyEntity, CustomerSearchEntity, CustomerPropertyAccessEntity, CustomerFavoriteEntity, CustomerCommentEntity, CustomerRatingEntity],
+        synchronize: true,
+      }),
+    }),
+    TypeOrmModule.forFeature([PropertyEntity, CustomerSearchEntity, CustomerPropertyAccessEntity, CustomerFavoriteEntity, CustomerCommentEntity, CustomerRatingEntity]),
+    
+    ClientsModule.registerAsync([
+      {
+        name: 'AUTH_CLIENT',
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.AUTH_SERVICE_URL || 'localhost:3002',
+            package: 'auth.v1',
+            protoPath: join(process.cwd(), 'apps/auth-server/src/proto/auth.proto'),
+          },
+        }),
+      },
+      {
+        name: 'PAYMENT_CLIENT',
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.PAYMENT_SERVICE_URL || 'localhost:3005',
+            package: 'payment.v1',
+            protoPath: join(process.cwd(), 'apps/payment/src/proto/payment.proto'),
+          },
+        }),
+      },
+      {
+        name: 'BROKER_CLIENT',
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.BROKER_SERVICE_URL || 'localhost:3003',
+            package: 'broker.v1',
+            protoPath: join(process.cwd(), 'apps/broker/src/proto/broker.proto'),
+          },
+        }),
+      },
+  ]),
+  ],
+  controllers: [AppController, PropertyController],
+  providers: [AppService, PropertyService],
+})
+export class AppModule {}

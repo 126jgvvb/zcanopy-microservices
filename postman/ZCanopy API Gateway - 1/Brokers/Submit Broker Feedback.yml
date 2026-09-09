@@ -1,0 +1,25 @@
+info:
+  name: Submit Broker Feedback
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: "{{baseUrl}}/brokers/feedback/submit"
+  body:
+    type: json
+    data: |-
+      {
+        "brokerCode": "BROKER123",
+        "email": "broker@example.com",
+        "phone": "0700000000",
+        "content": "Great platform, but please add more filters."
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

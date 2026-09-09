@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/broker/register"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "fullName": "Alice Namuli",
+      "email": "alice@example.com",
+      "phoneNumber": "+256701234567",
+      "idFrontUrl": "https://example.com/id-front.jpg",
+      "idBackUrl": "https://example.com/id-back.jpg"
+    }
+order: 1000

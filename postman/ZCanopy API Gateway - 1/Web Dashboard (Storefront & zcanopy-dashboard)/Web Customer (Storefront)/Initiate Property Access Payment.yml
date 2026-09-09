@@ -1,0 +1,34 @@
+info:
+  name: Initiate Property Access Payment
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/properties/access-payment"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: x-session-id
+      value: "{{webSessionId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "propertyId": "prop-123",
+        "customerName": "John Doe",
+        "customerPhone": "+256700000000",
+        "customerEmail": "john@example.com",
+        "date": "2026-12-01",
+        "amount": 5000,
+        "reason": "property_access",
+        "status": "pending"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

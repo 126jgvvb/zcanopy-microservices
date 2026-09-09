@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/pending/verifications/approve-all"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "adminId": "{{adminId}}"
+    }
+order: 12000

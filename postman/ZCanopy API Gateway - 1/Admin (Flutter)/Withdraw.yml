@@ -1,0 +1,25 @@
+info:
+  name: Withdraw
+  type: http
+  seq: 16
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/withdraw"
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 50000,
+        "phoneNumber": "0700000000",
+        "provider": "mtn",
+        "payeeName": "Admin Name"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

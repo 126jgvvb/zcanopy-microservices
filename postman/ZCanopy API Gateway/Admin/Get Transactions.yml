@@ -1,0 +1,18 @@
+info:
+  name: Get Transactions
+  type: http
+  seq: 10
+
+http:
+  method: GET
+  url: "{{baseUrl}}/admin/transactions"
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJhZG1pbkB6Y2Fub3B5LmNvbSIsInJvbGUiOiJhZG1pbiIsInR5cGUiOiJhZG1pbiIsImlhdCI6MTc4ODUzNDg2NiwiZXhwIjoxNzg4NTM1NzY2fQ.cgseHrHb3HA6hCoh20XiOyG8FxqWqaII5rXcFomTkWI
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

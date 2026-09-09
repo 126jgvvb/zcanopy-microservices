@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/web/broker/properties/prop-123"
+method: PUT
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "3 Bedroom House (Updated)",
+      "price": 260000
+    }
+order: 5000

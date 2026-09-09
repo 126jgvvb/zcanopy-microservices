@@ -1,0 +1,21 @@
+info:
+  name: Get Customer Searches
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{baseUrl}}/web/customer/searches"
+  headers:
+    - name: Authorization
+      value: Bearer {{customerSessionToken}}
+    - name: x-session-id
+      value: "{{webSessionId}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

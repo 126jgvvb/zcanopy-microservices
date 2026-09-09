@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/properties/prop-123"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "title": "Updated Property Title",
+      "description": "Updated description",
+      "location": "Kampala, Uganda"
+    }
+order: 10000

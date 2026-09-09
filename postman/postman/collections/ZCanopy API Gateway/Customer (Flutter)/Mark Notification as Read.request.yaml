@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/notifications/mark_as_read"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "notificationId": "notification-id-123"
+    }
+order: 15000

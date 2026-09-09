@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/users/get-user-by-username"
+method: GET
+order: 21000

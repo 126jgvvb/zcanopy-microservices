@@ -1,0 +1,24 @@
+info:
+  name: Decline Booking Request
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: "{{baseUrl}}/gate-way/decline-booking-request"
+  body:
+    type: json
+    data: |-
+      {
+        "userID": "user-id-123",
+        "bookingId": "booking-id-123",
+        "reason": "Date not available"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,26 @@
+info:
+  name: Add Admin
+  type: http
+  seq: 14
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/admins"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "delos231@zcanopy.com",
+        "password": "admin123",
+        "role": "admin"
+      }
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJhZG1pbkB6Y2Fub3B5LmNvbSIsInJvbGUiOiJhZG1pbiIsInR5cGUiOiJhZG1pbiIsImlhdCI6MTc4ODUzNDg2NiwiZXhwIjoxNzg4NTM1NzY2fQ.cgseHrHb3HA6hCoh20XiOyG8FxqWqaII5rXcFomTkWI
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

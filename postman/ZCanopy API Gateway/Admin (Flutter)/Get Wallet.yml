@@ -1,0 +1,18 @@
+info:
+  name: Get Wallet
+  type: http
+  seq: 15
+
+http:
+  method: GET
+  url: "{{baseUrl}}/admin/wallet"
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJhZG1pbkB6Y2Fub3B5LmNvbSIsInJvbGUiOiJhZG1pbiIsInR5cGUiOiJhZG1pbiIsImlhdCI6MTc4ODU0MjE3NiwiZXhwIjoxNzg4NTQzMDc2fQ.pGmvt7pbwD87Bm3_J3ODizWuHrxh8uRwdd3TzVp9vGg
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/gate-way/decline-booking-request"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "userID": "user-id-123",
+      "bookingId": "booking-id-123",
+      "reason": "Date not available"
+    }
+order: 13000

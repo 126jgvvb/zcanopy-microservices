@@ -1,0 +1,28 @@
+info:
+  name: Withdraw (Web Broker)
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/broker/withdraw"
+  headers:
+    - name: Authorization
+      value: Bearer {{accessToken}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 50000,
+        "phoneNumber": "+256701234567"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

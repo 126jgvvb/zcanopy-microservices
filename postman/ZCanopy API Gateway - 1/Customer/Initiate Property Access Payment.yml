@@ -1,0 +1,29 @@
+info:
+  name: Initiate Property Access Payment
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/customer/properties/access-payment"
+  body:
+    type: json
+    data: |-
+      {
+        "sessionToken": "{{customerSessionToken}}",
+        "brokerCode": "BROKER123",
+        "propertyId": "prop-123",
+        "amount": 5000,
+        "customerEmail": "customer@example.com",
+        "customerPhone": "0700000000",
+        "customerName": "John Doe",
+        "careerExamples": "Real estate investor"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,23 @@
+info:
+  name: Update Broker
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/brokers/1"
+  body:
+    type: json
+    data: |-
+      {
+        "username": "John Doe Updated",
+        "title": "Lead Agent"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

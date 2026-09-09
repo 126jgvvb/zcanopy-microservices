@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/web/broker/notifications/mark-read"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "all": true
+    }
+order: 17000

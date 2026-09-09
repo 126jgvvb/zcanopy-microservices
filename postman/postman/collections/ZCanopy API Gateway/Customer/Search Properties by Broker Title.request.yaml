@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/customer/search"
+method: GET
+order: 3000

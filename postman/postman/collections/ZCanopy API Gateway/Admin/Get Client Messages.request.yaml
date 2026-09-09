@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/client/messages"
+method: GET
+order: 18000

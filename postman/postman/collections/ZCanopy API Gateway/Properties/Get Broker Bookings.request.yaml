@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/properties/bookings/BROKER123"
+method: GET
+order: 5000

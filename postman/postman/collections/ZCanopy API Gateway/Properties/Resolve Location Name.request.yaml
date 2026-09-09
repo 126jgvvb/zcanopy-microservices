@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/properties/resolve-location-name"
+method: GET
+order: 4000

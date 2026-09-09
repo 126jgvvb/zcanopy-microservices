@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/recent/signups"
+method: GET
+order: 6000

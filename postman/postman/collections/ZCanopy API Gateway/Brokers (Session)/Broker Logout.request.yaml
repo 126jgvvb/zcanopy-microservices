@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{baseUrl}}/brokers/logout-user"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "brokerCode": "BROKER123",
+      "sessionId": "{{sessionToken}}"
+    }
+order: 1000

@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/sms"
+method: PUT
+body:
+  type: json
+  content: |-
+    {
+      "smsProvider": "twilio",
+      "apiKey": "your-api-key"
+    }
+order: 22000

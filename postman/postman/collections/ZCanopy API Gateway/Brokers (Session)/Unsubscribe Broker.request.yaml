@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/brokers/unsubscribe-user"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "brokerCode": "BROKER123",
+      "password": "password123",
+      "sessionId": "{{sessionToken}}"
+    }
+order: 2000

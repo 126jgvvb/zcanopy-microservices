@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/system/messages"
+method: GET
+order: 17000

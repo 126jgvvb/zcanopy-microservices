@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/web/broker/profile"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "Demo Broker",
+      "phoneNumber": "+256700000000",
+      "location": "Kampala"
+    }
+order: 19000

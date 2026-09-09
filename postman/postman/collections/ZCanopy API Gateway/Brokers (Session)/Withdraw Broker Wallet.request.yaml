@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/brokers/withdraw"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "amount": 50000,
+      "phoneNumber": "0700000000",
+      "provider": "mtn",
+      "payeeName": "John Doe"
+    }
+order: 3000

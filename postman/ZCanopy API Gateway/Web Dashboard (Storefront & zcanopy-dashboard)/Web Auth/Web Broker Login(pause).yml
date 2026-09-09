@@ -1,0 +1,27 @@
+info:
+  name: Web Broker Login(pause)
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/auth/broker/login"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "brokerCode": "32157953",
+        "password": "password123",
+        "deviceId": "web-dashboard"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/customers/active-sessions"
+method: GET
+order: 23000

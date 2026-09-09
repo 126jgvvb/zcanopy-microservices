@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/commission/current"
+method: GET
+order: 9000

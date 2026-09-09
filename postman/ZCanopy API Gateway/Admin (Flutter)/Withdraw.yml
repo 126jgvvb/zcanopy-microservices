@@ -1,0 +1,27 @@
+info:
+  name: Withdraw
+  type: http
+  seq: 16
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/withdraw"
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 1000,
+        "phoneNumber": "0741882818",
+        "provider": "airtel",
+        "payeeName": "wadika kevin"
+      }
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJhZG1pbkB6Y2Fub3B5LmNvbSIsInJvbGUiOiJhZG1pbiIsInR5cGUiOiJhZG1pbiIsImlhdCI6MTc4ODU0NjcwNywiZXhwIjoxNzg4NTQ3NjA0fQ.Hj74dOo-hN-6ZDV6ZPmpruxxQHfnh9Rh3tvE5heR2Ag
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{baseUrl}}/users/request-account-deletion-otp"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "userId": "BROKER123"
+    }
+order: 23000

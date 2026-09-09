@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/brokers"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "username": "John Doe",
+      "title": "Senior Agent",
+      "email": "broker@example.com",
+      "phoneNumber": "0700000000",
+      "password": "password123"
+    }
+order: 3000

@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{baseUrl}}/brokers/1/subscribe"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "tier": "premium",
+      "phoneNumber": "0700000000"
+    }
+order: 10000

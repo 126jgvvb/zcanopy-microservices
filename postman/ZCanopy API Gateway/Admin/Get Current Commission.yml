@@ -1,0 +1,18 @@
+info:
+  name: Get Current Commission
+  type: http
+  seq: 9
+
+http:
+  method: GET
+  url: "{{baseUrl}}/admin/commission/current"
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJhZG1pbkB6Y2Fub3B5LmNvbSIsInJvbGUiOiJhZG1pbiIsInR5cGUiOiJhZG1pbiIsImlhdCI6MTc4ODUyNTY3MiwiZXhwIjoxNzg4NTI2NTcyfQ.NSNuuYAkfIn6FkWYZlBf0ZIA1VnmBicTcm9bQG5KEFE
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

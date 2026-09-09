@@ -1,0 +1,24 @@
+info:
+  name: Update Property
+  type: http
+  seq: 6
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/properties/prop-123"
+  body:
+    type: json
+    data: |-
+      {
+        "title": "Updated Property Title",
+        "description": "Updated description",
+        "location": "Kampala, Uganda"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/users/save-user-info"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "userId": "user-id-123",
+      "username": "broker_name",
+      "email": "broker@example.com",
+      "phoneNumber": "0700000000",
+      "photoURL": "https://example.com/photo.jpg",
+      "accountType": "broker"
+    }
+order: 5000

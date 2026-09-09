@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/customer/bookings"
+method: GET
+order: 8000

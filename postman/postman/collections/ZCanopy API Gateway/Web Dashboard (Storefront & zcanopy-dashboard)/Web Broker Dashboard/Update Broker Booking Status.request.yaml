@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/web/broker/bookings/booking-123/status"
+method: PUT
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "status": "confirmed"
+    }
+order: 8000

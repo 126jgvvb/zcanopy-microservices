@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/properties/prop-123/delete"
+method: POST
+body:
+  type: json
+  content: "{}"
+order: 11000

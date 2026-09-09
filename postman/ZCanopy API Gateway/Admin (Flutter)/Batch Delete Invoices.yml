@@ -1,0 +1,22 @@
+info:
+  name: Batch Delete Invoices
+  type: http
+  seq: 19
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/admin/invoices/batch-delete"
+  body:
+    type: json
+    data: |-
+      {
+        "invoiceIds": ["invoice-id-123", "invoice-id-456"]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

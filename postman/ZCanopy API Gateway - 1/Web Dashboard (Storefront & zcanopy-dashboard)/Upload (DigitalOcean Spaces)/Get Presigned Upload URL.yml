@@ -1,0 +1,27 @@
+info:
+  name: Get Presigned Upload URL
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/upload/presign"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "filename": "property-image.jpg",
+        "contentType": "image/jpeg",
+        "folder": "properties"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/pending/verifications"
+method: GET
+order: 3000

@@ -1,0 +1,52 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/api-gateway-e2e"
+    },
+    {
+      "path": "./apps/api-gateway"
+    },
+    {
+      "path": "./apps/broker-e2e"
+    },
+    {
+      "path": "./apps/broker"
+    },
+    {
+      "path": "./apps/property-e2e"
+    },
+    {
+      "path": "./apps/property"
+    },
+    {
+      "path": "./apps/admin-e2e"
+    },
+    {
+      "path": "./apps/admin"
+    },
+    {
+      "path": "./apps/notification-e2e"
+    },
+    {
+      "path": "./apps/notification"
+    },
+    {
+      "path": "./apps/payment-e2e"
+    },
+    {
+      "path": "./apps/payment"
+    },
+    {
+      "path": "./apps/auth-server-e2e"
+    },
+    {
+      "path": "./apps/auth-server"
+    },
+    {
+      "path": "./libs/proto-schema"
+    }
+  ]
+}

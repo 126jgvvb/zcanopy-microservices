@@ -1,0 +1,24 @@
+info:
+  name: Unsubscribe Broker
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/brokers/unsubscribe-user"
+  body:
+    type: json
+    data: |-
+      {
+        "brokerCode": "BROKER123",
+        "password": "password123",
+        "sessionId": "{{sessionToken}}"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

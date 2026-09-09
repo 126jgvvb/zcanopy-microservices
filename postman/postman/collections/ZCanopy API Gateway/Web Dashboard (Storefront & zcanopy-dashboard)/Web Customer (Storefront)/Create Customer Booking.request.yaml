@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/web/customer/bookings"
+method: POST
+headers:
+  Authorization: Bearer {{customerSessionToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "propertyId": "prop-123",
+      "customerName": "John Doe",
+      "customerPhone": "+256700000000",
+      "customerEmail": "john@example.com",
+      "date": "2026-12-01",
+      "amount": 10000
+    }
+order: 3000

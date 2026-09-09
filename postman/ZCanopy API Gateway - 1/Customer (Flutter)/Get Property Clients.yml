@@ -1,0 +1,16 @@
+info:
+  name: Get Property Clients
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/listings/get_property_clients"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

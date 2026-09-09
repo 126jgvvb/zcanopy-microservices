@@ -1,0 +1,11 @@
+# Use this workspace to collaborate
+workspace:
+  id: 34b03af4-30d8-4e0a-8638-a8d283404b28
+
+localResources:
+  collections:
+    - ../zcanopy-api-collection.json
+
+cloudResources:
+  collections:
+    ../postman/collections/ZCanopy API Gateway: 2133fef2-cb8c-4070-ad46-529b5ef70a84

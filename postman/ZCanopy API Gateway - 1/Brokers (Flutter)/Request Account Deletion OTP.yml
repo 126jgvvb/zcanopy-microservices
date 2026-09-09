@@ -1,0 +1,22 @@
+info:
+  name: Request Account Deletion OTP
+  type: http
+  seq: 23
+
+http:
+  method: POST
+  url: "{{baseUrl}}/users/request-account-deletion-otp"
+  body:
+    type: json
+    data: |-
+      {
+        "userId": "BROKER123"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

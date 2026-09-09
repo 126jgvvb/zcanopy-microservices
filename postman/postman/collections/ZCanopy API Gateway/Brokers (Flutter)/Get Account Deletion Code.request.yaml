@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/users/get-account-deletion-code"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+      "email": "broker@example.com",
+      "phoneNumber": "0700000000",
+      "userID": "user-id-123"
+    }
+order: 2000
