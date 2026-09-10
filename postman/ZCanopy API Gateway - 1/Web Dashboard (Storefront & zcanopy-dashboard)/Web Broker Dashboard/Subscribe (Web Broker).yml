@@ -15,8 +15,8 @@ http:
     type: json
     data: |-
       {
-        "tier": "premium",
-        "phoneNumber": "+256701234567"
+        "tier": "fibrous",
+        "phoneNumber": "0741882818"
       }
   auth: inherit
 

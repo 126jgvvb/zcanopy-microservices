@@ -1,8 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, OnModuleInit, Logger } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import * as crypto from 'crypto';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthController } from './auth.controller';
@@ -42,7 +43,7 @@ import { join } from 'path';
     ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/api-gateway/.env' }),
     HttpModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'zcanopy-secret-key-change-in-production',
+      secret: process.env.JWT_SECRET || 'venom@1234',
       signOptions: { expiresIn: '15m' },
     }),
     ClientsModule.registerAsync([
@@ -119,7 +120,15 @@ import { join } from 'path';
   controllers: [AppController, AuthController, BrokerController, BrokerPublicController, BrokerSessionController, PropertyController, PaymentController, AdminController, CustomerController, ListingsController, SubscriptionsController, BookingsController, PaymentLegacyController, GateWayController, NotificationController, UsersController, PublicController, WebPublicController, WebAuthController, WebBrokerController, WebCustomerController, WebSessionController, UploadController],
   providers: [AppService, EncryptionInterceptor, EncryptionMiddleware, ProxyService, JwtAuthGuard, EncryptionService, CryptoService, SpacesService],
 })
-export class AppModule implements NestModule {
+export class AppModule implements NestModule, OnModuleInit {
+  private readonly logger = new Logger(AppModule.name);
+
+  onModuleInit() {
+    const secret = process.env.JWT_SECRET || 'zcanopy-secret-key-change-in-production';
+    const hash = crypto.createHash('sha256').update(secret).digest('hex').slice(0, 16);
+    this.logger.log(`JWT_SECRET configured length=${secret.length}, hash=${hash}, fallback=${!process.env.JWT_SECRET}`);
+  }
+
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(SessionMiddleware).forRoutes('*');
   }

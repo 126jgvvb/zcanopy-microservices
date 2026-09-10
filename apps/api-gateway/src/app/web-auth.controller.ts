@@ -25,18 +25,31 @@ export class WebAuthController {
       type: body.type || 'broker',
     });
 
+    const roleParts = (authResponse.role || '').split(',');
+    const role = roleParts[0];
+    const brokerCodeFromRole = roleParts[1] || '';
     const payload = {
       sub: authResponse.id,
       email: authResponse.email,
-      role: body.type,
+      role,
       username: authResponse.username,
+      brokerCode: authResponse.brokerCode || brokerCodeFromRole,
     };
+
+    this.logger.log(`Web auth login payload: ${JSON.stringify(payload)} and authResponse: ${JSON.stringify(authResponse)}`);
 
     const token = this.jwtService.sign(payload, { expiresIn: '7d' });
 
+    this.logger.log(`Web auth login: web token length=${token.length}`);
+   
     return {
-      ...authResponse,
       token,
+      id: authResponse.id,
+      email: authResponse.email,
+      username: authResponse.username,
+      role,
+      type: body.type,
+      brokerCode: authResponse.brokerCode || brokerCodeFromRole,
     };
   }
 
@@ -61,9 +74,16 @@ export class WebAuthController {
 
     const token = this.jwtService.sign(payload, { expiresIn: '7d' });
 
+    this.logger.log(`Web broker login: web token length=${token.length}`);
+
     return {
-      ...authResponse,
       token,
+      id: authResponse.id,
+      email: authResponse.email,
+      username: authResponse.username,
+      role: 'broker',
+      type: 'broker',
+      brokerCode: authResponse.brokerCode,
     };
   }
 
@@ -71,6 +91,13 @@ export class WebAuthController {
   @ApiOperation({ summary: 'Web broker account setup' })
   async webBrokerSetup(@Body() body: any) {
     this.logger.log(`Web broker setup for brokerCode=${body.brokerCode}`);
+
+    const deviceId = body.deviceId || '';
+    const brokerBrandName = body.brokerBrandName || '';
+    if (brokerBrandName && !deviceId.includes(',')) {
+      body.deviceId = `${deviceId},${brokerBrandName}`;
+    }
+
     return this.proxyService.forwardToAuth('SetupBroker', body);
   }
 
@@ -82,18 +109,29 @@ export class WebAuthController {
       token: body.token,
     });
 
+    const roleParts = (refreshResponse.role || '').split(',');
+    const role = roleParts[0];
+    const brokerCodeFromRole = roleParts[1] || '';
     const payload = {
       sub: refreshResponse.id,
       email: refreshResponse.email,
-      role: refreshResponse.role,
+      role,
       username: refreshResponse.username,
+      brokerCode: refreshResponse.brokerCode || brokerCodeFromRole,
     };
 
     const token = this.jwtService.sign(payload, { expiresIn: '7d' });
 
+    this.logger.log(`Web refresh: web token length=${token.length}`);
+
     return {
-      ...refreshResponse,
       token,
+      id: refreshResponse.id,
+      email: refreshResponse.email,
+      username: refreshResponse.username,
+      role,
+      type: refreshResponse.type,
+      brokerCode: refreshResponse.brokerCode || brokerCodeFromRole,
     };
   }
 

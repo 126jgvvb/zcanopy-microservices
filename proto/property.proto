@@ -51,6 +51,7 @@ message CreatePropertyRequest {
   Coordinates coordinates = 13;
   string subCounty = 14;
   string district = 15;
+  string  brokerBookingFee=16;
 }
 
 message CreatePropertyResponse {

@@ -40,6 +40,48 @@ service BrokerService{
   rpc SaveUserInfo (SaveUserInfoRequest) returns (SaveUserInfoResponse);
   rpc UpdateUserField (UpdateUserFieldRequest) returns (UpdateUserFieldResponse);
   rpc DeleteBrokerAccount (DeleteBrokerAccountRequest) returns (DeleteBrokerAccountResponse);
+  rpc VerifyOtp (VerifyOtpRequest) returns (VerifyOtpResponse);
+  rpc GetSubscriptionDetails (GetSubscriptionDetailsRequest) returns (GetSubscriptionDetailsResponse);
+  rpc SendBrokerOtp (SendBrokerOtpRequest) returns (SendBrokerOtpResponse);
+}
+
+
+
+
+
+message SendBrokerOtpRequest {
+  string email = 1;
+  string phoneNumber = 2;
+}
+
+message SendBrokerOtpResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
+}
+
+message VerifyOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message VerifyOtpResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+
+message GetSubscriptionDetailsRequest {
+  string brokerCode = 1;
+}
+
+message GetSubscriptionDetailsResponse {
+  bool success = 1;
+  string message = 2;
+  string brokerCode = 3;
+  string subscriptionTier = 4;
+  string subscriptionExpiresAt = 5;
+  SubscriptionLimits limits = 6;
 }
 
 message SaveBrokerFcmTokenRequest {
@@ -291,6 +333,7 @@ message ResendOtpRequest {
   string email = 1;
   string phoneNumber = 2;
   string channel = 3; // "email" | "phone"
+  string purpose = 4; // e.g. "broker-registration", "password-reset"
 }
 
 message ResendOtpResponse {

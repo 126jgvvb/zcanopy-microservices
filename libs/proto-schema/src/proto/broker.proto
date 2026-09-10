@@ -27,6 +27,8 @@ service BrokerService{
   rpc GetBrokerSessions (GetBrokerSessionsRequest) returns (GetBrokerSessionsResponse);
   rpc RevokeBrokerSession (RevokeBrokerSessionRequest) returns (RevokeBrokerSessionResponse);
   rpc GetBrokerByCode (GetBrokerByCodeRequest) returns (GetBrokerByCodeResponse);
+  rpc GetSubscriptionDetails (GetSubscriptionDetailsRequest) returns (GetSubscriptionDetailsResponse);
+  rpc VerifyOtp (VerifyOtpRequest) returns (VerifyOtpResponse);
   rpc SearchBrokers (SearchBrokersRequest) returns (SearchBrokersResponse);
   rpc GetAvailableTiers (GetAvailableTiersRequest) returns (GetAvailableTiersResponse);
   rpc ProcessSubscriptionPayment (ProcessSubscriptionPaymentRequest) returns (ProcessSubscriptionPaymentResponse);
@@ -40,6 +42,52 @@ service BrokerService{
   rpc SaveUserInfo (SaveUserInfoRequest) returns (SaveUserInfoResponse);
   rpc UpdateUserField (UpdateUserFieldRequest) returns (UpdateUserFieldResponse);
   rpc DeleteBrokerAccount (DeleteBrokerAccountRequest) returns (DeleteBrokerAccountResponse);
+  rpc SendBrokerOtp (SendBrokerOtpRequest) returns (SendBrokerOtpResponse);
+}
+
+
+
+message SendBrokerOtpRequest {
+  string email = 1;
+  string phoneNumber = 2;
+}
+
+message SendBrokerOtpResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
+}
+
+
+message VerifyOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message VerifyOtpResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+
+message GetSubscriptionDetailsRequest {
+  string brokerCode = 1;
+}
+
+message SubscriptionLimits {
+  int32 maxProperties = 1;
+  int32 maxPhotosPerProperty = 2;
+  int32 maxVideosPerProperty = 3;
+  int32 maxVideoSizeMB = 4;
+}
+
+message GetSubscriptionDetailsResponse {
+  bool success = 1;
+  string message = 2;
+  string brokerCode = 3;
+  string subscriptionTier = 4;
+  string subscriptionExpiresAt = 5;
+  SubscriptionLimits limits = 6;
 }
 
 message SaveBrokerFcmTokenRequest {
@@ -229,7 +277,7 @@ message DebitWalletResponse {
 }
 
 message GetWalletTransactionsRequest {
-  string brokerId = 1;
+  string brokerCode = 1;
   int32 page = 2;
   int32 limit = 3;
 }
@@ -291,6 +339,7 @@ message ResendOtpRequest {
   string email = 1;
   string phoneNumber = 2;
   string channel = 3; // "email" | "phone"
+  string purpose = 4; // e.g. "broker-registration", "password-reset"
 }
 
 message ResendOtpResponse {
@@ -364,6 +413,13 @@ message GetBrokerByCodeRequest {
 message GetBrokerByCodeResponse {
   Broker broker = 1;
 }
+
+/*
+message GetSubscriptionDetailsResponse {
+  string subscriptionTier = 1;
+  string subscriptionExpiresAt = 2;
+  bool isActive = 3;
+}*/
 
 message GetAvailableTiersRequest {}
 
@@ -454,6 +510,7 @@ message SetupBrokerAccountRequest {
   string brokerCode = 1;
   string password = 2;
   string deviceId = 3;
+  string brokerBrandName = 4;
 }
 
 message SetupBrokerAccountResponse {
@@ -465,6 +522,7 @@ message SetupBrokerAccountResponse {
   string deviceId = 6;
   int64 expiresAt = 7;
   int32 ttlSeconds = 8;
+  string brokerBrandName = 9;
 }
 
 message TierConfig {
@@ -566,4 +624,14 @@ message ProcessPropertyPaymentResponse {
   string transactionCode = 5;
   double netAmount = 6;
   string date = 7;
+}
+
+message VerifyOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message VerifyOtpResponse {
+  bool success = 1;
+  string message = 2;
 }

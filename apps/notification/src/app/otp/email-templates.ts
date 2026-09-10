@@ -101,6 +101,18 @@ export function passwordChangedEmailHtml(payload: { username?: string; email?: s
   return baseTemplate('ZCanopy password updated', body);
 }
 
+export function accountDeletedEmailHtml(payload: { username?: string; email?: string }): string {
+  const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
+
+  const body = `
+    <div class="title">Your ZCanopy account has been deleted</div>
+    <div class="text">${title} This is a confirmation that your ZCanopy account has been permanently deleted.</div>
+    <div class="info-box">If you did not request this deletion, please contact our support team immediately.</div>
+  `;
+
+  return baseTemplate('ZCanopy account deleted', body);
+}
+
 export function adminAlertEmailHtml(payload: { subject?: string; message: string; recipientName?: string }): string {
   const title = payload.recipientName ? `Hi ${payload.recipientName},` : 'Admin Alert';
 
@@ -178,4 +190,51 @@ export function propertyPaymentConfirmationEmailHtml(payload: { username?: strin
   `;
 
   return baseTemplate('ZCanopy property payment confirmation', body);
+}
+
+export function propertyCreatedEmailHtml(payload: { username?: string; email: string; title: string; propertyId: string; location?: string }): string {
+  const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
+
+  const body = `
+    <div class="title">Property uploaded successfully</div>
+    <div class="text">${title} Your property <span class="label">${payload.title}</span> has been uploaded successfully and is now live on ZCanopy.</div>
+    <div class="info-box">
+      <div><span class="label">Property ID:</span> ${payload.propertyId}</div>
+      ${payload.location ? `<div><span class="label">Location:</span> ${payload.location}</div>` : ''}
+    </div>
+    <div class="text">You can manage this property from your broker dashboard. If you need to make changes, you can edit or remove it anytime.</div>
+  `;
+
+  return baseTemplate('Property uploaded', body);
+}
+
+export function propertyUpdatedEmailHtml(payload: { username?: string; email: string; title: string; propertyId: string; location?: string }): string {
+  const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
+
+  const body = `
+    <div class="title">Property updated</div>
+    <div class="text">${title} Your property <span class="label">${payload.title}</span> has been updated successfully.</div>
+    <div class="info-box">
+      <div><span class="label">Property ID:</span> ${payload.propertyId}</div>
+      ${payload.location ? `<div><span class="label">Location:</span> ${payload.location}</div>` : ''}
+    </div>
+    <div class="text">If you did not make these changes, please review your property details in the broker dashboard and contact support if needed.</div>
+  `;
+
+  return baseTemplate('Property updated', body);
+}
+
+export function propertyDeletedEmailHtml(payload: { username?: string; email: string; title: string; propertyId: string }): string {
+  const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
+
+  const body = `
+    <div class="title">Property removed</div>
+    <div class="text">${title} Your property <span class="label">${payload.title}</span> has been removed from ZCanopy.</div>
+    <div class="info-box">
+      <div><span class="label">Property ID:</span> ${payload.propertyId}</div>
+    </div>
+    <div class="text">If this was not expected, please contact our support team for assistance.</div>
+  `;
+
+  return baseTemplate('Property removed', body);
 }

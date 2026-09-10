@@ -8,8 +8,13 @@ http:
   url: "{{baseUrl}}/web/broker/dashboard"
   headers:
     - name: Authorization
-      value: Bearer {{accessToken}}
+      value: Bearer {{token}}
   auth: inherit
+
+runtime:
+  variables:
+    - name: token
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwiZW1haWwiOiJ3YWRpYWtha2V2aW5AZ21haWwuY29tIiwicm9sZSI6ImJyb2tlciIsInVzZXJuYW1lIjoiamFtZXMgd2FuIiwiYnJva2VyQ29kZSI6Ijc1ODc0NzQ4IiwiaWF0IjoxNzg5MDAwMjY3LCJleHAiOjE3ODk2MDUwNjd9.F2lbeu1qGzyVtoXtPLHV5DhRW2uTipsZ8SJ5SceHQyw
 
 settings:
   encodeUrl: true

@@ -2,13 +2,24 @@ opencollection: 1.0.0
 
 info:
   name: ZCanopy API Gateway - 1
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ""
+      port: ""
+      auth:
+        username: ""
+        password: ""
+      bypassProxy: ""
 
 request:
   variables:
     - name: baseUrl
       value: http://localhost:3000/api
     - name: accessToken
-      value: ""
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1IiwiZW1haWwiOiJ3YWRpYWtha2V2aW5AZ21haWwuY29tIiwicm9sZSI6ImJyb2tlciIsInVzZXJuYW1lIjoiamFtZXMgd2FuIiwiYnJva2VyQ29kZSI6Ijc1ODc0NzQ4IiwiaWF0IjoxNzg5MDAyMzU0LCJleHAiOjE3ODk2MDcxNTR9.4wSWDDoQKsGO_dmkrcbaO1OmdzyBHqCtqor59U7vPao
     - name: sessionToken
       value: ""
     - name: customerSessionToken

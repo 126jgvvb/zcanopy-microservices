@@ -18,6 +18,9 @@ import {
   brokerApprovalEmailHtml,
   paymentConfirmationEmailHtml,
   propertyPaymentConfirmationEmailHtml,
+  propertyCreatedEmailHtml,
+  propertyUpdatedEmailHtml,
+  propertyDeletedEmailHtml,
 } from './email-templates';
 
 export interface PaymentNotificationPayload {
@@ -69,6 +72,16 @@ export interface BrokerLoginNewDevicePayload {
   username: string;
   oldDeviceId?: string;
   newDeviceId: string;
+}
+
+export interface PasswordChangedPayload {
+  email: string;
+  username?: string;
+}
+
+export interface AccountDeletedPayload {
+  email: string;
+  username?: string;
 }
 
 interface DispatchResult {
@@ -414,6 +427,99 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async sendPropertyCreatedEmail(payload: { email: string; username?: string; title: string; propertyId: string; location?: string }) {
+    try {
+      if (!payload.email) {
+        throw new Error('Cannot send property created email: "email" is missing from payload');
+      }
+      const subject = 'Property uploaded successfully';
+      const body = propertyCreatedEmailHtml({ username: payload.username, email: payload.email, title: payload.title, propertyId: payload.propertyId, location: payload.location });
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'property', channel: 'email', title: subject, content: body, recipient: payload.email, result, brokerCode: payload.propertyId });
+      return this.result('email', payload.email);
+    } catch (err) {
+      this.logger.error(`Failed to send property created email: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async sendPropertyCreatedSms(payload: { phoneNumber: string; username?: string; title: string; propertyId: string }) {
+    try {
+      if (!payload.phoneNumber) {
+        throw new Error('Cannot send property created SMS: "phoneNumber" is missing from payload');
+      }
+      const body = this.buildPropertyMessage(payload, 'uploaded');
+      const result = await this.dispatchSms(payload.phoneNumber, body);
+      await this.saveNotification({ type: 'property', channel: 'sms', title: 'Property uploaded', content: body, recipient: payload.phoneNumber, result, brokerCode: payload.propertyId });
+      return this.result('sms', payload.phoneNumber);
+    } catch (err) {
+      this.logger.error(`Failed to send property created SMS: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async sendPropertyUpdatedEmail(payload: { email: string; username?: string; title: string; propertyId: string; location?: string }) {
+    try {
+      if (!payload.email) {
+        throw new Error('Cannot send property updated email: "email" is missing from payload');
+      }
+      const subject = 'Property updated';
+      const body = propertyUpdatedEmailHtml({ username: payload.username, email: payload.email, title: payload.title, propertyId: payload.propertyId, location: payload.location });
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'property', channel: 'email', title: subject, content: body, recipient: payload.email, result, brokerCode: payload.propertyId });
+      return this.result('email', payload.email);
+    } catch (err) {
+      this.logger.error(`Failed to send property updated email: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async sendPropertyUpdatedSms(payload: { phoneNumber: string; username?: string; title: string; propertyId: string }) {
+    try {
+      if (!payload.phoneNumber) {
+        throw new Error('Cannot send property updated SMS: "phoneNumber" is missing from payload');
+      }
+      const body = this.buildPropertyMessage(payload, 'updated');
+      const result = await this.dispatchSms(payload.phoneNumber, body);
+      await this.saveNotification({ type: 'property', channel: 'sms', title: 'Property updated', content: body, recipient: payload.phoneNumber, result, brokerCode: payload.propertyId });
+      return this.result('sms', payload.phoneNumber);
+    } catch (err) {
+      this.logger.error(`Failed to send property updated SMS: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async sendPropertyDeletedEmail(payload: { email: string; username?: string; title: string; propertyId: string }) {
+    try {
+      if (!payload.email) {
+        throw new Error('Cannot send property deleted email: "email" is missing from payload');
+      }
+      const subject = 'Property removed';
+      const body = propertyDeletedEmailHtml({ username: payload.username, email: payload.email, title: payload.title, propertyId: payload.propertyId });
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'property', channel: 'email', title: subject, content: body, recipient: payload.email, result, brokerCode: payload.propertyId });
+      return this.result('email', payload.email);
+    } catch (err) {
+      this.logger.error(`Failed to send property deleted email: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async sendPropertyDeletedSms(payload: { phoneNumber: string; username?: string; title: string; propertyId: string }) {
+    try {
+      if (!payload.phoneNumber) {
+        throw new Error('Cannot send property deleted SMS: "phoneNumber" is missing from payload');
+      }
+      const body = this.buildPropertyMessage(payload, 'removed');
+      const result = await this.dispatchSms(payload.phoneNumber, body);
+      await this.saveNotification({ type: 'property', channel: 'sms', title: 'Property removed', content: body, recipient: payload.phoneNumber, result, brokerCode: payload.propertyId });
+      return this.result('sms', payload.phoneNumber);
+    } catch (err) {
+      this.logger.error(`Failed to send property deleted SMS: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
   async sendAdminMessage(payload: {
     channel: string;
     recipientPhone?: string;
@@ -531,6 +637,38 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       return { success: true };
     } catch (err) {
       this.logger.error(`Failed to send broker login new device notification: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async sendPasswordChanged(payload: PasswordChangedPayload) {
+    try {
+      if (!payload.email) {
+        throw new Error('Cannot send password changed email: "email" is missing from payload');
+      }
+      const subject = 'ZCanopy password updated';
+      const body = passwordChangedEmailHtml({ username: payload.username, email: payload.email });
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'password_changed', channel: 'email', title: subject, content: body, recipient: payload.email, result });
+      return { success: true };
+    } catch (err) {
+      this.logger.error(`Failed to send password changed notification: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async sendAccountDeleted(payload: AccountDeletedPayload) {
+    try {
+      if (!payload.email) {
+        throw new Error('Cannot send account deleted email: "email" is missing from payload');
+      }
+      const subject = 'ZCanopy account deleted';
+      const body = accountDeletedEmailHtml({ username: payload.username, email: payload.email });
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'account_deleted', channel: 'email', title: subject, content: body, recipient: payload.email, result });
+      return { success: true };
+    } catch (err) {
+      this.logger.error(`Failed to send account deleted notification: ${(err as Error).message}`);
       throw err;
     }
   }
@@ -910,6 +1048,11 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     const greeting = payload.username ? `Hi ${payload.username}, ` : '';
     const { customerPhone, customerName, amount, recipientPhone, recipientName, transactionCode, date } = payload.invoice;
     return `${greeting}Your property payment of UGX ${amount} was successful. Customer: ${customerName} (${customerPhone}), Recipient: ${recipientName} (${recipientPhone}), Code: ${transactionCode}, Date: ${date}`;
+  }
+
+  private buildPropertyMessage(payload: { username?: string; title: string; propertyId: string }, action: 'uploaded' | 'updated' | 'removed'): string {
+    const greeting = payload.username ? `Hi ${payload.username}, ` : '';
+    return `${greeting}Your property "${payload.title}" has been ${action}. Property ID: ${payload.propertyId}.`;
   }
 
   private result(channel: OtpChannel, destination: string) {

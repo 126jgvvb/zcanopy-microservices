@@ -12,7 +12,7 @@ export class WebBrokerController {
   constructor(private readonly proxyService: ProxyService) {}
 
   private getBrokerCode(req: any): string {
-    return req.user?.brokerCode || req.user?.username || '';
+    return req.user?.brokerCode || req.user?.username || req.session?.brokerCode || '';
   }
 
   @Get('dashboard')
@@ -210,21 +210,60 @@ export class WebBrokerController {
   async updateProfile(@Req() req: any, @Body() body: any) {
     this.logger.log(`Web broker update profile for ${this.getBrokerCode(req)}`);
     const broker = await this.proxyService.forwardToBroker('GetBrokerByCode', { brokerCode: this.getBrokerCode(req) });
+  
+    console.log(`broker JSON:${JSON.stringify(broker)}`);
+  
     return this.proxyService.forwardToBroker('SaveUserInfo', {
-      userId: (broker as any).id,
+      userId: (broker as any).broker.id,
       ...body,
     });
   }
 
   @Post('change-password')
-  @ApiOperation({ summary: 'Change broker password for web dashboard' })
+  @ApiOperation({ summary: 'Change broker password for web dashboard (requires OTP)' })
   async changePassword(@Req() req: any, @Body() body: any) {
     this.logger.log(`Web broker change password for ${this.getBrokerCode(req)}`);
     const broker = await this.proxyService.forwardToBroker('GetBrokerByCode', { brokerCode: this.getBrokerCode(req) });
+    const brokerData = (broker as any).broker;
+
+    if (!brokerData?.email) {
+      return { success: false, message: 'Broker email not found' };
+    }
+
+    if (body.newPassword !== body.confirmPassword) {
+      return { success: false, message: 'Passwords do not match' };
+    }
+
+    const otpValid = await this.proxyService.forwardToBroker('VerifyOtp', {
+      email: brokerData.email,
+      otp: body.emailOtp,
+    });  
+
+    if (!otpValid?.success) {
+      return { success: false, message: 'Invalid or expired OTP' };
+    }
+
     return this.proxyService.forwardToBroker('UpdateUserField', {
-      id: (broker as any).id,
-      field: 'password',
-      value: body.newPassword,
+      id: brokerData.id,
+      fields: { password: body.newPassword },
+    });
+  }
+
+  @Post('change-password/request-otp')
+  @ApiOperation({ summary: 'Request OTP for broker password change' })
+  async requestChangePasswordOtp(@Req() req: any) {
+    this.logger.log(`Web broker request change password OTP for ${this.getBrokerCode(req)}`);
+    const broker = await this.proxyService.forwardToBroker('GetBrokerByCode', { brokerCode: this.getBrokerCode(req) });
+    const brokerData = (broker as any).broker;
+
+    if (!brokerData?.email) {
+      return { success: false, message: 'Broker email not found' };
+    }
+
+    return this.proxyService.forwardToBroker('ResendOtp', {
+      email: brokerData.email,
+      channel: 'email',
+      purpose: 'password-reset',
     });
   }
 
@@ -246,9 +285,27 @@ export class WebBrokerController {
     this.logger.log(`Web broker account deletion for ${this.getBrokerCode(req)}`);
     return this.proxyService.forwardToBroker('UnsubscribeBroker', {
       brokerCode: this.getBrokerCode(req),
-      password: body.password,
       sessionId: body.sessionId,
       emailOtp: body.emailOtp,
+    });
+  }
+
+  @Post('account/delete/request-otp')
+  @ApiOperation({ summary: 'Request OTP to confirm broker account deletion' })
+  async requestDeleteAccountOtp(@Req() req: any) {
+    this.logger.log(`Web broker request delete account OTP for ${this.getBrokerCode(req)}`);
+    return this.proxyService.forwardToBroker('RequestUnsubscribeOtp', {
+      brokerCode: this.getBrokerCode(req),
+    });
+  }
+
+  @Post('logout')
+  @ApiOperation({ summary: 'Log broker out of the web dashboard' })
+  async logout(@Req() req: any, @Body() body: any) {
+    this.logger.log(`Web broker logout for ${this.getBrokerCode(req)}`);
+    return this.proxyService.forwardToBroker('LogoutBroker', {
+      brokerCode: this.getBrokerCode(req),
+      sessionId: body.sessionId,
     });
   }
 

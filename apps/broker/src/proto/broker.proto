@@ -44,6 +44,7 @@ service BrokerService{
   rpc RegisterBroker (RegisterBrokerRequest) returns (RegisterBrokerResponse);
   rpc SendBrokerOtp (SendBrokerOtpRequest) returns (SendBrokerOtpResponse);
   rpc VerifyBrokerOtp (VerifyBrokerOtpRequest) returns (VerifyBrokerOtpResponse);
+  rpc VerifyOtp (VerifyOtpRequest) returns (VerifyOtpResponse);
 }
 
 message SaveBrokerFcmTokenRequest {
@@ -316,6 +317,7 @@ message ResendOtpRequest {
   string email = 1;
   string phoneNumber = 2;
   string channel = 3; // "email" | "phone"
+  string purpose = 4; // e.g. "broker-registration", "password-reset"
 }
 
 message ResendOtpResponse {
@@ -479,6 +481,7 @@ message SetupBrokerAccountRequest {
   string brokerCode = 1;
   string password = 2;
   string deviceId = 3;
+  string brokerBrandName = 4;
 }
 
 message SetupBrokerAccountResponse {
@@ -490,6 +493,7 @@ message SetupBrokerAccountResponse {
   string deviceId = 6;
   int64 expiresAt = 7;
   int32 ttlSeconds = 8;
+  string brokerBrandName = 9;
 }
 
 message TierConfig {
@@ -540,10 +544,9 @@ message RegisterBrokerRequest {
 }
 
 message RegisterBrokerResponse {
-  string brokerId = 1;
-  string email = 2;
-  string phoneNumber = 3;
-  string brokerCode = 4;
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
 }
 
 message SendBrokerOtpRequest {
@@ -568,6 +571,16 @@ message VerifyBrokerOtpResponse {
   bool success = 1;
   string message = 2;
   string brokerCode = 3;
+}
+
+message VerifyOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message VerifyOtpResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message BrokerMessage {

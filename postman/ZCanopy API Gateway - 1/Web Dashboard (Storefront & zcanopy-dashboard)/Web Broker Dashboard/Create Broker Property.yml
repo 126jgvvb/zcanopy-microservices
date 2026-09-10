@@ -15,10 +15,29 @@ http:
     type: json
     data: |-
       {
-        "title": "3 Bedroom House",
-        "description": "Spacious home",
-        "price": 250000,
-        "location": "Kampala"
+        "title": "2 Bedroom Apartment in Kampala",
+        "description": "Fully furnished apartment with parking",
+        "propertyType": "RESIDENTIAL",
+        "imageUrl": [
+          "https://example.com/img1.jpg",
+          "https://example.com/img2.jpg"
+        ],
+        "videoUrl": ["https://example.com/vid1.mp4"],
+        "location": "Kampala, Uganda",
+        "allowedViewers": [],
+        "maxProperties": 5,
+        "maxPhotosPerProperty": 15,
+        "maxVideosPerProperty": 1,
+        "maxVideoSizeMB": 500,
+        "coordinates": {
+          "lat": 0.3476,
+          "lng": 32.5825
+        },
+        "lat": 0.3476,
+          "lng": 32.5825,
+        "subCounty": "Kampala Central",
+        "district": "Kampala",
+        "brokerBookingFee":20000
       }
   auth: inherit
 

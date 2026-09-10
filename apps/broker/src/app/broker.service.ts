@@ -145,6 +145,12 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 }
             });
 
+            this.subscriber.subscribe('broker_property_created', (err) => {
+                if (err) {
+                    console.error('Failed to subscribe to broker_property_created', err);
+                }
+            });
+
             this.subscriber.on('message', async (channel, message) => {
                 if (channel === 'broker_approved') {
                     const raw = JSON.parse(message);
@@ -174,6 +180,10 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                     const raw = JSON.parse(message);
                     const data = raw.data || raw;
                     await this.handleBrokerPropertyDeleted(data);
+                } else if (channel === 'broker_property_created') {
+                    const raw = JSON.parse(message);
+                    const data = raw.data || raw;
+                    await this.handleBrokerPropertyCreated(data);
                 }
             });
 
@@ -400,8 +410,6 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             return {
                 success: true,
                 message: 'OTP codes sent to the provided email and phone number',
-                emailOtp,
-                phoneOtp,
                 expiresInSeconds: this.otpStore.ttlSeconds,
             };
         } catch (err) {
@@ -551,6 +559,24 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             };
         } catch (err) {
             this.logger.error(`Failed to verify broker OTP:`, err);
+            throw err;
+        }
+    }
+
+    async verifyOtp(dto: { email: string; otp: string }) {
+        try {
+            if (!dto.email || !dto.otp) {
+                throw new BadRequestException('email and otp are required');
+            }
+
+            const isValid = await this.otpStore.verify('email', dto.email, dto.otp);
+            if (!isValid) {
+                throw new BadRequestException('Invalid or expired OTP');
+            }
+
+            return { success: true, message: 'OTP verified successfully' };
+        } catch (err) {
+            this.logger.error(`Failed to verify OTP:`, err);
             throw err;
         }
     }
@@ -1167,6 +1193,39 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    private async handleBrokerPropertyCreated(data: { brokerCode: string; propertyId: string; title: string; location?: string }) {
+        try {
+            const broker = await this.brokerRepo.findOne({ where: { brokerCode: data.brokerCode } });
+            if (!broker) {
+                this.logger.warn(`Broker ${data.brokerCode} not found for property created notification`);
+                return;
+            }
+
+            await this.sendFcmNotification(data.brokerCode, 'Property Uploaded', `Your property "${data.title}" has been uploaded successfully.`, {
+                type: 'PROPERTY_CREATED',
+                propertyId: data.propertyId,
+                title: data.title,
+            });
+
+            this.redisClient.emit('send_property_created_email', {
+                email: broker.email,
+                username: broker.username,
+                title: data.title,
+                propertyId: data.propertyId,
+                location: data.location,
+            });
+
+            this.redisClient.emit('send_property_created_sms', {
+                phoneNumber: broker.phoneNumber,
+                username: broker.username,
+                title: data.title,
+                propertyId: data.propertyId,
+            });
+        } catch (err) {
+            this.logger.error(`Failed to handle broker property created for ${data.brokerCode}:`, err);
+        }
+    }
+
     private async handleBrokerPropertyUpdated(data: { brokerCode: string; propertyId: string; title: string; location?: string }) {
         try {
             const broker = await this.brokerRepo.findOne({ where: { brokerCode: data.brokerCode } });
@@ -1183,6 +1242,21 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 type: 'PROPERTY_UPDATED',
                 propertyId: data.propertyId,
                 title: data.title,
+            });
+
+            this.redisClient.emit('send_property_updated_email', {
+                email: broker.email,
+                username: broker.username,
+                title: data.title,
+                propertyId: data.propertyId,
+                location: data.location,
+            });
+
+            this.redisClient.emit('send_property_updated_sms', {
+                phoneNumber: broker.phoneNumber,
+                username: broker.username,
+                title: data.title,
+                propertyId: data.propertyId,
             });
         } catch (err) {
             this.logger.error(`Failed to handle broker property updated for ${data.brokerCode}:`, err);
@@ -1205,6 +1279,20 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 type: 'PROPERTY_DELETED',
                 propertyId: data.propertyId,
                 title: data.title,
+            });
+
+            this.redisClient.emit('send_property_deleted_email', {
+                email: broker.email,
+                username: broker.username,
+                title: data.title,
+                propertyId: data.propertyId,
+            });
+
+            this.redisClient.emit('send_property_deleted_sms', {
+                phoneNumber: broker.phoneNumber,
+                username: broker.username,
+                title: data.title,
+                propertyId: data.propertyId,
             });
         } catch (err) {
             this.logger.error(`Failed to handle broker property deleted for ${data.brokerCode}:`, err);
@@ -1794,11 +1882,13 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
     async getWallet(dto: { walletId?: string }) {
       try {
         const brokerCode = dto.walletId;
+        this.logger.log(`getWallet called with walletId=${brokerCode}`);
         if (!brokerCode) {
           throw new BadRequestException('Wallet ID / broker code is required');
         }
 
         const broker = await this.brokerRepo.findOne({ where: { brokerCode } });
+        this.logger.log(`getWallet broker lookup result for ${brokerCode}: ${broker ? `found id=${broker.id}, username=${broker.username}, walletBalance=${broker.walletBalance}` : 'not found'}`);
         if (!broker) {
           throw new NotFoundException(`Broker not found for code ${brokerCode}`);
         }
@@ -2343,8 +2433,6 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 if (!this.comparePassword(broker.password, dto.password)) {
                     throw new BadRequestException('Invalid password');
                 }
-            } else {
-                throw new BadRequestException('Either password or googleId is required');
             }
 
             await this.brokerRepo.update(broker.id, {
@@ -2361,6 +2449,11 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 await this.redis.srem(`broker:sessions:${dto.brokerCode}`, dto.sessionId);
             }
 
+            this.redisClient.emit('send_account_deleted_email', {
+                email: broker.email,
+                username: broker.username,
+            });
+
             return {
                 success: true,
                 message: 'Account unsubscribed successfully',
@@ -2373,7 +2466,13 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
 
     async setupBrokerAccount(dto: SetupBrokerAccountDto) {
         try {
-            const { brokerCode, password, deviceId, brokerBrandName } = dto;
+            let { brokerCode, password, deviceId, brokerBrandName } = dto;
+
+            if (deviceId && deviceId.includes(',')) {
+                const parts = deviceId.split(',');
+                deviceId = parts[0];
+                brokerBrandName = parts[1] || brokerBrandName;
+            }
 
             if (!brokerCode) {
                 return {
@@ -2400,6 +2499,14 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 return {
                     success: false,
                     message: `Broker with code ${brokerCode} not found`,
+                };
+            }
+
+            if (broker.password && broker.password !== 'password') {
+                this.logger.warn(`Broker account already setup: brokerCode=${brokerCode}`);
+                return {
+                    success: false,
+                    message: 'Broker account has already been set up. Please use the forgot password flow if you need to reset your password.',
                 };
             }
 
@@ -2441,8 +2548,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 deviceId,
                 createdAt: now,
                 lastActivityAt: now,
+                brokerBrandName,
             };
-
 
             await this.redis.set(`broker:session:${sessionId}`, JSON.stringify(sessionData), 'EX', ttl);
             await this.redis.sadd(`broker:sessions:${updated.brokerCode}`, sessionId);
@@ -2464,6 +2571,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 deviceId,
                 expiresAt,
                 ttlSeconds: ttl,
+                brokerBrandName,
             };
         } catch (err) {
             this.logger.error(`Failed to setup broker account:`, err);
@@ -2633,15 +2741,22 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 'location',
                 'bookingNotificationsEnabled',
                 'brokerBrandName',
+                'password',
             ]);
 
             const fieldsToUpdate: Record<string, any> = {
                 updatedAt: new Date(),
             };
+            let passwordChanged = false;
 
             for (const [key, value] of Object.entries(dto.fields || {})) {
                 if (allowedFields.has(key) && value !== undefined && value !== null && String(value).trim() !== '') {
-                    fieldsToUpdate[key] = value;
+                    if (key === 'password') {
+                        fieldsToUpdate[key] = this.hashPassword(String(value));
+                        passwordChanged = true;
+                    } else {
+                        fieldsToUpdate[key] = value;
+                    }
                 }
             }
 
@@ -2663,6 +2778,13 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                     message: 'Broker not found after update',
                     user: null,
                 };
+            }
+
+            if (passwordChanged) {
+                this.redisClient.emit('send_password_changed_email', {
+                    email: updated.email,
+                    username: updated.username,
+                });
             }
 
             const { password: _, ...sanitized } = updated;

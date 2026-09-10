@@ -33,6 +33,14 @@ export class AuthController {
   @Post('broker/setup')
   async brokerSetup(@Body() dto: any) {
     this.logger.log('Broker account setup request via gateway');
+    this.logger.log(`Broker dto: ${JSON.stringify(dto)}`);
+
+    const deviceId = dto.deviceId || '';
+    const brokerBrandName = dto.brokerBrandName || '';
+    if (brokerBrandName && !deviceId.includes(',')) {
+      dto.deviceId = `${deviceId},${brokerBrandName}`;
+    }
+
     return this.proxyService.forwardToAuth('SetupBroker', dto);
   }
 

@@ -10,9 +10,9 @@ http:
     type: json
     data: |-
       {
-        "fullName": "Alice Namuli",
-        "email": "alice@example.com",
-        "phoneNumber": "+256701234567",
+        "fullName": "james wan",
+        "email": "wadikakevin@gmail.com",
+        "phoneNumber": "0741882818",
         "idFrontUrl": "https://example.com/id-front.jpg",
         "idBackUrl": "https://example.com/id-back.jpg"
       }

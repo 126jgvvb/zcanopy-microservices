@@ -121,6 +121,66 @@ export class OtpNotificationController {
     }
   }
 
+  @EventPattern('send_property_created_email')
+  async handlePropertyCreatedEmail(@Payload() payload: any) {
+    this.logger.log(`Received send_property_created_email for ${payload.email}`);
+    try {
+      await this.notificationService.sendPropertyCreatedEmail(payload);
+    } catch (error) {
+      this.logger.error(`Failed to send property created email: ${(error as Error).message}`);
+    }
+  }
+
+  @EventPattern('send_property_created_sms')
+  async handlePropertyCreatedSms(@Payload() payload: any) {
+    this.logger.log(`Received send_property_created_sms for ${payload.phoneNumber}`);
+    try {
+      await this.notificationService.sendPropertyCreatedSms(payload);
+    } catch (error) {
+      this.logger.error(`Failed to send property created SMS: ${(error as Error).message}`);
+    }
+  }
+
+  @EventPattern('send_property_updated_email')
+  async handlePropertyUpdatedEmail(@Payload() payload: any) {
+    this.logger.log(`Received send_property_updated_email for ${payload.email}`);
+    try {
+      await this.notificationService.sendPropertyUpdatedEmail(payload);
+    } catch (error) {
+      this.logger.error(`Failed to send property updated email: ${(error as Error).message}`);
+    }
+  }
+
+  @EventPattern('send_property_updated_sms')
+  async handlePropertyUpdatedSms(@Payload() payload: any) {
+    this.logger.log(`Received send_property_updated_sms for ${payload.phoneNumber}`);
+    try {
+      await this.notificationService.sendPropertyUpdatedSms(payload);
+    } catch (error) {
+      this.logger.error(`Failed to send property updated SMS: ${(error as Error).message}`);
+    }
+  }
+
+  @EventPattern('send_property_deleted_email')
+  async handlePropertyDeletedEmail(@Payload() payload: any) {
+    this.logger.log(`Received send_property_deleted_email for ${payload.email}`);
+    try {
+      await this.notificationService.sendPropertyDeletedEmail(payload);
+    } catch (error) {
+      this.logger.error(`Failed to send property deleted email: ${(error as Error).message}`);
+    }
+  }
+
+  @EventPattern('send_property_deleted_sms')
+  async handlePropertyDeletedSms(@Payload() payload: any) {
+    this.logger.log(`Received send_property_deleted_sms for ${payload.phoneNumber}`);
+    try {
+      await this.notificationService.sendPropertyDeletedSms(payload);
+    } catch (error) {
+      this.logger.error(`Failed to send property deleted SMS: ${(error as Error).message}`);
+    }
+  }
+
   @EventPattern('send_admin_message_email')
   async handleAdminMessageEmail(@Payload() payload: any) {
     this.logger.log(`Received send_admin_message_email for ${payload.recipientEmail}`);
@@ -209,6 +269,26 @@ export class OtpNotificationController {
       await this.notificationService.sendBrokerLoginNewDevice(payload);
     } catch (error) {
       this.logger.error(`Failed to send broker new device login notification: ${(error as Error).message}`);
+    }
+  }
+
+  @EventPattern('send_password_changed_email')
+  async handlePasswordChangedEmail(@Payload() payload: any) {
+    this.logger.log(`Received send_password_changed_email for ${payload.email}`);
+    try {
+      await this.notificationService.sendPasswordChanged(payload);
+    } catch (error) {
+      this.logger.error(`Failed to send password changed email: ${(error as Error).message}`);
+    }
+  }
+
+  @EventPattern('send_account_deleted_email')
+  async handleAccountDeletedEmail(@Payload() payload: any) {
+    this.logger.log(`Received send_account_deleted_email for ${payload.email}`);
+    try {
+      await this.notificationService.sendAccountDeleted(payload);
+    } catch (error) {
+      this.logger.error(`Failed to send account deleted email: ${(error as Error).message}`);
     }
   }
 

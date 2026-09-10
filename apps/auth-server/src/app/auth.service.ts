@@ -26,13 +26,12 @@ export interface JwtPayload {
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    role: string;
-    type: 'admin' | 'broker';
-  };
+  id: string;
+  email: string;
+  username: string;
+  role: string;
+  type: 'admin' | 'broker';
+  brokerCode?: string;
 }
 
 export interface CustomerSessionResponse {
@@ -197,21 +196,25 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         brokerCode: brokerEntity?.brokerCode,
       };
 
+      this.logger.log(`The broker code is:${brokerEntity?.brokerCode}`);
+      this.logger.log(`JWT payload before sign: ${JSON.stringify(payload)}`);
+
       const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
       const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
 
+      this.logger.log(`Access token full=${accessToken}`);
+      this.logger.log(`Refresh token full=${refreshToken}`);
       this.logger.log(`User ${user.email} logged in successfully`);
 
       return {
         accessToken,
         refreshToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          role,
-          type: dto.type,
-        },
+        id: brokerEntity ? brokerEntity.id : user.id,
+        email: brokerEntity ? brokerEntity.email : user.email,
+        username: brokerEntity ? brokerEntity.username : user.username,
+        role: brokerEntity?.brokerCode ? `${role},${brokerEntity.brokerCode}` : role,
+        type: dto.type,
+        brokerCode: brokerEntity?.brokerCode,
       };
     } catch (err) {
       this.logger.error(`Login failed for ${dto.email}:`, err);
@@ -313,6 +316,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         email: user.email,
         role,
         type: payload.type,
+        brokerCode: user.brokerCode,
       };
 
       const accessToken = this.jwtService.sign(newPayload, { expiresIn: '15m' });
@@ -321,13 +325,12 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       return {
         accessToken,
         refreshToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          role,
-          type: payload.type,
-        },
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.brokerCode ? `${role},${user.brokerCode}` : role,
+        type: payload.type,
+        brokerCode: user.brokerCode,
       };
     } catch {
       throw new BadRequestException('Invalid refresh token');

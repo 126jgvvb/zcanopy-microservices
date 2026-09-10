@@ -10,10 +10,10 @@ http:
     type: json
     data: |-
       {
-        "brokerCode": "BROKER123",
+        "brokerCode": "75874748",
         "password": "password123",
         "deviceId": "device-001",
-        "brokerBrandName": "My Broker Brand"
+        "brokerBrandName": "Delos Apartments"
       }
   auth: inherit
 

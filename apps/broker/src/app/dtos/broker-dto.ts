@@ -144,6 +144,11 @@ export class VerifyBrokerOtpDto {
   phoneCode!: string;
 }
 
+export class VerifyOtpDto {
+  email!: string;
+  otp!: string;
+}
+
 export class GetFeaturedPropertiesDto {
   limit?: number;
 }

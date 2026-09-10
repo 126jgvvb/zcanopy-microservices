@@ -5,7 +5,7 @@ info:
 
 http:
   method: PUT
-  url: "{{baseUrl}}/web/broker/properties/prop-123"
+  url: "{{baseUrl}}/web/broker/properties/6"
   headers:
     - name: Authorization
       value: Bearer {{accessToken}}

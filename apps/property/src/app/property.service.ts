@@ -248,6 +248,14 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         }));
       }
 
+      this.redis.publish('broker_property_created', JSON.stringify({
+        brokerCode: saved.brokersUniqueCode,
+        propertyId: saved.id,
+        title: saved.title,
+        location: saved.location,
+        timestamp: new Date().toISOString(),
+      }));
+
       return saved;
     } catch (err) {
       this.logger.error(`Failed to create property for broker ${dto.brokersUniqueCode}:`, err);

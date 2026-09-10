@@ -43,6 +43,42 @@ service BrokerService{
   rpc RegisterBroker (RegisterBrokerRequest) returns (RegisterBrokerResponse);
   rpc SendBrokerOtp (SendBrokerOtpRequest) returns (SendBrokerOtpResponse);
   rpc VerifyBrokerOtp (VerifyBrokerOtpRequest) returns (VerifyBrokerOtpResponse);
+  rpc GetSubscriptionDetails (GetSubscriptionDetailsRequest) returns (GetSubscriptionDetailsResponse);
+  rpc VerifyOtp (VerifyOtpRequest) returns (VerifyOtpResponse);
+}
+
+
+
+message VerifyOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+
+message VerifyOtpResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+
+message GetSubscriptionDetailsRequest {
+  string brokerCode = 1;
+}
+
+message SubscriptionLimits {
+  int32 maxProperties = 1;
+  int32 maxPhotosPerProperty = 2;
+  int32 maxVideosPerProperty = 3;
+  int32 maxVideoSizeMB = 4;
+}
+
+message GetSubscriptionDetailsResponse {
+  bool success = 1;
+  string message = 2;
+  string brokerCode = 3;
+  string subscriptionTier = 4;
+  string subscriptionExpiresAt = 5;
+  SubscriptionLimits limits = 6;
 }
 
 message SaveBrokerFcmTokenRequest {
@@ -100,10 +136,9 @@ message RegisterBrokerRequest {
 }
 
 message RegisterBrokerResponse {
-  string brokerId = 1;
-  string email = 2;
-  string phoneNumber = 3;
-  string brokerCode = 4;
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
 }
 
 message SendBrokerOtpRequest {
@@ -271,7 +306,7 @@ message DebitWalletResponse {
 }
 
 message GetWalletTransactionsRequest {
-  string brokerId = 1;
+  string brokerCode=1;
   int32 page = 2;
   int32 limit = 3;
 }
@@ -333,6 +368,7 @@ message ResendOtpRequest {
   string email = 1;
   string phoneNumber = 2;
   string channel = 3; // "email" | "phone"
+  string purpose = 4; // e.g. "broker-registration", "password-reset"
 }
 
 message ResendOtpResponse {

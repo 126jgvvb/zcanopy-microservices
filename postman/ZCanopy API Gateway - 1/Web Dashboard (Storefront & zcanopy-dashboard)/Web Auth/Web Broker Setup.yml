@@ -13,7 +13,7 @@ http:
     type: json
     data: |-
       {
-        "brokerCode": "BROKER123",
+        "brokerCode": "75874748",
         "password": "password123",
         "deviceId": "web-dashboard",
         "brokerBrandName": "Acme Realty"

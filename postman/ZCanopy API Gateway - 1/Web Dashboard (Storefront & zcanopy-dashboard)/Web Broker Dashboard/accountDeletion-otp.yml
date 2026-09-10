@@ -1,14 +1,14 @@
 info:
-  name: Delete Broker Property
+  name: accountDeletion-otp
   type: http
-  seq: 6
+  seq: 15
 
 http:
-  method: DELETE
-  url: "{{baseUrl}}/web/broker/properties/7"
+  method: POST
+  url: "{{baseUrl}}/web/broker/account/delete/request-otp"
   headers:
     - name: Authorization
-      value: Bearer {{accessToken}}
+      value: Bearer   {{accessToken}}
   auth: inherit
 
 settings:

@@ -8,7 +8,8 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app/app.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { join } from 'path';
+import { join, resolve } from 'path';
+import { existsSync, statSync } from 'fs';
 
 
 async function bootstrap() {
@@ -18,16 +19,23 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 3003;
 
-  //gRDC config
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.GRPC,
-    options: {
-      host: `0.0.0.0`,
-      url: `0.0.0.0:${port}`,
-      package: 'broker.v1',
-      protoPath: join(__dirname, '../../broker/src/proto/broker.proto'),
-    },
-  },);
+   //gRDC config
+   const brokerProtoPath = join(__dirname, './proto/broker.proto');
+   const resolvedProtoPath = resolve(brokerProtoPath);
+   if (!existsSync(resolvedProtoPath)) {
+     throw new Error(`Broker proto file not found at: ${resolvedProtoPath}`);
+   }
+   const protoStats = statSync(resolvedProtoPath);
+   console.log(`[BrokerMain] Loading broker proto from: ${resolvedProtoPath} (size: ${protoStats.size} bytes, modified: ${protoStats.mtime.toISOString()})`);
+   app.connectMicroservice<MicroserviceOptions>({
+     transport: Transport.GRPC,
+     options: {
+       host: `0.0.0.0`,
+       url: `0.0.0.0:${port}`,
+       package: 'broker.v1',
+       protoPath: resolvedProtoPath,
+     },
+   },);
 
 
 //redis configuration
