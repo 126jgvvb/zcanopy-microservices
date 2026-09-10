@@ -200,6 +200,13 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         );
       }
 
+      if(dto.price==0 || dto.price==undefined){
+        this.logger.log('Recieved 0 for price..aborting');
+        throw new BadRequestException(
+          'Invalid price identified',
+        );
+      }
+
       if (dto.maxProperties != null) {
         const existingCount = await this.propertyRepo.count({
           where: { brokersUniqueCode: dto.brokersUniqueCode },

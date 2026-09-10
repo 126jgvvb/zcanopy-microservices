@@ -51,6 +51,7 @@ message CreatePropertyRequest {
   string subCounty = 14;
   string district = 15;
   string  brokerBookingFee=16;
+  string price=17;
 }
 
 message CreatePropertyResponse {

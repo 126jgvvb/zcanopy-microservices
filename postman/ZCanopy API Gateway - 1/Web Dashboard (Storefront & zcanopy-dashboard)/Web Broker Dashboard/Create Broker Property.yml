@@ -15,7 +15,7 @@ http:
     type: json
     data: |-
       {
-        "title": "2 Bedroom Apartment in Kampala",
+        "title": "New house in mukono",
         "description": "Fully furnished apartment with parking",
         "propertyType": "RESIDENTIAL",
         "imageUrl": [

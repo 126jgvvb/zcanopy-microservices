@@ -5,7 +5,7 @@ info:
 
 http:
   method: DELETE
-  url: "{{baseUrl}}/web/broker/properties/7"
+  url: "{{baseUrl}}/web/broker/properties/10"
   headers:
     - name: Authorization
       value: Bearer {{accessToken}}
