@@ -427,15 +427,15 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async sendPropertyCreatedEmail(payload: { email: string; username?: string; title: string; propertyId: string; location?: string }) {
+  async sendPropertyCreatedEmail(payload: { email: string; username?: string; title: string; location?: string; price?: number; brokerBookingFee?: number; imageUrl?: string | null; lat?: number | null; lng?: number | null; createdAt?: string }) {
     try {
       if (!payload.email) {
         throw new Error('Cannot send property created email: "email" is missing from payload');
       }
       const subject = 'Property uploaded successfully';
-      const body = propertyCreatedEmailHtml({ username: payload.username, email: payload.email, title: payload.title, propertyId: payload.propertyId, location: payload.location });
+      const body = propertyCreatedEmailHtml({ username: payload.username, email: payload.email, title: payload.title, location: payload.location, price: payload.price, brokerBookingFee: payload.brokerBookingFee, imageUrl: payload.imageUrl, lat: payload.lat, lng: payload.lng, createdAt: payload.createdAt });
       const result = await this.dispatchEmail(payload.email, subject, body);
-      await this.saveNotification({ type: 'property', channel: 'email', title: subject, content: body, recipient: payload.email, result, brokerCode: payload.propertyId });
+      await this.saveNotification({ type: 'property', channel: 'email', title: subject, content: body, recipient: payload.email, result });
       return this.result('email', payload.email);
     } catch (err) {
       this.logger.error(`Failed to send property created email: ${(err as Error).message}`);
@@ -458,15 +458,15 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async sendPropertyUpdatedEmail(payload: { email: string; username?: string; title: string; propertyId: string; location?: string }) {
+  async sendPropertyUpdatedEmail(payload: { email: string; username?: string; title: string; location?: string; price?: number; brokerBookingFee?: number; imageUrl?: string | null; lat?: number | null; lng?: number | null; updatedAt?: string }) {
     try {
       if (!payload.email) {
         throw new Error('Cannot send property updated email: "email" is missing from payload');
       }
       const subject = 'Property updated';
-      const body = propertyUpdatedEmailHtml({ username: payload.username, email: payload.email, title: payload.title, propertyId: payload.propertyId, location: payload.location });
+      const body = propertyUpdatedEmailHtml({ username: payload.username, email: payload.email, title: payload.title, location: payload.location, price: payload.price, brokerBookingFee: payload.brokerBookingFee, imageUrl: payload.imageUrl, lat: payload.lat, lng: payload.lng, updatedAt: payload.updatedAt });
       const result = await this.dispatchEmail(payload.email, subject, body);
-      await this.saveNotification({ type: 'property', channel: 'email', title: subject, content: body, recipient: payload.email, result, brokerCode: payload.propertyId });
+      await this.saveNotification({ type: 'property', channel: 'email', title: subject, content: body, recipient: payload.email, result });
       return this.result('email', payload.email);
     } catch (err) {
       this.logger.error(`Failed to send property updated email: ${(err as Error).message}`);

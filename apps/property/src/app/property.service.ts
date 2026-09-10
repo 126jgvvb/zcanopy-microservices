@@ -253,6 +253,12 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         propertyId: saved.id,
         title: saved.title,
         location: saved.location,
+        price: saved.price,
+        brokerBookingFee: saved.brokerBookingFee,
+        imageUrl: saved.imageUrl?.[0] || null,
+        lat: saved.postgis_spatial_field?.lat || null,
+        lng: saved.postgis_spatial_field?.lng || null,
+        createdAt: saved.createdAt?.toISOString?.() || new Date().toISOString(),
         timestamp: new Date().toISOString(),
       }));
 
@@ -455,6 +461,12 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         propertyId: updated.id,
         title: updated.title,
         location: updated.location,
+        price: updated.price,
+        brokerBookingFee: updated.brokerBookingFee,
+        imageUrl: updated.imageUrl?.[0] || null,
+        lat: updated.postgis_spatial_field?.lat || null,
+        lng: updated.postgis_spatial_field?.lng || null,
+        updatedAt: updated.updatedAt?.toISOString?.() || new Date().toISOString(),
         timestamp: new Date().toISOString(),
       }));
 

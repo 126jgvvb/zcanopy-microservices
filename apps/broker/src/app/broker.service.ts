@@ -1193,7 +1193,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private async handleBrokerPropertyCreated(data: { brokerCode: string; propertyId: string; title: string; location?: string }) {
+    private async handleBrokerPropertyCreated(data: { brokerCode: string; propertyId: string; title: string; location?: string; price?: number; brokerBookingFee?: number; imageUrl?: string | null; lat?: number | null; lng?: number | null; createdAt?: string }) {
         try {
             const broker = await this.brokerRepo.findOne({ where: { brokerCode: data.brokerCode } });
             if (!broker) {
@@ -1211,22 +1211,27 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 email: broker.email,
                 username: broker.username,
                 title: data.title,
-                propertyId: data.propertyId,
                 location: data.location,
+                price: data.price,
+                brokerBookingFee: data.brokerBookingFee,
+                imageUrl: data.imageUrl,
+                lat: data.lat,
+                lng: data.lng,
+                createdAt: data.createdAt,
             });
 
             this.redisClient.emit('send_property_created_sms', {
                 phoneNumber: broker.phoneNumber,
                 username: broker.username,
                 title: data.title,
-                propertyId: data.propertyId,
+                location: data.location,
             });
         } catch (err) {
             this.logger.error(`Failed to handle broker property created for ${data.brokerCode}:`, err);
         }
     }
 
-    private async handleBrokerPropertyUpdated(data: { brokerCode: string; propertyId: string; title: string; location?: string }) {
+    private async handleBrokerPropertyUpdated(data: { brokerCode: string; propertyId: string; title: string; location?: string; price?: number; brokerBookingFee?: number; imageUrl?: string | null; lat?: number | null; lng?: number | null; updatedAt?: string }) {
         try {
             const broker = await this.brokerRepo.findOne({ where: { brokerCode: data.brokerCode } });
             if (!broker) {
@@ -1248,15 +1253,20 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 email: broker.email,
                 username: broker.username,
                 title: data.title,
-                propertyId: data.propertyId,
                 location: data.location,
+                price: data.price,
+                brokerBookingFee: data.brokerBookingFee,
+                imageUrl: data.imageUrl,
+                lat: data.lat,
+                lng: data.lng,
+                updatedAt: data.updatedAt,
             });
 
             this.redisClient.emit('send_property_updated_sms', {
                 phoneNumber: broker.phoneNumber,
                 username: broker.username,
                 title: data.title,
-                propertyId: data.propertyId,
+                location: data.location,
             });
         } catch (err) {
             this.logger.error(`Failed to handle broker property updated for ${data.brokerCode}:`, err);

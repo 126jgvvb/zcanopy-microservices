@@ -192,32 +192,44 @@ export function propertyPaymentConfirmationEmailHtml(payload: { username?: strin
   return baseTemplate('ZCanopy property payment confirmation', body);
 }
 
-export function propertyCreatedEmailHtml(payload: { username?: string; email: string; title: string; propertyId: string; location?: string }): string {
+export function propertyCreatedEmailHtml(payload: { username?: string; email?: string; title: string; location?: string; price?: number; brokerBookingFee?: number; imageUrl?: string | null; lat?: number | null; lng?: number | null; createdAt?: string }): string {
   const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
+  const dateLabel = payload.createdAt ? new Date(payload.createdAt).toLocaleString() : '';
+  const mapUrl = payload.lat && payload.lng ? `https://www.google.com/maps/search/?api=1&query=${payload.lat},${payload.lng}` : null;
 
   const body = `
     <div class="title">Property uploaded successfully</div>
     <div class="text">${title} Your property <span class="label">${payload.title}</span> has been uploaded successfully and is now live on ZCanopy.</div>
     <div class="info-box">
-      <div><span class="label">Property ID:</span> ${payload.propertyId}</div>
       ${payload.location ? `<div><span class="label">Location:</span> ${payload.location}</div>` : ''}
+      ${typeof payload.price === 'number' ? `<div><span class="label">Price:</span> UGX ${payload.price.toLocaleString()}</div>` : ''}
+      ${typeof payload.brokerBookingFee === 'number' ? `<div><span class="label">Broker booking fee:</span> UGX ${payload.brokerBookingFee.toLocaleString()}</div>` : ''}
+      ${dateLabel ? `<div><span class="label">Uploaded on:</span> ${dateLabel}</div>` : ''}
+      ${mapUrl ? `<div><span class="label">Map:</span> <a href="${mapUrl}" target="_blank">View on map</a></div>` : ''}
     </div>
+    ${payload.imageUrl ? `<div class="text"><img src="${payload.imageUrl}" alt="Property image" style="max-width:100%;border-radius:8px;margin-top:8px;" /></div>` : ''}
     <div class="text">You can manage this property from your broker dashboard. If you need to make changes, you can edit or remove it anytime.</div>
   `;
 
   return baseTemplate('Property uploaded', body);
 }
 
-export function propertyUpdatedEmailHtml(payload: { username?: string; email: string; title: string; propertyId: string; location?: string }): string {
+export function propertyUpdatedEmailHtml(payload: { username?: string; email?: string; title: string; location?: string; price?: number; brokerBookingFee?: number; imageUrl?: string | null; lat?: number | null; lng?: number | null; updatedAt?: string }): string {
   const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
+  const dateLabel = payload.updatedAt ? new Date(payload.updatedAt).toLocaleString() : '';
+  const mapUrl = payload.lat && payload.lng ? `https://www.google.com/maps/search/?api=1&query=${payload.lat},${payload.lng}` : null;
 
   const body = `
     <div class="title">Property updated</div>
     <div class="text">${title} Your property <span class="label">${payload.title}</span> has been updated successfully.</div>
     <div class="info-box">
-      <div><span class="label">Property ID:</span> ${payload.propertyId}</div>
       ${payload.location ? `<div><span class="label">Location:</span> ${payload.location}</div>` : ''}
+      ${typeof payload.price === 'number' ? `<div><span class="label">Price:</span> UGX ${payload.price.toLocaleString()}</div>` : ''}
+      ${typeof payload.brokerBookingFee === 'number' ? `<div><span class="label">Broker booking fee:</span> UGX ${payload.brokerBookingFee.toLocaleString()}</div>` : ''}
+      ${dateLabel ? `<div><span class="label">Updated on:</span> ${dateLabel}</div>` : ''}
+      ${mapUrl ? `<div><span class="label">Map:</span> <a href="${mapUrl}" target="_blank">View on map</a></div>` : ''}
     </div>
+    ${payload.imageUrl ? `<div class="text"><img src="${payload.imageUrl}" alt="Property image" style="max-width:100%;border-radius:8px;margin-top:8px;" /></div>` : ''}
     <div class="text">If you did not make these changes, please review your property details in the broker dashboard and contact support if needed.</div>
   `;
 
