@@ -5,10 +5,14 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/web/public/search"
+  url: "{{baseUrl}}/web/public/search?q=New house in mukono"
   headers:
     - name: x-session-id
       value: "{{webSessionId}}"
+  params:
+    - name: q
+      value: New house in mukono
+      type: query
   auth: inherit
 
 settings:

@@ -55,11 +55,18 @@ export class WebPublicController {
   @ApiOperation({ summary: 'Search properties for web dashboard' })
   async searchProperties(@Query() query: any, @Req() req: any) {
     this.logger.log(`Web property search request for query=${query.q} sessionId=${this.getSessionToken(req)}`);
-    return this.proxyService.forwardToProperty('SearchPropertiesByBrokerTitle', {
+    return this.proxyService.forwardToProperty('SearchProperties', {
       query: query.q || '',
       sessionToken: this.getSessionToken(req),
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 12,
+      location: query.location,
+      radius: query.radius ? Number(query.radius) : undefined,
+      propertyType: query.propertyType,
+      subCounty: query.subCounty,
+      district: query.district,
+      minPrice: query.minPrice ? Number(query.minPrice) : undefined,
+      maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,
       lat: query.lat ? Number(query.lat) : undefined,
       lng: query.lng ? Number(query.lng) : undefined,
       radiusKm: query.radiusKm ? Number(query.radiusKm) : undefined,

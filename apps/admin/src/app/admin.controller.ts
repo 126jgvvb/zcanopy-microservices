@@ -189,8 +189,8 @@ export class AdminController {
   }
 
   @GrpcMethod('AdminService', 'SendMessage')
-  async sendMessage(dto: any) {
-    this.logger.log(`Received sendMessage request from admin ${dto.adminId}`);
+  async sendMessage(dto: {adminId,adminUsername,recipientType,recipientPhone,recipientEmail,recipientName,messageType,subject,body,channel}) {
+    this.logger.log(`Received sendMessage request from  ${JSON.stringify(dto)}`);
     return this.adminService.sendMessage(dto);
   }
 
@@ -216,6 +216,12 @@ export class AdminController {
   async getActiveCustomerSessions(dto:any) {
     this.logger.log('Received getActiveCustomerSessions request');
     return this.adminService.getActiveCustomerSessions(dto);
+  }
+
+  @GrpcMethod('AdminService', 'GetAllCustomerSearches')
+  async getAllCustomerSearches(dto: any) {
+    this.logger.log('Received getAllCustomerSearches request');
+    return this.adminService.getAllCustomerSearches(dto);
   }
 
   @GrpcMethod('AdminService', 'GetInvoices')

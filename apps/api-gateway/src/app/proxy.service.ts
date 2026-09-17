@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException, Inject } from '@nestjs/common';
 import { ClientProxy, ClientGrpc } from '@nestjs/microservices';
+import type { ClientGrpc as ClientGrpcType } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 
 @Injectable()
@@ -7,12 +8,13 @@ export class ProxyService {
   private readonly logger = new Logger(ProxyService.name);
 
   constructor(
-    @Inject('BROKER_CLIENT') private readonly brokerClient: ClientGrpc,
-    @Inject('PROPERTY_CLIENT') private readonly propertyClient: ClientGrpc,
-    @Inject('PAYMENT_CLIENT') private readonly paymentClient: ClientGrpc,
-    @Inject('ADMIN_CLIENT') private readonly adminClient: ClientGrpc,
+    @Inject('BROKER_CLIENT') private readonly brokerClient: ClientGrpcType,
+    @Inject('PROPERTY_CLIENT') private readonly propertyClient: ClientGrpcType,
+    @Inject('PAYMENT_CLIENT') private readonly paymentClient: ClientGrpcType,
+    @Inject('ADMIN_CLIENT') private readonly adminClient: ClientGrpcType,
     @Inject('NOTIFICATION_CLIENT') private readonly notificationClient: ClientProxy,
-    @Inject('AUTH_CLIENT') private readonly authClient: ClientGrpc,
+    @Inject('AUTH_CLIENT') private readonly authClient: ClientGrpcType,
+    @Inject('CUSTOMER_CLIENT') private readonly customerClient: ClientGrpcType,
   ) {}
 
   async forwardToBroker(method: string, data: any) {
@@ -37,6 +39,10 @@ export class ProxyService {
 
   async forwardToAuth(method: string, data: any) {
     return this.forwardGrpc(this.authClient, 'AuthService', method, data);
+  }
+
+  async forwardToCustomer(method: string, data: any) {
+    return this.forwardGrpc(this.customerClient, 'CustomerService', method, data);
   }
 
   private async forwardGrpc(

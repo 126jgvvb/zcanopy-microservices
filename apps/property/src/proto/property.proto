@@ -22,6 +22,7 @@ service PropertyService {
   rpc GetPropertyDetailsForCustomer (GetPropertyDetailsForCustomerRequest) returns (GetPropertyDetailsForCustomerResponse);
   rpc GetCustomerBookings (GetCustomerBookingsRequest) returns (GetCustomerBookingsResponse);
   rpc GetBookingByCode (GetBookingByCodeRequest) returns (GetBookingByCodeResponse);
+  rpc GetBookingByBookingCode (GetBookingByBookingCodeRequest) returns (GetBookingByBookingCodeResponse);
   rpc GetBookingsByPhone (GetBookingsByPhoneRequest) returns (GetBookingsByPhoneResponse);
   rpc GetPropertyClients (GetPropertyClientsRequest) returns (GetPropertyClientsResponse);
   rpc DeclineBooking (DeclineBookingRequest) returns (DeclineBookingResponse);
@@ -30,11 +31,34 @@ service PropertyService {
   rpc GetFeaturedProperties (GetFeaturedPropertiesRequest) returns (GetFeaturedPropertiesResponse);
   rpc RecordCustomerSearch (RecordCustomerSearchRequest) returns (RecordCustomerSearchResponse);
   rpc GetCustomerSearches (GetCustomerSearchesRequest) returns (GetCustomerSearchesResponse);
+  rpc GetAllCustomerSearches (GetAllCustomerSearchesRequest) returns (GetAllCustomerSearchesResponse);
   rpc ToggleFavorite (ToggleFavoriteRequest) returns (ToggleFavoriteResponse);
   rpc GetCustomerFavorites (GetCustomerFavoritesRequest) returns (GetCustomerFavoritesResponse);
+  rpc GetAllCustomerFavorites (GetAllCustomerFavoritesRequest) returns (GetAllCustomerFavoritesResponse);
   rpc AddComment (AddCommentRequest) returns (AddCommentResponse);
   rpc GetPropertyComments (GetPropertyCommentsRequest) returns (GetPropertyCommentsResponse);
+  rpc SearchProperties (SearchPropertiesRequest) returns (SearchPropertiesResponse);
+  rpc GetSimilarProperties (GetSimilarPropertiesRequest) returns (GetSimilarPropertiesResponse);
 }
+
+
+
+
+
+
+
+
+message GetSimilarPropertiesRequest {
+  string sessionToken = 1;
+  string propertyId = 2;
+  int32 limit = 3;
+}
+
+message GetSimilarPropertiesResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
 
 message Coordinates {
   double lat = 1;
@@ -172,6 +196,9 @@ message Property {
   BookingState bookingState = 15;
   string subCounty = 16;
   string district = 17;
+  int32 price = 18;
+  double brokerBookingFee = 19;
+  string brokerBrandName = 20;
 }
 
 message GetPropertyLocationsRequest {}
@@ -394,6 +421,15 @@ message GetBookingByCodeResponse {
   CustomerBooking booking = 1;
 }
 
+message GetBookingByBookingCodeRequest {
+  string bookingCode = 1;
+  string customerPhone = 2;
+}
+
+message GetBookingByBookingCodeResponse {
+  CustomerBooking booking = 1;
+}
+
 message GetBookingsByPhoneRequest {
   string customerPhone = 1;
   int32 page = 2;
@@ -512,16 +548,30 @@ message GetCustomerSearchesRequest {
 
 message CustomerSearch {
   string id = 1;
-  string query = 2;
-  string location = 3;
-  double radius = 4;
-  string propertyType = 5;
-  string filters = 6;
-  int32 resultCount = 7;
-  string createdAt = 8;
+  string sessionId = 2;
+  string sessionToken = 3;
+  string query = 4;
+  string location = 5;
+  double radius = 6;
+  string propertyType = 7;
+  string filters = 8;
+  int32 resultCount = 9;
+  string createdAt = 10;
 }
 
 message GetCustomerSearchesResponse {
+  repeated CustomerSearch searches = 1;
+  int32 total = 2;
+}
+
+message GetAllCustomerSearchesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string sessionToken = 3;
+  string query = 4;
+}
+
+message GetAllCustomerSearchesResponse {
   repeated CustomerSearch searches = 1;
   int32 total = 2;
 }
@@ -564,6 +614,16 @@ message CustomerFavorite {
 }
 
 message GetCustomerFavoritesResponse {
+  repeated CustomerFavorite favorites = 1;
+  int32 total = 2;
+}
+
+message GetAllCustomerFavoritesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message GetAllCustomerFavoritesResponse {
   repeated CustomerFavorite favorites = 1;
   int32 total = 2;
 }
@@ -615,3 +675,27 @@ message GetAllCommentsResponse {
   repeated Comment comments = 1;
   int32 total = 2;
 }
+
+message SearchPropertiesRequest {
+  string sessionToken = 1;
+  string query = 2;
+  string location = 3;
+  double radius = 4;
+  string propertyType = 5;
+  string subCounty = 6;
+  string district = 7;
+  double minPrice = 8;
+  double maxPrice = 9;
+  int32 page = 10;
+  int32 limit = 11;
+  double lat = 12;
+  double lng = 13;
+  double radiusKm = 14;
+}
+
+message SearchPropertiesResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
+

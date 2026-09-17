@@ -1,0 +1,34 @@
+info:
+  name: Add Comment
+  type: http
+  seq: 10
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/comments"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{customerSessionToken}}
+    - name: x-session-id
+      value: d13cc037-3cea-46a9-bee5-fb8b683148de
+  body:
+    type: json
+    data: |-
+      {
+        "propertyId": "p2",
+        "customerName": "John",
+        "customerPhone": "+25678976655",
+        "customerEmail": "john@example.com",
+        "comment": "Great apartment, very lokkjjjjclean and secure.",
+        "rating": 5
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

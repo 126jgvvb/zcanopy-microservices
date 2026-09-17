@@ -1,0 +1,11 @@
+info:
+  name: Web Dashboard (Storefront & zcanopy-dashboard)
+  type: folder
+  seq: 14
+
+request:
+  auth: inherit
+
+docs:
+  content: Endpoints consumed by zcanopy-storefront and zcanopy-dashboard frontends. Anonymous visitors are automatically issued a sessionId via POST /customer/session; the storefront stores it and sends it on every subsequent request as the x-session-id header. All routes in this folder are implemented by WebBrokerController / WebCustomerController / WebPublicController / WebAuthController in apps/api-gateway.
+  type: text/markdown

@@ -9,10 +9,10 @@ import { randomUUID } from 'crypto';
 // Recommended customer session lifetime. Customers browse anonymously, so the
 // session must survive across app restarts/backgrounding long enough to keep
 // recent searches and the last known location useful, but still expire to avoid
-// unbounded growth. 7 days of absolute inactivity is a sensible default; the TTL
+// unbounded growth. 30 days of absolute inactivity is a sensible default; the TTL
 // is "slid" forward on every validated activity so an actively used session
 // stays alive, and expires `ttl` after the last activity.
-export const DEFAULT_CUSTOMER_SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
+export const DEFAULT_CUSTOMER_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 export interface JwtPayload {
   sub: string;

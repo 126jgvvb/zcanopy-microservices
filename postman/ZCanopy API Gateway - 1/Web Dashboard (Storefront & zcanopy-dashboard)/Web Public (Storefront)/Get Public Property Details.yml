@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/web/public/properties/prop-123"
+  url: "{{baseUrl}}/web/public/properties/9"
   headers:
     - name: x-session-id
       value: "{{webSessionId}}"

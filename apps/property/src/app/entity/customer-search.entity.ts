@@ -44,6 +44,9 @@ export class CustomerSearchEntity{
   @Column({default:''})
   district!:string;
 
+  @Column({default:''})
+  customerId!:string;
+
   @Column({default: new Date()})
   createdAt!:Date;
 }

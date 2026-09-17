@@ -1,0 +1,7 @@
+info:
+  name: Upload (DigitalOcean Spaces)
+  type: folder
+  seq: 6
+
+request:
+  auth: inherit

@@ -1,0 +1,7 @@
+info:
+  name: Anonymous Session (auto-issued on landing page visit)
+  type: folder
+  seq: 1
+
+request:
+  auth: inherit

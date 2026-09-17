@@ -15,7 +15,7 @@ http:
     type: json
     data: |-
       {
-        "title": "New house in mukono",
+        "title": "New house in kyanja",
         "description": "Fully furnished apartment with parking",
         "propertyType": "RESIDENTIAL",
         "imageUrl": [
@@ -23,6 +23,7 @@ http:
           "https://example.com/img2.jpg"
         ],
         "videoUrl": ["https://example.com/vid1.mp4"],
+        "price":300000,
         "location": "Kampala, Uganda",
         "allowedViewers": [],
         "maxProperties": 5,

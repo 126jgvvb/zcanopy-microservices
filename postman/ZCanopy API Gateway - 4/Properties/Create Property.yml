@@ -1,0 +1,31 @@
+info:
+  name: Create Property
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/properties"
+  body:
+    type: json
+    data: |-
+      {
+        "brokersUniqueCode": "BROKER123",
+        "title": "Bungalow in Ntinda",
+        "description": "Spacious 3-bedroom bungalow",
+        "propertyType": "House",
+        "location": "Ntinda, Kampala",
+        "lat": 0.3476,
+        "lng": 32.5825,
+        "imageUrl": ["https://picsum.photos/400/200?1"],
+        "subCounty": "Ntinda",
+        "district": "Kampala Central"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

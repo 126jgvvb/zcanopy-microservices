@@ -1,0 +1,7 @@
+info:
+  name: Listings
+  type: folder
+  seq: 6
+
+request:
+  auth: inherit

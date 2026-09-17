@@ -1,0 +1,373 @@
+syntax = "proto3";
+
+package customer.v1;
+
+service CustomerService {
+  rpc RegisterCustomer (RegisterCustomerRequest) returns (RegisterCustomerResponse);
+  rpc LoginCustomer (LoginCustomerRequest) returns (LoginCustomerResponse);
+  rpc LoginCustomerGoogle (LoginCustomerGoogleRequest) returns (LoginCustomerResponse);
+  rpc ConfirmOtp (ConfirmOtpRequest) returns (ConfirmOtpResponse);
+  rpc UpdatePhoneNumber (UpdatePhoneNumberRequest) returns (UpdatePhoneNumberResponse);
+  rpc GetProfile (GetProfileRequest) returns (GetProfileResponse);
+  rpc GetWalletBalance (GetWalletBalanceRequest) returns (GetWalletBalanceResponse);
+  rpc Logout (LogoutRequest) returns (LogoutResponse);
+  rpc Unsubscribe (UnsubscribeRequest) returns (UnsubscribeResponse);
+  rpc GetInvoices (GetInvoicesRequest) returns (GetInvoicesResponse);
+  rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse);
+  rpc GetMessages (GetMessagesRequest) returns (GetMessagesResponse);
+  rpc GetNotifications (GetNotificationsRequest) returns (GetNotificationsResponse);
+  rpc InitiateTransaction (InitiateTransactionRequest) returns (InitiateTransactionResponse);
+  rpc RecordSearch (RecordSearchRequest) returns (RecordSearchResponse);
+  rpc GetCustomerSearches (GetCustomerSearchesRequest) returns (GetCustomerSearchesResponse);
+  rpc VideoTours (VideoToursRequest) returns (VideoToursResponse);
+  rpc GetAllProperties (GetAllPropertiesRequest) returns (GetAllPropertiesResponse);
+  rpc Explorer (ExplorerRequest) returns (ExplorerResponse);
+  rpc GetPropertyDetails (GetPropertyDetailsRequest) returns (GetPropertyDetailsResponse);
+  rpc GetSimilarProperties (GetSimilarPropertiesRequest) returns (GetSimilarPropertiesResponse);
+}
+
+message RegisterCustomerRequest {
+  string email = 1;
+  string password = 2;
+  string firstName = 3;
+  string lastName = 4;
+  string phoneNumber = 5;
+}
+
+message RegisterCustomerResponse {
+  bool success = 1;
+  string message = 2;
+  string customerId = 3;
+}
+
+message LoginCustomerRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginCustomerResponse {
+  bool success = 1;
+  string message = 2;
+  CustomerProfile customer = 3;
+  CustomerSession session = 4;
+}
+
+message LoginCustomerGoogleRequest {
+  string googleId = 1;
+  string email = 2;
+  string firstName = 3;
+  string lastName = 4;
+}
+
+message CustomerProfile {
+  string id = 1;
+  string email = 2;
+  string firstName = 3;
+  string lastName = 4;
+  string phoneNumber = 5;
+  bool isVerified = 6;
+  string authProvider = 7;
+  int64 createdAt = 8;
+}
+
+message CustomerSession {
+  string sessionToken = 1;
+  string sessionId = 2;
+  int64 expiresAt = 3;
+  int32 ttlSeconds = 4;
+}
+
+message ConfirmOtpRequest {
+  string email = 1;
+  string otpCode = 2;
+}
+
+message ConfirmOtpResponse {
+  bool success = 1;
+  string message = 2;
+  CustomerSession session = 3;
+}
+
+message UpdatePhoneNumberRequest {
+  string customerId = 1;
+  string phoneNumber = 2;
+}
+
+message UpdatePhoneNumberResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetProfileRequest {
+  string customerId = 1;
+}
+
+message GetProfileResponse {
+  CustomerProfile customer = 1;
+}
+
+message GetWalletBalanceRequest {
+  string customerId = 1;
+}
+
+message GetWalletBalanceResponse {
+  double balance = 1;
+  string currency = 2;
+  string walletId = 3;
+}
+
+message LogoutRequest {
+  string sessionToken = 1;
+}
+
+message LogoutResponse {
+  bool success = 1;
+}
+
+message UnsubscribeRequest {
+  string customerId = 1;
+}
+
+message UnsubscribeResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message GetInvoicesRequest {
+  string customerId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetInvoicesResponse {
+  repeated Invoice invoices = 1;
+  int32 total = 2;
+}
+
+message GetTransactionsRequest {
+  string customerId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetTransactionsResponse {
+  repeated Transaction transactions = 1;
+  int32 total = 2;
+}
+
+message GetMessagesRequest {
+  string customerId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetMessagesResponse {
+  repeated Message messages = 1;
+  int32 total = 2;
+}
+
+message GetNotificationsRequest {
+  string customerId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetNotificationsResponse {
+  repeated Notification notifications = 1;
+  int32 total = 2;
+  int32 unreadCount = 3;
+}
+
+message InitiateTransactionRequest {
+  string customerId = 1;
+  string phoneNumber = 2;
+  string email = 3;
+  string customerName = 4;
+  string propertyId = 5;
+  string reason = 6;
+  double amount = 7;
+}
+
+message InitiateTransactionResponse {
+  bool success = 1;
+  string message = 2;
+  string transactionCode = 3;
+}
+
+message RecordSearchRequest {
+  string sessionToken = 1;
+  string query = 2;
+  string location = 3;
+  double radius = 4;
+  string propertyType = 5;
+  double minPrice = 6;
+  double maxPrice = 7;
+  string subCounty = 8;
+  string district = 9;
+  bool hadResults = 10;
+  repeated string resultPropertyIds = 11;
+  int32 resultCount = 12;
+}
+
+message RecordSearchResponse {
+  bool success = 1;
+}
+
+message GetCustomerSearchesRequest {
+  string sessionToken = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetCustomerSearchesResponse {
+  repeated Search searches = 1;
+  int32 total = 2;
+}
+
+message VideoToursRequest {
+  string sessionToken = 1;
+  double lat = 2;
+  double lng = 3;
+  double radiusKm = 4;
+  string propertyType = 5;
+  int32 page = 6;
+  int32 limit = 7;
+}
+
+message VideoToursResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+  int32 videoCount = 3;
+}
+
+message GetAllPropertiesRequest {
+  string sessionToken = 1;
+  double lat = 2;
+  double lng = 3;
+  double radiusKm = 4;
+  string propertyType = 5;
+  int32 page = 6;
+  int32 limit = 7;
+}
+
+message GetAllPropertiesResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
+message ExplorerRequest {
+  string sessionToken = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message ExplorerResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+  int32 videoCount = 3;
+}
+
+message GetPropertyDetailsRequest {
+  string sessionToken = 1;
+  string propertyId = 2;
+}
+
+message GetPropertyDetailsResponse {
+  Property property = 1;
+}
+
+message GetSimilarPropertiesRequest {
+  string sessionToken = 1;
+  string propertyId = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message GetSimilarPropertiesResponse {
+  repeated Property properties = 1;
+  int32 total = 2;
+}
+
+message Invoice {
+  string id = 1;
+  string propertyId = 2;
+  string clientPhone = 3;
+  double amount = 4;
+  double platformCommission = 5;
+  string paymentStatus = 6;
+  string reasonForPayment = 7;
+  int64 createdAt = 8;
+  string referenceNumber = 9;
+  string transactionCode = 10;
+  string customerName = 11;
+  string customerEmail = 12;
+}
+
+message Transaction {
+  string id = 1;
+  string propertyId = 2;
+  string clientPhone = 3;
+  double amount = 4;
+  double platformCommission = 5;
+  string paymentStatus = 6;
+  string reasonForPayment = 7;
+  int64 createdAt = 8;
+  string referenceNumber = 9;
+  string transactionCode = 10;
+  string customerName = 11;
+  string customerEmail = 12;
+}
+
+message Message {
+  string id = 1;
+  string subject = 2;
+  string body = 3;
+  string source = 4;
+  string attachmentUrl = 5;
+  int64 createdAt = 6;
+}
+
+message Notification {
+  string id = 1;
+  string title = 2;
+  string body = 3;
+  string type = 4;
+  bool isRead = 5;
+  int64 createdAt = 6;
+  int64 readAt = 7;
+}
+
+message Search {
+  string id = 1;
+  string sessionId = 2;
+  string query = 3;
+  string location = 4;
+  double radius = 5;
+  string propertyType = 6;
+  int32 resultCount = 7;
+  double minPrice = 8;
+  double maxPrice = 9;
+  string subCounty = 10;
+  string district = 11;
+  int64 createdAt = 12;
+}
+
+message Property {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string propertyType = 4;
+  string location = 5;
+  string brokersUniqueCode = 6;
+  bool isAvailable = 7;
+  int64 createdAt = 8;
+  int32 photoCount = 9;
+  int32 videoCount = 10;
+  string postgisSpatialField = 11;
+  repeated string imageUrl = 12;
+  repeated string videoUrl = 13;
+  double price = 14;
+  double brokerBookingFee = 15;
+  string bookingState = 16;
+  double distanceKm = 17;
+}

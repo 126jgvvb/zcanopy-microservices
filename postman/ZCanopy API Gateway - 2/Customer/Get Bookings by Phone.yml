@@ -1,0 +1,23 @@
+info:
+  name: Get Bookings by Phone
+  type: http
+  seq: 10
+
+http:
+  method: GET
+  url: "{{baseUrl}}/customer/bookings/phone?customerPhone=+256741882818"
+  headers:
+    - name: x-session-id
+      value: sessionId":"d13cc037-3cea-46a9-bee5-fb8b683148de
+  params:
+    - name: customerPhone
+      value: "+256741882818"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

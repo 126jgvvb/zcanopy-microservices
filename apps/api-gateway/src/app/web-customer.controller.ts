@@ -14,31 +14,6 @@ export class WebCustomerController {
     return req?.session?.sessionId || req?.headers?.['x-session-id'] || 'public-web';
   }
 
-  @Get('properties')
-  @ApiOperation({ summary: 'Public property listings for customer web dashboard' })
-  async getPublicProperties(@Query() query: any, @Req() req: any) {
-    this.logger.log(`Web customer public properties request sessionId=${this.getSessionToken(req)}`);
-    return this.proxyService.forwardToProperty('GetCustomerProperties', {
-      sessionToken: this.getSessionToken(req),
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 12,
-      lat: query.lat ? Number(query.lat) : undefined,
-      lng: query.lng ? Number(query.lng) : undefined,
-      radiusKm: query.radiusKm ? Number(query.radiusKm) : undefined,
-      propertyType: query.propertyType,
-    });
-  }
-
-  @Get('properties/:id')
-  @ApiOperation({ summary: 'Public property details for customer web dashboard' })
-  async getPropertyDetails(@Param('id') id: string, @Req() req: any) {
-    this.logger.log(`Web customer property details request for ${id} sessionId=${this.getSessionToken(req)}`);
-    return this.proxyService.forwardToProperty('GetPropertyDetailsForCustomer', {
-      sessionToken: this.getSessionToken(req),
-      propertyId: id,
-    });
-  }
-
   @Get('broker/:brokerCode/properties')
   @ApiOperation({ summary: 'Get broker properties for customer web dashboard' })
   async getBrokerProperties(@Query() query: any, @Param('brokerCode') brokerCode: string, @Req() req: any) {
@@ -55,11 +30,18 @@ export class WebCustomerController {
   @ApiOperation({ summary: 'Search properties for customer web dashboard' })
   async searchProperties(@Query() query: any, @Req() req: any) {
     this.logger.log(`Web customer property search request for query=${query.q} sessionId=${this.getSessionToken(req)}`);
-    return this.proxyService.forwardToProperty('SearchPropertiesByBrokerTitle', {
+    return this.proxyService.forwardToProperty('SearchProperties', {
       query: query.q || '',
       sessionToken: this.getSessionToken(req),
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 12,
+      location: query.location,
+      radius: query.radius ? Number(query.radius) : undefined,
+      propertyType: query.propertyType,
+      subCounty: query.subCounty,
+      district: query.district,
+      minPrice: query.minPrice ? Number(query.minPrice) : undefined,
+      maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,
       lat: query.lat ? Number(query.lat) : undefined,
       lng: query.lng ? Number(query.lng) : undefined,
       radiusKm: query.radiusKm ? Number(query.radiusKm) : undefined,
@@ -86,7 +68,9 @@ export class WebCustomerController {
 
   @Post('favorites/toggle')
   @ApiOperation({ summary: 'Toggle favorite from web dashboard' })
-  async toggleFavorite(@Body() body: any) {
+  async toggleFavorite(@Body() body: any,@Req() req:any) {
+    const sessionId=this.getSessionToken(req);
+    body.sessionToken=sessionId;
     this.logger.log(`Web customer toggle favorite request for property ${body.propertyId}`);
     return this.proxyService.forwardToProperty('ToggleFavorite', body);
   }
@@ -104,7 +88,9 @@ export class WebCustomerController {
 
   @Post('comments')
   @ApiOperation({ summary: 'Add property comment from web dashboard' })
-  async addComment(@Body() body: any) {
+  async addComment(@Body() body: any,@Req() req:any) {
+    const sessionId=this.getSessionToken(req);
+    body.sessionToken=sessionId;
     this.logger.log(`Web customer add comment request for property ${body.propertyId}`);
     return this.proxyService.forwardToProperty('AddComment', body);
   }
@@ -121,12 +107,11 @@ export class WebCustomerController {
   }
 
   @Get('bookings')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'List customer bookings for web dashboard' })
   async getBookings(@Req() req: any, @Query() query: any) {
-    this.logger.log(`Web customer bookings request for user ${req.user?.sub}`);
+    this.logger.log(`Web customer bookings request sessionId=${this.getSessionToken(req)}`);
     return this.proxyService.forwardToProperty('GetCustomerBookings', {
-      sessionToken: req.user?.sub,
+      sessionToken: this.getSessionToken(req),
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 20,
     });
@@ -166,11 +151,21 @@ export class WebCustomerController {
     });
   }
 
+  @Post('bookings/retrieve-by-code')
+  @ApiOperation({ summary: 'Retrieve booking by 6-digit booking code and phone number' })
+  async retrieveBookingByCode(@Body() body: any) {
+    this.logger.log(`Web customer retrieve booking by code request code=${body.bookingCode} phone=${body.customerPhone}`);
+    return this.proxyService.forwardToProperty('GetBookingByBookingCode', {
+      bookingCode: body.bookingCode,
+      customerPhone: body.customerPhone,
+    });
+  }
+
   @Get('profile')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer profile for web dashboard' })
   async getProfile(@Req() req: any) {
-    this.logger.log(`Web customer profile request for user ${req.user?.sub}`);
-    return this.proxyService.forwardToAuth('GetUserProfile', { userId: req.user?.sub });
+    this.logger.log(`Web customer profile request for user ${req.user?.customerId}`);
+    return this.proxyService.forwardToCustomer('GetProfile', { customerId: req.user?.customerId });
   }
 }

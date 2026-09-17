@@ -7,7 +7,7 @@ import { DashaordEntity, SystemMessage } from '../entity/dashboard.entity';
 import { InvitationCodeEntity } from '../entity/invitation-code.entity';
 import { LogEntity } from '../entity/log.entity';
 import { AdminMessageEntity } from '../entity/admin-message.entity';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, timeout } from 'rxjs';
 import Redis from 'ioredis';
 
 export const REDIS_CLIENT_PROVIDER = 'REDIS_CLIENT_PROVIDER';
@@ -1376,7 +1376,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     channel: string;
   }) {
     try {
-      this.logger.log(`sendMessage called: admin=${dto.adminId} recipientType=${dto.recipientType} channel=${dto.channel}`);
+      this.logger.log(`sendMessage called for: ${JSON.stringify(dto.adminId)}, recipientType=${dto.recipientType} channel=${dto.channel}`);
       
       if (!dto.adminId) {
         throw new BadRequestException('adminId is required');
@@ -1436,6 +1436,24 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       this.logger.error(`Failed to send message: ${(err as Error).message}`);
       this.logger.error(`Error stack: ${(err as Error).stack}`);
+      throw err;
+    }
+  }
+
+  async getAllCustomerSearches(dto: { page: number; limit: number; sessionToken?: string; query?: string }) {
+    this.logger.log(`Received getAll-customer-searches request`);
+    try {
+      const result = await lastValueFrom(
+        this.propertyClient.getService('PropertyService').getAllCustomerSearches({
+          page: Number(dto.page) || 1,
+          limit: Number(dto.limit) || 20,
+          sessionToken: dto.sessionToken || '',
+          query: dto.query || '',
+        }).pipe(timeout(10000)),
+      );
+      return result;
+    } catch (err) {
+      this.logger.error(`Failed to get all customer searches: ${(err as Error).message}`);
       throw err;
     }
   }

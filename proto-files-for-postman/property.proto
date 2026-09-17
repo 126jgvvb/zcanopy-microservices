@@ -22,6 +22,7 @@ service PropertyService {
   rpc GetPropertyDetailsForCustomer (GetPropertyDetailsForCustomerRequest) returns (GetPropertyDetailsForCustomerResponse);
   rpc GetCustomerBookings (GetCustomerBookingsRequest) returns (GetCustomerBookingsResponse);
   rpc GetBookingByCode (GetBookingByCodeRequest) returns (GetBookingByCodeResponse);
+  rpc GetBookingByBookingCode (GetBookingByBookingCodeRequest) returns (GetBookingByBookingCodeResponse);
   rpc GetBookingsByPhone (GetBookingsByPhoneRequest) returns (GetBookingsByPhoneResponse);
   rpc GetPropertyClients (GetPropertyClientsRequest) returns (GetPropertyClientsResponse);
   rpc DeclineBooking (DeclineBookingRequest) returns (DeclineBookingResponse);
@@ -382,6 +383,15 @@ message GetBookingByCodeRequest {
 }
 
 message GetBookingByCodeResponse {
+  CustomerBooking booking = 1;
+}
+
+message GetBookingByBookingCodeRequest {
+  string bookingCode = 1;
+  string customerPhone = 2;
+}
+
+message GetBookingByBookingCodeResponse {
   CustomerBooking booking = 1;
 }
 

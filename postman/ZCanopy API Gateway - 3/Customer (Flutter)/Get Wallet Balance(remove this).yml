@@ -1,0 +1,21 @@
+info:
+  name: Get Wallet Balance(remove this)
+  type: http
+  seq: 34
+
+http:
+  method: GET
+  url: "{{baseUrl}}/web/customer/wallet"
+  headers:
+    - name: x-session-id
+      value: 54c8e9cc-c6df-4dc4-b97f-4505791dd683
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NGM4ZTljYy1jNmRmLTRkYzQtYjk3Zi00NTA1NzkxZGQ2ODMiLCJlbWFpbCI6IndhZGlrYWtldmluQGdtYWlsLmNvbSIsInJvbGUiOiJjdXN0b21lciIsInR5cGUiOiJjdXN0b21lciIsImN1c3RvbWVySWQiOjQsImlhdCI6MTc4OTU1OTMyMCwiZXhwIjoxNzkyMTUxMzIwfQ.syn2ePxBom2hMA7Du27jIFHHNR6jNogSiggGi-Yrxq8
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

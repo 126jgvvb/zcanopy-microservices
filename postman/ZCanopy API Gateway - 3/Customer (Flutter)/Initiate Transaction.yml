@@ -1,0 +1,29 @@
+info:
+  name: Initiate Transaction
+  type: http
+  seq: 30
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/transactions/initiate"
+  headers:
+    Authorization: Bearer {{customer_token}}
+  body:
+    type: json
+    data: |-
+      {
+        "phoneNumber": "0700000000",
+        "email": "customer@example.com",
+        "customerName": "John Doe",
+        "propertyId": "property-id-123",
+        "reason": "property_access",
+        "amount": 100000
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

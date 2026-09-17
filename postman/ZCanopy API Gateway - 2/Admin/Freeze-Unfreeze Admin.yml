@@ -1,0 +1,22 @@
+info:
+  name: Freeze/Unfreeze Admin
+  type: http
+  seq: 16
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/admin/admins/admin-id-123/freeze"
+  body:
+    type: json
+    data: |-
+      {
+        "isActive": false
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

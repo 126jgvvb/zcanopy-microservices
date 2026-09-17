@@ -1,0 +1,33 @@
+info:
+  name: Send Message
+  type: http
+  seq: 15
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/messages/send"
+  body:
+    type: json
+    data: |
+      {
+        "adminId": "1",
+        "adminUsername": "admin",
+        "recipientType": "broker",
+        "recipientPhone": "0741882818",
+        "recipientEmail": "wadikakevin@gmail.com",
+        "recipientName": "david Bus",
+        "messageType": "custom",
+        "subject": "Message",
+        "body": "Hello, this is a message from the system",
+        "channel": "email"
+      }
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEiLCJlbWFpbCI6ImFkbWluQHpjYW5vcHkuY29tIiwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInR5cGUiOiJhZG1pbiIsImlhdCI6MTc4OTIxMjUwNiwiZXhwIjoxNzg5ODE3MzA2fQ.wlIxXtzaAQFgVq3s5pQnmAWpigCDMjVKlgwbFn_CLXo
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

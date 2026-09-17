@@ -1,0 +1,18 @@
+info:
+  name: Unsubscribe Customer
+  type: http
+  seq: 36
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/unsubscribe"
+  headers:
+    Authorization: Bearer {{customer_token}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

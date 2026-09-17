@@ -1,0 +1,24 @@
+info:
+  name: Send Message
+  type: http
+  seq: 12
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/messages/send"
+  body:
+    type: json
+    data: |-
+      {
+        "recipient": "broker@example.com",
+        "message": "Welcome to ZCanopy",
+        "type": "system"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

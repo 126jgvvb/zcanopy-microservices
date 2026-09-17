@@ -1,0 +1,29 @@
+info:
+  name: Retrieve Customer Searches
+  type: http
+  seq: 20
+
+http:
+  method: POST
+  url: "{{baseUrl}}/customer/searches/retrieve"
+  headers:
+    - key: Content-Type
+      value: application/json
+    - key: Authorization
+      value: Bearer {{customerSessionToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "sessionToken": "{{customerSessionToken}}",
+        "page": 1,
+        "limit": 10
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

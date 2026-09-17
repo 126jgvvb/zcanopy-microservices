@@ -161,9 +161,66 @@
                                                                      }
                                                                  ]
                                                   }
-                                  },
-                                  {
-                                      "name":  "Initiate Property Access Payment",
+                                   },
+                                   {
+                                       "name":  "Search Properties",
+                                       "request":  {
+                                                       "method":  "GET",
+                                                       "url":  "{{baseUrl}}/customer/search",
+                                                       "params":  [
+                                                                      {
+                                                                          "key":  "query",
+                                                                          "value":  ""
+                                                                      },
+                                                                      {
+                                                                          "key":  "location",
+                                                                          "value":  ""
+                                                                      },
+                                                                      {
+                                                                          "key":  "propertyType",
+                                                                          "value":  ""
+                                                                      },
+                                                                      {
+                                                                          "key":  "subCounty",
+                                                                          "value":  ""
+                                                                      },
+                                                                      {
+                                                                          "key":  "district",
+                                                                          "value":  ""
+                                                                      },
+                                                                      {
+                                                                          "key":  "minPrice",
+                                                                          "value":  ""
+                                                                      },
+                                                                      {
+                                                                          "key":  "maxPrice",
+                                                                          "value":  ""
+                                                                      },
+                                                                      {
+                                                                          "key":  "page",
+                                                                          "value":  "1"
+                                                                      },
+                                                                      {
+                                                                          "key":  "limit",
+                                                                          "value":  "12"
+                                                                      },
+                                                                      {
+                                                                          "key":  "lat",
+                                                                          "value":  ""
+                                                                      },
+                                                                      {
+                                                                          "key":  "lng",
+                                                                          "value":  ""
+                                                                      },
+                                                                      {
+                                                                          "key":  "radiusKm",
+                                                                          "value":  ""
+                                                                      }
+                                                                  ]
+                                                   }
+                                   },
+                                   {
+                                       "name":  "Initiate Property Access Payment",
                                       "request":  {
                                                       "method":  "POST",
                                                       "url":  "{{baseUrl}}/customer/properties/access-payment",
@@ -852,25 +909,88 @@
                                                                  ]
                                                   }
                                   },
-                                  {
-                                      "name":  "Get Logs",
-                                      "request":  {
-                                                      "method":  "GET",
-                                                      "url":  "{{baseUrl}}/admin/logs",
-                                                      "params":  [
-                                                                     {
-                                                                         "key":  "page",
-                                                                         "value":  "1"
-                                                                     },
-                                                                     {
-                                                                         "key":  "limit",
-                                                                         "value":  "10"
-                                                                     }
-                                                                 ]
-                                                  }
-                                  },
-                                  {
-                                      "name":  "Send Message",
+                                   {
+                                       "name":  "Get Logs",
+                                       "request":  {
+                                                       "method":  "GET",
+                                                       "url":  "{{baseUrl}}/admin/logs",
+                                                       "params":  [
+                                                                      {
+                                                                          "key":  "page",
+                                                                          "value":  "1"
+                                                                      },
+                                                                      {
+                                                                          "key":  "limit",
+                                                                          "value":  "10"
+                                                                      }
+                                                                  ]
+                                                   }
+                                   },
+                                    {
+                                        "name":  "Get All Customer Searches",
+                                        "request":  {
+                                                        "method":  "GET",
+                                                        "url":  "{{baseUrl}}/admin/searches",
+                                                        "params":  [
+                                                                       {
+                                                                           "key":  "page",
+                                                                           "value":  "1"
+                                                                       },
+                                                                       {
+                                                                           "key":  "limit",
+                                                                           "value":  "20"
+                                                                       },
+                                                                       {
+                                                                           "key":  "sessionToken",
+                                                                           "value":  ""
+                                                                       },
+                                                                       {
+                                                                           "key":  "q",
+                                                                           "value":  ""
+                                                                       }
+                                                                   ]
+                                                    }
+                                    },
+                                    {
+                                        "name":  "Get All Comments",
+                                        "request":  {
+                                                        "method":  "GET",
+                                                        "url":  "{{baseUrl}}/admin/comments",
+                                                        "params":  [
+                                                                       {
+                                                                           "key":  "page",
+                                                                           "value":  "1"
+                                                                       },
+                                                                       {
+                                                                           "key":  "limit",
+                                                                           "value":  "20"
+                                                                       },
+                                                                       {
+                                                                           "key":  "propertyId",
+                                                                           "value":  ""
+                                                                       }
+                                                                   ]
+                                                    }
+                                    },
+                                    {
+                                        "name":  "Get All Favorites",
+                                        "request":  {
+                                                        "method":  "GET",
+                                                        "url":  "{{baseUrl}}/admin/favorites",
+                                                        "params":  [
+                                                                       {
+                                                                           "key":  "page",
+                                                                           "value":  "1"
+                                                                       },
+                                                                       {
+                                                                           "key":  "limit",
+                                                                           "value":  "20"
+                                                                       }
+                                                                   ]
+                                                    }
+                                    },
+                                    {
+                                        "name":  "Send Message",
                                       "request":  {
                                                       "method":  "POST",
                                                       "url":  "{{baseUrl}}/admin/messages/send",
@@ -1261,23 +1381,55 @@
                                                                  ]
                                                   }
                                   },
-                                  {
-                                      "name":  "Retrieve Booking by Code",
-                                      "request":  {
-                                                      "method":  "POST",
-                                                      "url":  "{{baseUrl}}/customer/bookings/retrieve",
-                                                      "body":  {
-                                                                   "mode":  "raw",
-                                                                   "raw":  "{\n  \"code\": \"CODE123\",\n  \"phoneNumber\": \"0700000000\"\n}",
-                                                                   "options":  {
-                                                                                   "raw":  {
-                                                                                               "language":  "json"
-                                                                                           }
-                                                                               }
-                                                               }
-                                                  }
-                                  },
-                                  {
+                                   {
+                                       "name":  "Retrieve Booking by Code",
+                                       "request":  {
+                                                       "method":  "POST",
+                                                       "url":  "{{baseUrl}}/customer/bookings/retrieve",
+                                                       "body":  {
+                                                                    "mode":  "raw",
+                                                                    "raw":  "{\n  \"code\": \"CODE123\",\n  \"phoneNumber\": \"0700000000\"\n}",
+                                                                    "options":  {
+                                                                                    "raw":  {
+                                                                                                "language":  "json"
+                                                                                            }
+                                                                                }
+                                                                }
+                                                   }
+                                    },
+                                    {
+                                        "name":  "Retrieve Booking by 6-Digit Code",
+                                        "request":  {
+                                                        "method":  "POST",
+                                                        "url":  "{{baseUrl}}/customer/bookings/retrieve-by-code",
+                                                        "body":  {
+                                                                     "mode":  "raw",
+                                                                     "raw":  "{\n  \"bookingCode\": \"123456\",\n  \"customerPhone\": \"0700000000\"\n}",
+                                                                     "options":  {
+                                                                                     "raw":  {
+                                                                                                 "language":  "json"
+                                                                                             }
+                                                                                 }
+                                                                 }
+                                                    }
+                                    },
+                                    {
+                                        "name":  "Retrieve Customer Searches",
+                                        "request":  {
+                                                        "method":  "POST",
+                                                        "url":  "{{baseUrl}}/customer/searches/retrieve",
+                                                        "body":  {
+                                                                     "mode":  "raw",
+                                                                     "raw":  "{\n  \"sessionToken\": \"{{customerSessionToken}}\",\n  \"page\": 1,\n  \"limit\": 10\n}",
+                                                                     "options":  {
+                                                                                     "raw":  {
+                                                                                                 "language":  "json"
+                                                                                             }
+                                                                                 }
+                                                                 }
+                                                    }
+                                    },
+                                    {
                                       "name":  "Retrieve Payment by Code",
                                       "request":  {
                                                       "method":  "POST",
@@ -2259,27 +2411,71 @@
                                                                                   ]
                                                                    }
                                                    },
-                                                   {
-                                                       "name":  "Search Public Properties",
-                                                       "request":  {
-                                                                       "method":  "GET",
-                                                                       "url":  "{{baseUrl}}/web/public/search",
-                                                                       "params":  [
-                                                                                      {
-                                                                                          "key":  "q",
-                                                                                          "value":  "kampala"
-                                                                                      }
-                                                                                  ],
-                                                                       "header":  [
-                                                                                      {
-                                                                                          "key":  "x-session-id",
-                                                                                          "type":  "text",
-                                                                                          "value":  "{{webSessionId}}",
-                                                                                          "disabled":  false
-                                                                                      }
-                                                                                  ]
-                                                                   }
-                                                   }
+                                                    {
+                                                        "name":  "Search Public Properties",
+                                                        "request":  {
+                                                                        "method":  "GET",
+                                                                        "url":  "{{baseUrl}}/web/public/search",
+                                                                        "params":  [
+                                                                                       {
+                                                                                           "key":  "q",
+                                                                                           "value":  "kampala"
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "location",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "propertyType",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "minPrice",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "maxPrice",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "subCounty",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "district",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "lat",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "lng",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "radiusKm",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "page",
+                                                                                           "value":  "1"
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "limit",
+                                                                                           "value":  "12"
+                                                                                       }
+                                                                                   ],
+                                                                        "header":  [
+                                                                                       {
+                                                                                           "key":  "x-session-id",
+                                                                                           "type":  "text",
+                                                                                           "value":  "{{webSessionId}}",
+                                                                                           "disabled":  false
+                                                                                       }
+                                                                                   ]
+                                                                    }
+                                                    }
                                                ]
                                   },
                                   {
@@ -2893,7 +3089,117 @@
                                                                     }
                                                     },
                                                     {
-                                                        "name":  "Record Search",
+                                                        "name":  "Search Properties",
+                                                        "request":  {
+                                                                        "method":  "GET",
+                                                                        "url":  "{{baseUrl}}/web/customer/search",
+                                                                        "params":  [
+                                                                                       {
+                                                                                           "key":  "q",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "location",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "propertyType",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "minPrice",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "maxPrice",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "subCounty",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "district",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "lat",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "lng",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "radiusKm",
+                                                                                           "value":  ""
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "page",
+                                                                                           "value":  "1"
+                                                                                       },
+                                                                                       {
+                                                                                           "key":  "limit",
+                                                                                           "value":  "12"
+                                                                                       }
+                                                                                   ],
+                                                                        "header":  [
+                                                                                       {
+                                                                                           "key":  "x-session-id",
+                                                                                           "type":  "text",
+                                                                                           "value":  "{{webSessionId}}",
+                                                                                           "disabled":  false
+                                                                                       }
+                                                                                   ]
+                                                                    }
+                                                     },
+                                                     {
+                                                         "name":  "Search Properties",
+                                                         "request":  {
+                                                                         "method":  "GET",
+                                                                         "header":  [
+                                                                                        {
+                                                                                            "key":  "x-session-id",
+                                                                                            "type":  "text",
+                                                                                            "value":  "{{webSessionId}}",
+                                                                                            "disabled":  false
+                                                                                        }
+                                                                                    ],
+                                                                         "url":  "{{baseUrl}}/web/customer/search",
+                                                                         "params":  [
+                                                                                        {
+                                                                                            "key":  "q",
+                                                                                            "value":  "apartment"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "location",
+                                                                                            "value":  "Kampala"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "propertyType",
+                                                                                            "value":  "apartment"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "minPrice",
+                                                                                            "value":  "100000"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "maxPrice",
+                                                                                            "value":  "500000"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "page",
+                                                                                            "value":  "1"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "limit",
+                                                                                            "value":  "12"
+                                                                                        }
+                                                                                    ]
+                                                                     }
+                                                     },
+                                                     {
+                                                         "name":  "Record Search",
                                                         "request":  {
                                                                         "method":  "POST",
                                                                         "header":  [
@@ -2935,21 +3241,48 @@
                                                                                            "disabled":  false
                                                                                        }
                                                                                    ],
-                                                                        "url":  "{{baseUrl}}/web/customer/searches",
-                                                                        "params":  [
-                                                                                       {
-                                                                                           "key":  "page",
-                                                                                           "value":  "1"
-                                                                                       },
-                                                                                       {
-                                                                                           "key":  "limit",
-                                                                                           "value":  "10"
-                                                                                       }
-                                                                                   ]
-                                                                    }
-                                                    },
-                                                    {
-                                                        "name":  "Toggle Favorite",
+                                                                         "url":  "{{baseUrl}}/web/customer/searches",
+                                                                         "params":  [
+                                                                                        {
+                                                                                            "key":  "page",
+                                                                                            "value":  "1"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "limit",
+                                                                                            "value":  "10"
+                                                                                        }
+                                                                                    ]
+                                                                     }
+                                                     },
+                                                     {
+                                                         "name":  "Retrieve Customer Searches",
+                                                         "request":  {
+                                                                         "method":  "POST",
+                                                                         "header":  [
+                                                                                        {
+                                                                                            "key":  "Content-Type",
+                                                                                            "value":  "application/json"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "x-session-id",
+                                                                                            "type":  "text",
+                                                                                            "value":  "{{webSessionId}}"
+                                                                                        }
+                                                                                    ],
+                                                                         "url":  "{{baseUrl}}/web/customer/searches/retrieve",
+                                                                         "body":  {
+                                                                                      "mode":  "raw",
+                                                                                      "raw":  "{\n  \"sessionToken\": \"{{customerSessionToken}}\",\n  \"page\": 1,\n  \"limit\": 10\n}",
+                                                                                      "options":  {
+                                                                                                      "raw":  {
+                                                                                                                  "language":  "json"
+                                                                                                              }
+                                                                                                  }
+                                                                                  }
+                                                                     }
+                                                     },
+                                                     {
+                                                         "name":  "Toggle Favorite",
                                                         "request":  {
                                                                         "method":  "POST",
                                                                         "header":  [
@@ -3045,9 +3378,54 @@
                                                                                        }
                                                                                    ]
                                                                     }
-                                                    },
-                                                    {
-                                                        "name":  "Record Search (Customer App)",
+                                                     },
+                                                     {
+                                                         "name":  "Search Properties (Customer App)",
+                                                         "request":  {
+                                                                         "method":  "GET",
+                                                                         "header":  [
+                                                                                        {
+                                                                                            "key":  "x-session-id",
+                                                                                            "type":  "text",
+                                                                                            "value":  "{{webSessionId}}",
+                                                                                            "disabled":  false
+                                                                                        }
+                                                                                    ],
+                                                                         "url":  "{{baseUrl}}/web/customer/search",
+                                                                         "params":  [
+                                                                                        {
+                                                                                            "key":  "q",
+                                                                                            "value":  "apartment"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "location",
+                                                                                            "value":  "Kampala"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "propertyType",
+                                                                                            "value":  "apartment"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "minPrice",
+                                                                                            "value":  "100000"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "maxPrice",
+                                                                                            "value":  "500000"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "page",
+                                                                                            "value":  "1"
+                                                                                        },
+                                                                                        {
+                                                                                            "key":  "limit",
+                                                                                            "value":  "12"
+                                                                                        }
+                                                                                    ]
+                                                                     }
+                                                     },
+                                                     {
+                                                         "name":  "Record Search (Customer App)",
                                                         "request":  {
                                                                         "method":  "POST",
                                                                         "header":  [

@@ -1,0 +1,23 @@
+info:
+  name: Retrieve Booking by 6-Digit Code
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/bookings/retrieve-by-code"
+  body:
+    type: json
+    data: |-
+      {
+        "bookingCode": "123456",
+        "customerPhone": "0700000000"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

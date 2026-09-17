@@ -181,20 +181,34 @@ export class AdminController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Send message' })
   async sendMessage(@Body() body: any, @Req() req: any) {
-    const adminId = body.adminId || req.user?.sub;
+    const adminId = req.user?.sub || req.user?.id;
+    const adminUsername = req.user?.username || req.user?.email || '';
+
     if (!adminId) {
-      this.logger.warn('sendMessage called without adminId in body or JWT');
+      this.logger.warn('sendMessage called without adminId in JWT');
     }
     this.logger.log(`Send message request from admin ${adminId}`);
-    return this.proxyService.forwardToAdmin('SendMessage', { ...body, adminId });
+    return this.proxyService.forwardToAdmin('SendMessage', {
+      adminId,
+      adminUsername,
+      recipientType: body.recipientType,
+      recipientPhone: body.recipientPhone,
+      recipientEmail: body.recipientEmail,
+      recipientName: body.recipientName,
+      messageType: body.messageType,
+      subject: body.subject,
+      body: body.body,
+      channel: body.channel,
+    });
   }
 
   @Put('email')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update admin email' })
-  async updateAdminEmail(@Body() body: any) {
-    this.logger.log(`Update admin email request for ${body.adminId}`);
-    return this.proxyService.forwardToAdmin('UpdateAdminEmail', body);
+  async updateAdminEmail(@Req() req:any,@Body() body: any) {
+    const adminId=req.user?.id;
+    this.logger.log(`Update admin email request for ${adminId}`);
+    return this.proxyService.forwardToAdmin('UpdateAdminEmail', {...body,adminId});
   }
 
   @Put('sms')
@@ -356,6 +370,30 @@ export class AdminController {
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 20,
       propertyId: query.propertyId || '',
+    });
+  }
+
+  @Get('favorites')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all customer favorites for admin' })
+  async getAllFavorites(@Query() query: any) {
+    this.logger.log(`Get all favorites request: ${JSON.stringify(query)}`);
+    return this.proxyService.forwardToProperty('GetAllCustomerFavorites', {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+    });
+  }
+
+  @Get('searches')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all customer searches for admin' })
+  async getAllSearches(@Query() query: any) {
+    this.logger.log(`Get all searches request: ${JSON.stringify(query)}`);
+    return this.proxyService.forwardToAdmin('GetAllCustomerSearches', {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+      sessionToken: query.sessionToken || '',
+      query: query.q || '',
     });
   }
 

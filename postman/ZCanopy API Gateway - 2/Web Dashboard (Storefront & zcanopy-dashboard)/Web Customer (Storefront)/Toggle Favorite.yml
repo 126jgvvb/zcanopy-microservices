@@ -1,0 +1,32 @@
+info:
+  name: Toggle Favorite
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/favorites/toggle"
+  headers:
+    - name: Content-Type
+      value: application/json
+      disabled: true
+    - name: x-session-id
+      value: d13cc037-3cea-46a9-bee5-fb8b683148de
+  body:
+    type: json
+    data: |-
+      {
+        "propertyId": 9,
+        "propertyTitle": "2BR Apartment in Kololo",
+        "propertyLocation": "Kololo, Kampala",
+        "imageUrl": "https://example.com/image.jpg",
+        "price": 850000
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

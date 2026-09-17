@@ -9,7 +9,7 @@ export class CustomerRatingEntity{
   @Column({default:''})
   propertyId!:string;
 
-  @Column({default:0})
+  @Column({type:'numeric',default:0})
   averageRating!:number;
 
   @Column({default:0})

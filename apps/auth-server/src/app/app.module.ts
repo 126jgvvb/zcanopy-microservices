@@ -22,7 +22,7 @@ import * as crypto from 'crypto';
           options: {
             url: process.env.ADMIN_SERVICE_URL || 'localhost:3006',
             package: 'admin.v1',
-            protoPath: join(__dirname, './proto/admin.proto'),
+             protoPath: join(process.cwd(), 'apps/admin/src/proto/admin.proto'),
           },
         }),
       },

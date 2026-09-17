@@ -1,0 +1,40 @@
+opencollection: 1.0.0
+
+info:
+  name: ZCanopy API Gateway - 3
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ""
+      port: ""
+      auth:
+        username: ""
+        password: ""
+      bypassProxy: ""
+
+request:
+  variables:
+    - name: baseUrl
+      value: http://localhost:3000/api
+    - name: accessToken
+      value: ""
+    - name: sessionToken
+      value: ""
+    - name: customerSessionToken
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NGM4ZTljYy1jNmRmLTRkYzQtYjk3Zi00NTA1NzkxZGQ2ODMiLCJlbWFpbCI6IndhZGlrYWtldmluQGdtYWlsLmNvbSIsInJvbGUiOiJjdXN0b21lciIsInR5cGUiOiJjdXN0b21lciIsImN1c3RvbWVySWQiOjQsImlhdCI6MTc4OTU1OTMyMCwiZXhwIjoxNzkyMTUxMzIwfQ.syn2ePxBom2hMA7Du27jIFHHNR6jNogSiggGi-Yrxq8
+    - name: webSessionId
+      value: ""
+    - name: deviceId
+      value: device-001
+
+docs:
+  content: Postman collection for ZCanopy microservices API Gateway running on port 4000
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

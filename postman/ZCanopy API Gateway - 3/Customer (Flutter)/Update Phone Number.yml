@@ -1,0 +1,24 @@
+info:
+  name: Update Phone Number
+  type: http
+  seq: 24
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/web/customer/profile/phone"
+  headers:
+    Authorization: Bearer {{customer_token}}
+  body:
+    type: json
+    data: |-
+      {
+        "phoneNumber": "0700000000"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

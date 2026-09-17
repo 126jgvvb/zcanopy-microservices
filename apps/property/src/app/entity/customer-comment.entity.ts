@@ -27,7 +27,7 @@ export class CustomerCommentEntity{
   @Column()
   comment!:string;
 
-  @Column({default:0})
+  @Column({type:'numeric',default:0})
   rating!:number;
 
   @Column({default: new Date()})

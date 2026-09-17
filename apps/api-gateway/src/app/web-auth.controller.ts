@@ -87,6 +87,72 @@ export class WebAuthController {
     };
   }
 
+  @Post('broker/google')
+  @ApiOperation({ summary: 'Web broker Google sign-in' })
+  async webBrokerGoogleLogin(@Body() body: { googleId: string; deviceId?: string }) {
+    this.logger.log('Web broker Google login request');
+    const authResponse = await this.proxyService.forwardToAuth('LoginBrokerGoogle', {
+      googleId: body.googleId,
+      deviceId: body.deviceId || 'web-dashboard',
+    });
+
+    const payload = {
+      sub: authResponse.id,
+      email: authResponse.email,
+      role: 'broker',
+      username: authResponse.username,
+      brokerCode: authResponse.brokerCode,
+    };
+
+    const token = this.jwtService.sign(payload, { expiresIn: '7d' });
+
+    this.logger.log(`Web broker Google login: web token length=${token.length}`);
+
+    return {
+      token,
+      id: authResponse.id,
+      email: authResponse.email,
+      username: authResponse.username,
+      role: 'broker',
+      type: 'broker',
+      brokerCode: authResponse.brokerCode,
+    };
+  }
+
+  @Post('broker/email-login')
+  @ApiOperation({ summary: 'Web broker login by email and password' })
+  async webBrokerEmailLogin(@Body() body: { email: string; password: string; deviceId?: string }) {
+    this.logger.log(`Web broker email login attempt for ${body.email}`);
+    const authResponse = await this.proxyService.forwardToAuth('Login', {
+      email: body.email,
+      password: body.password,
+      deviceId: body.deviceId || 'web-dashboard',
+      type: 'broker',
+    });
+
+    const payload = {
+      sub: authResponse.id,
+      email: authResponse.email,
+      role: 'broker',
+      username: authResponse.username,
+      brokerCode: authResponse.brokerCode,
+    };
+
+    const token = this.jwtService.sign(payload, { expiresIn: '7d' });
+
+    this.logger.log(`Web broker email login: web token length=${token.length}`);
+
+    return {
+      token,
+      id: authResponse.id,
+      email: authResponse.email,
+      username: authResponse.username,
+      role: 'broker',
+      type: 'broker',
+      brokerCode: authResponse.brokerCode,
+    };
+  }
+
   @Post('broker/setup')
   @ApiOperation({ summary: 'Web broker account setup' })
   async webBrokerSetup(@Body() body: any) {

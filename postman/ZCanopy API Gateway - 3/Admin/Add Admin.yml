@@ -1,0 +1,26 @@
+info:
+  name: Add Admin
+  type: http
+  seq: 17
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/admins"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "wadikakevin@gmail.com",
+        "password": "admin123",
+        "role": "admin"
+      }
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjEiLCJlbWFpbCI6ImFkbWluQHpjYW5vcHkuY29tIiwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInR5cGUiOiJhZG1pbiIsImlhdCI6MTc4OTIxMjUwNiwiZXhwIjoxNzg5ODE3MzA2fQ.wlIxXtzaAQFgVq3s5pQnmAWpigCDMjVKlgwbFn_CLXo
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

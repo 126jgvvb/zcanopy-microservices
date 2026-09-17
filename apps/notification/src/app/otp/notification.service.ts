@@ -520,6 +520,37 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async sendBookingConfirmationEmail(payload: { email: string; username?: string; propertyTitle: string; propertyId: string; location?: string; amount: number; transactionCode: string; bookingCode: string; date: string; status?: string }) {
+    try {
+      if (!payload.email) {
+        throw new Error('Cannot send booking confirmation email: "email" is missing from payload');
+      }
+      const subject = 'Booking confirmation';
+      const body = bookingConfirmationEmailHtml({ username: payload.username, email: payload.email, propertyTitle: payload.propertyTitle, propertyId: payload.propertyId, location: payload.location, amount: payload.amount, transactionCode: payload.transactionCode, bookingCode: payload.bookingCode, date: payload.date, status: payload.status });
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'booking', channel: 'email', title: subject, content: body, recipient: payload.email, result });
+      return this.result('email', payload.email);
+    } catch (err) {
+      this.logger.error(`Failed to send booking confirmation email: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async sendBookingConfirmationSms(payload: { phoneNumber: string; username?: string; propertyTitle: string; amount: number; bookingCode: string; date: string; status?: string }) {
+    try {
+      if (!payload.phoneNumber) {
+        throw new Error('Cannot send booking confirmation SMS: "phoneNumber" is missing from payload');
+      }
+      const body = bookingConfirmationSmsBody({ username: payload.username, propertyTitle: payload.propertyTitle, amount: payload.amount, bookingCode: payload.bookingCode, date: payload.date, status: payload.status });
+      const result = await this.dispatchSms(payload.phoneNumber, body);
+      await this.saveNotification({ type: 'booking', channel: 'sms', title: 'Booking confirmation', content: body, recipient: payload.phoneNumber, result });
+      return this.result('sms', payload.phoneNumber);
+    } catch (err) {
+      this.logger.error(`Failed to send booking confirmation SMS: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
   async sendAdminMessage(payload: {
     channel: string;
     recipientPhone?: string;

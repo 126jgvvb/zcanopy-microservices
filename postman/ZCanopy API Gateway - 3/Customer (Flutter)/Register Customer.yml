@@ -1,0 +1,26 @@
+info:
+  name: Register Customer
+  type: http
+  seq: 20
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/register"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "wadikakevin@gmail.com",
+        "password": "Password123",
+        "firstName": "John",
+        "lastName": "Doe",
+        "phoneNumber": "0741882818"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -164,6 +164,12 @@ export class PropertyController {
     return this.propertyService.getPropertyDetailsForCustomer(dto);
   }
 
+  @GrpcMethod('PropertyService', 'GetSimilarProperties')
+  async getSimilarProperties(dto: { sessionToken: string; propertyId: string; limit?: number }) {
+    this.logger.log(`Received get-similar-properties request for property ${dto.propertyId}`);
+    return this.propertyService.getSimilarProperties(dto);
+  }
+
   @GrpcMethod('PropertyService', 'GetCustomerBookings')
   async getCustomerBookings(dto: { sessionToken: string; page: number; limit: number }) {
     this.logger.log(`Received get-customer-bookings request`);
@@ -174,6 +180,12 @@ export class PropertyController {
   async getBookingByCode(dto: { transactionCode: string }) {
     this.logger.log(`Received get-booking-by-code request for code ${dto.transactionCode}`);
     return this.propertyService.getBookingByCode(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'GetBookingByBookingCode')
+  async getBookingByBookingCode(dto: { bookingCode: string; customerPhone?: string }) {
+    this.logger.log(`Received get-booking-by-booking-code request for code ${dto.bookingCode}`);
+    return this.propertyService.getBookingByBookingCode(dto);
   }
 
   @GrpcMethod('PropertyService', 'GetBookingsByPhone')
@@ -224,6 +236,12 @@ export class PropertyController {
     return this.propertyService.getCustomerSearches(dto);
   }
 
+  @GrpcMethod('PropertyService', 'GetAllCustomerSearches')
+  async getAllCustomerSearches(dto: { page: number; limit: number; sessionToken?: string; query?: string }) {
+    this.logger.log(`Received get-all-customer-searches request`);
+    return this.propertyService.getAllCustomerSearches(dto);
+  }
+
   @GrpcMethod('PropertyService', 'ToggleFavorite')
   async toggleFavorite(dto: { sessionToken: string; propertyId: string; propertyTitle: string; propertyLocation?: string; brokerCode?: string; imageUrl?: string; price?: number }) {
     this.logger.log(`Received toggle-favorite request for property ${dto.propertyId}`);
@@ -234,6 +252,12 @@ export class PropertyController {
   async getCustomerFavorites(dto: { sessionToken: string; page: number; limit: number }) {
     this.logger.log(`Received get-customer-favorites request`);
     return this.propertyService.getCustomerFavorites(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'GetAllCustomerFavorites')
+  async getAllCustomerFavorites(dto: { page: number; limit: number }) {
+    this.logger.log(`Received getAll-customer-favorites request`);
+    return this.propertyService.getAllCustomerFavorites(dto);
   }
 
   @GrpcMethod('PropertyService', 'AddComment')
@@ -252,5 +276,29 @@ export class PropertyController {
   async getAllComments(dto: { page: number; limit: number; propertyId?: string }) {
     this.logger.log(`Received get-all-comments request`);
     return this.propertyService.getAllComments(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'SearchProperties')
+  async searchProperties(dto: { sessionToken: string; query?: string; location?: string; radius?: number; propertyType?: string; subCounty?: string; district?: string; minPrice?: number; maxPrice?: number; page?: number; limit?: number; lat?: number; lng?: number; radiusKm?: number }) {
+    this.logger.log(`Received search-properties request for session ${dto.sessionToken}`);
+    return this.propertyService.searchProperties(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'UpdateCustomerSearchCustomerId')
+  async updateCustomerSearchCustomerId(dto: { sessionToken: string; customerId: string }) {
+    this.logger.log(`Received update-customer-search-customer-id request for session ${dto.sessionToken}`);
+    return this.propertyService.updateCustomerSearchCustomerId(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'GetCustomerSearchesByCustomerId')
+  async getCustomerSearchesByCustomerId(dto: { customerId: string; page: number; limit: number }) {
+    this.logger.log(`Received get-customer-searches-by-customer-id request for customer ${dto.customerId}`);
+    return this.propertyService.getCustomerSearchesByCustomerId(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'GetZeroResultSearches')
+  async getZeroResultSearches(dto: { page: number; limit: number; fromDate?: string }) {
+    this.logger.log(`Received get-zero-result-searches request`);
+    return this.propertyService.getZeroResultSearches(dto);
   }
 }

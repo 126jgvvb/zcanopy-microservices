@@ -1,0 +1,23 @@
+info:
+  name: Confirm OTP
+  type: http
+  seq: 23
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/confirm-otp"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "wadikakevin@gmail.com",
+        "otpCode": "623322"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

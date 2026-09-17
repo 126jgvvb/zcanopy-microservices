@@ -34,6 +34,112 @@ service AdminService {
   rpc SendMessage (SendMessageRequest) returns (SendMessageResponse);
   rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
   rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
+  rpc GetAllCustomerSearches (GetAllCustomerSearchesRequest) returns (GetAllCustomerSearchesResponse);
+  rpc GetPropertyComments (GetPropertyCommentsRequest) returns (GetPropertyCommentsResponse);
+  rpc GetAllCustomerFavorites (GetAllCustomerFavoritesRequest) returns (GetAllCustomerFavoritesResponse);
+ 
+}
+
+
+
+
+
+
+
+message GetPropertyCommentsRequest {
+  string propertyId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+
+message Comment {
+  string id = 1;
+  string customerName = 2;
+  string customerPhone = 3;
+  string customerEmail = 4;
+  string comment = 5;
+  double rating = 6;
+  string createdAt = 7;
+}
+
+
+message GetPropertyCommentsResponse {
+  repeated Comment comments = 1;
+  int32 total = 2;
+  double averageRating = 3;
+}
+
+
+message GetAllCustomerFavoritesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+
+
+message CustomerFavorite {
+  string id = 1;
+  string propertyId = 2;
+  string propertyTitle = 3;
+  string propertyLocation = 4;
+  string brokerCode = 5;
+  string imageUrl = 6;
+  double price = 7;
+  string createdAt = 8;
+  string description = 9;
+  string propertyType = 10;
+  bool isAvailable = 11;
+  repeated string videoUrl = 12;
+  string brokerBrandName = 13;
+  string postgisSpatialField = 14;
+}
+
+
+message GetAllCustomerFavoritesResponse {
+  repeated CustomerFavorite favorites = 1;
+  int32 total = 2;
+}
+
+
+message GetAllCommentsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string propertyId = 3;
+}
+
+message GetAllCommentsResponse {
+  repeated Comment comments = 1;
+  int32 total = 2;
+}
+
+
+message GetAllCustomerSearchesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string sessionToken = 3;
+  string query = 4;
+}
+
+
+message CustomerSearch {
+  string id = 1;
+  string sessionId = 2;
+  string sessionToken = 3;
+  string query = 4;
+  string location = 5;
+  double radius = 6;
+  string propertyType = 7;
+  string filters = 8;
+  int32 resultCount = 9;
+  string createdAt = 10;
+}
+
+
+
+message GetAllCustomerSearchesResponse {
+  repeated CustomerSearch searches = 1;
+  int32 total = 2;
 }
 
 message GetCommissionsRequest {}

@@ -91,12 +91,19 @@ export class CustomerController {
   }
 
   @Post('bookings/retrieve')//confirmed
-  @ApiOperation({ summary: 'Retrieve booking by code and phone' })
+  @ApiOperation({ summary: 'Retrieve booking by transaction code and phone' })
   async retrieveBooking(@Body() body: any) {
     if (body.code) body.transactionCode = body.code;
     if (body.phoneNumber) body.customerPhone = body.phoneNumber;
     this.logger.log(`Retrieve booking request for code=${body.transactionCode ?? body.code}`);
     return this.proxyService.forwardToProperty('GetBookingByCode', body);
+  }
+
+  @Post('bookings/retrieve-by-code')
+  @ApiOperation({ summary: 'Retrieve booking by 6-digit booking code and phone number' })
+  async retrieveBookingByCode(@Body() body: any) {
+    this.logger.log(`Retrieve booking by booking code request code=${body.bookingCode} phone=${body.customerPhone}`);
+    return this.proxyService.forwardToProperty('GetBookingByBookingCode', body);
   }
 
   @Post('payments/retrieve')//confirmed
@@ -110,7 +117,7 @@ export class CustomerController {
     });
   }
 
-  @Get('properties/:id/details') //confirmed
+  @Get('properties/details') //confirmed
   @ApiOperation({ summary: 'Get property details for customer' })
   async getPropertyDetailsForCustomer(@Query() query: any, @Req() req: any) {
     const sessionToken = this.getSessionToken(req);
@@ -149,9 +156,24 @@ export class CustomerController {
 
   @Get('search')
   @ApiOperation({ summary: 'Search properties by broker title' })
-  async searchPropertiesByBrokerTitle(@Query() query: any) {
+  async searchPropertiesByBrokerTitle(@Query() query: any, @Req() req: any) {
     this.logger.log(`Search properties by broker title request: ${JSON.stringify(query)}`);
-    return this.proxyService.forwardToProperty('SearchPropertiesByBrokerTitle', query);
+    return this.proxyService.forwardToProperty('SearchProperties', {
+      query: query.q || '',
+      sessionToken: this.getSessionToken(req),
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 12,
+      location: query.location,
+      radius: query.radius ? Number(query.radius) : undefined,
+      propertyType: query.propertyType,
+      subCounty: query.subCounty,
+      district: query.district,
+      minPrice: query.minPrice ? Number(query.minPrice) : undefined,
+      maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,
+      lat: query.lat ? Number(query.lat) : undefined,
+      lng: query.lng ? Number(query.lng) : undefined,
+      radiusKm: query.radiusKm ? Number(query.radiusKm) : undefined,
+    });
   }
 
   @Post('search/record')
@@ -170,6 +192,17 @@ export class CustomerController {
       sessionToken,
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 10,
+    });
+  }
+
+  @Post('searches/retrieve')
+  @ApiOperation({ summary: 'Retrieve customer searches by session token' })
+  async retrieveSearches(@Body() body: any) {
+    this.logger.log(`Retrieve searches request for session ${body.sessionToken}`);
+    return this.proxyService.forwardToProperty('GetCustomerSearches', {
+      sessionToken: body.sessionToken,
+      page: Number(body.page) || 1,
+      limit: Number(body.limit) || 10,
     });
   }
 

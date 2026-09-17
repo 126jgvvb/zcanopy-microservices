@@ -38,6 +38,7 @@ service AdminService {
   rpc GetNotifications (GetNotificationsRequest) returns (GetNotificationsResponse);
   rpc ApproveBrokerDocument (ApproveBrokerDocumentRequest) returns (ApproveBrokerDocumentResponse);
   rpc GetActiveCustomerSessions (GetActiveCustomerSessionsRequest) returns (GetActiveCustomerSessionsResponse);
+  rpc GetAllCustomerSearches (GetAllCustomerSearchesRequest) returns (GetAllCustomerSearchesResponse);
   rpc GetInvoices (GetInvoicesRequest) returns (GetInvoicesResponse);
   rpc DeleteInvoice (DeleteInvoiceRequest) returns (DeleteInvoiceResponse);
   rpc DeleteInvoices (DeleteInvoicesRequest) returns (DeleteInvoicesResponse);
@@ -688,4 +689,29 @@ message ApproveAllPendingVerificationsResponse {
   int32 successful = 3;
   int32 failed = 4;
   repeated ApproveVerificationResult results = 5;
+}
+
+message GetAllCustomerSearchesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string sessionToken = 3;
+  string query = 4;
+}
+
+message CustomerSearchSummary {
+  string id = 1;
+  string sessionId = 2;
+  string sessionToken = 3;
+  string query = 4;
+  string location = 5;
+  double radius = 6;
+  string propertyType = 7;
+  string filters = 8;
+  int32 resultCount = 9;
+  string createdAt = 10;
+}
+
+message GetAllCustomerSearchesResponse {
+  repeated CustomerSearchSummary searches = 1;
+  int32 total = 2;
 }

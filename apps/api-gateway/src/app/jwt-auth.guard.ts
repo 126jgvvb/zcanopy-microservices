@@ -2,13 +2,23 @@ import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logge
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 
+interface AuthenticatedRequest extends Request {
+  user?: {
+    sub: string;
+    email: string;
+    role: string;
+    type: string;
+    brokerCode?: string;
+  };
+}
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   private readonly logger = new Logger(JwtAuthGuard.name);
   constructor(private readonly jwtService: JwtService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const token = this.extractToken(request);
 
     if (!token) {
@@ -52,7 +62,7 @@ export class JwtAuthGuard implements CanActivate {
     return true;
   }
 
-  private extractToken(request: Request): string | undefined {
+  private extractToken(request: AuthenticatedRequest): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;
   }

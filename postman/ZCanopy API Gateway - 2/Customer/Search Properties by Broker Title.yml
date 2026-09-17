@@ -1,0 +1,23 @@
+info:
+  name: Search Properties by Broker Title
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/customer/search?query=kevin kevo's Property"
+  headers:
+    - name: x-session-id
+      value: d13cc037-3cea-46a9-bee5-fb8b683148de
+  params:
+    - name: query
+      value: kevin kevo's Property
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

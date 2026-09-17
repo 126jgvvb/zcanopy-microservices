@@ -28,6 +28,7 @@ import { WebBrokerController } from './web-broker.controller';
 import { WebCustomerController } from './web-customer.controller';
 import { WebSessionController } from './web-session.controller';
 import { UploadController } from './upload.controller';
+import { CustomerWebController } from './customer-web.controller';
 import { ProxyService } from './proxy.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { SessionMiddleware } from './session.middleware';
@@ -103,6 +104,17 @@ import { join } from 'path';
         }),
       },
       {
+        name: 'CUSTOMER_CLIENT',
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.CUSTOMER_SERVICE_URL || 'localhost:3007',
+            package: 'customer.v1',
+            protoPath: join(process.cwd(), 'apps/customer/src/proto/customer.proto'),
+          },
+        }),
+      },
+      {
         name: 'NOTIFICATION_CLIENT',
         useFactory: () => ({
           transport: Transport.REDIS,
@@ -117,7 +129,7 @@ import { join } from 'path';
       },
     ]),
   ],
-  controllers: [AppController, AuthController, BrokerController, BrokerPublicController, BrokerSessionController, PropertyController, PaymentController, AdminController, CustomerController, ListingsController, SubscriptionsController, BookingsController, PaymentLegacyController, GateWayController, NotificationController, UsersController, PublicController, WebPublicController, WebAuthController, WebBrokerController, WebCustomerController, WebSessionController, UploadController],
+  controllers: [AppController, AuthController, BrokerController, BrokerPublicController, BrokerSessionController, PropertyController, PaymentController, AdminController, CustomerController, ListingsController, SubscriptionsController, BookingsController, PaymentLegacyController, GateWayController, NotificationController, UsersController, PublicController, WebPublicController, WebAuthController, WebBrokerController, WebCustomerController, WebSessionController, UploadController, CustomerWebController],
   providers: [AppService, EncryptionInterceptor, EncryptionMiddleware, ProxyService, JwtAuthGuard, EncryptionService, CryptoService, SpacesService],
 })
 export class AppModule implements NestModule, OnModuleInit {

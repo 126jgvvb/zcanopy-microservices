@@ -192,6 +192,34 @@ export function propertyPaymentConfirmationEmailHtml(payload: { username?: strin
   return baseTemplate('ZCanopy property payment confirmation', body);
 }
 
+export function bookingConfirmationEmailHtml(payload: { username?: string; email: string; propertyTitle: string; propertyId: string; location?: string; amount: number; transactionCode: string; bookingCode: string; date: string; status?: string }): string {
+  const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
+  const statusText = payload.status === 'pending_payment' ? 'Your booking is pending payment confirmation.' : 'Your booking has been confirmed.';
+
+  const body = `
+    <div class="title">Booking confirmation</div>
+    <div class="text">${title} ${statusText}</div>
+    <div class="info-box">
+      <div><span class="label">Property:</span> ${payload.propertyTitle}</div>
+      <div><span class="label">Property ID:</span> ${payload.propertyId}</div>
+      ${payload.location ? `<div><span class="label">Location:</span> ${payload.location}</div>` : ''}
+      <div><span class="label">Amount:</span> UGX ${payload.amount.toLocaleString()}</div>
+      <div><span class="label">Transaction Code:</span> ${payload.transactionCode}</div>
+      <div><span class="label">Booking Code:</span> ${payload.bookingCode}</div>
+      <div><span class="label">Date:</span> ${payload.date}</div>
+    </div>
+    <div class="text">Use your <span class="label">Booking Code (${payload.bookingCode})</span> to retrieve your booking details later. Keep this email for your records. If you have any questions, contact our support team.</div>
+  `;
+
+  return baseTemplate('ZCanopy booking confirmation', body);
+}
+
+export function bookingConfirmationSmsBody(payload: { username?: string; propertyTitle: string; amount: number; bookingCode: string; date: string; status?: string }): string {
+  const greeting = payload.username ? `Hi ${payload.username}, ` : 'Hello, ';
+  const statusText = payload.status === 'pending_payment' ? 'Booking pending payment. ' : 'Booking confirmed. ';
+  return `${greeting}${statusText}Property: ${payload.propertyTitle}. Amount: UGX ${payload.amount}. Booking Code: ${payload.bookingCode}. Date: ${payload.date}. Use this code to retrieve your booking later.`;
+}
+
 export function propertyCreatedEmailHtml(payload: { username?: string; email?: string; title: string; location?: string; price?: number; brokerBookingFee?: number; imageUrl?: string | null; lat?: number | null; lng?: number | null; createdAt?: string }): string {
   const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
   const dateLabel = payload.createdAt ? new Date(payload.createdAt).toLocaleString() : '';

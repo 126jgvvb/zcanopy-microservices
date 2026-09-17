@@ -1,0 +1,18 @@
+info:
+  name: Get Customer Transactions
+  type: http
+  seq: 37
+
+http:
+  method: GET
+  url: "{{baseUrl}}/web/customer/transactions?page=1&limit=10"
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NGM4ZTljYy1jNmRmLTRkYzQtYjk3Zi00NTA1NzkxZGQ2ODMiLCJlbWFpbCI6IndhZGlrYWtldmluQGdtYWlsLmNvbSIsInJvbGUiOiJjdXN0b21lciIsInR5cGUiOiJjdXN0b21lciIsImN1c3RvbWVySWQiOjQsImlhdCI6MTc4OTU1OTMyMCwiZXhwIjoxNzkyMTUxMzIwfQ.syn2ePxBom2hMA7Du27jIFHHNR6jNogSiggGi-Yrxq8
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

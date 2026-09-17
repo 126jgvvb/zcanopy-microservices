@@ -1,0 +1,29 @@
+info:
+  name: Search Public Properties
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/web/public/search?q=apartment+in+kololo&page=1&limit=12"
+  headers:
+    - name: x-session-id
+      value: "{{webSessionId}}"
+  params:
+    - name: q
+      value: apartment+in+kololo
+      type: query
+    - name: page
+      value: "1"
+      type: query
+    - name: limit
+      value: "12"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

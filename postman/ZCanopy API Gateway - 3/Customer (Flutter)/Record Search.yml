@@ -1,0 +1,30 @@
+info:
+  name: Record Search
+  type: http
+  seq: 31
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/search/record"
+  body:
+    type: json
+    data: |-
+      {
+        "sessionToken": "session-id-123",
+        "query": "apartment",
+        "location": "Kampala",
+        "radius": 10,
+        "propertyType": "RESIDENTIAL",
+        "minPrice": 100000,
+        "maxPrice": 500000,
+        "resultCount": 0,
+        "resultPropertyIds": []
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

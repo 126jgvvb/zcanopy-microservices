@@ -15,6 +15,7 @@ export interface AllowedViewer {
   customerEmail?: string;
   reason?: string;
   status?: string;
+  bookingCode?: string;
 }
 
 export interface BookingState {
@@ -84,4 +85,7 @@ export class PropertyEntity {
 
   @Column({default:0})
   brokerBookingFee!: number;
+
+  @Column({default:''})
+  brokerBrandName!: string;
 }

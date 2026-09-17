@@ -342,5 +342,39 @@ export class OtpNotificationController {
       all: payload?.all,
     });
   }
+
+  @EventPattern('customer_booking_confirmation')
+  async handleCustomerBookingConfirmation(@Payload() payload: any) {
+    this.logger.log(`Received customer_booking_confirmation for ${payload.customerEmail} / ${payload.customerPhone}`);
+    try {
+      if (payload.customerEmail) {
+        await this.notificationService.sendBookingConfirmationEmail({
+          email: payload.customerEmail,
+          username: payload.customerName,
+          propertyTitle: payload.propertyTitle,
+          propertyId: payload.propertyId,
+          location: payload.location,
+          amount: payload.amount,
+          transactionCode: payload.transactionCode,
+          bookingCode: payload.bookingCode,
+          date: payload.date,
+          status: payload.status,
+        });
+      }
+      if (payload.customerPhone) {
+        await this.notificationService.sendBookingConfirmationSms({
+          phoneNumber: payload.customerPhone,
+          username: payload.customerName,
+          propertyTitle: payload.propertyTitle,
+          amount: payload.amount,
+          bookingCode: payload.bookingCode,
+          date: payload.date,
+          status: payload.status,
+        });
+      }
+    } catch (error) {
+      this.logger.error(`Failed to handle customer booking confirmation: ${(error as Error).message}`);
+    }
+  }
 }
 

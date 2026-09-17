@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository, In } from '@nestjs/typeorm';
-import { Repository, FindOptionsSelect } from 'typeorm';
+import { Repository, FindOptionsSelect, ILike } from 'typeorm';
 import Redis from 'ioredis';
 import { Inject } from '@nestjs/common';
 import { ClientGrpc } from '@nestjs/microservices';
@@ -185,6 +185,12 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     return R * c;
   }
 
+  private generateBookingCode(): string {
+    const min = 100000;
+    const max = 999999;
+    return String(Math.floor(Math.random() * (max - min + 1)) + min);
+  }
+
   async createProperty(dto: CreatePropertyDto): Promise<PropertyEntity> {
     try {
       if (
@@ -240,10 +246,25 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         postgis_spatial_field: geoField,
         price: dto.price ?? 0,
         brokerBookingFee: dto.brokerBookingFee ?? 0,
+        brokerBrandName: '',
       });
 
       const saved = await this.propertyRepo.save(property);
       this.logger.log(`Created property ${saved.id} for broker code ${dto.brokersUniqueCode}`);
+
+      try {
+        const broker = await firstValueFrom(
+          this.brokerClient.getService('BrokerService').GetBrokerByCode({ brokerCode: dto.brokersUniqueCode }).pipe(
+            timeout(5000),
+          ),
+        );
+        const brokerData = (broker as any)?.broker || broker || {};
+        if (brokerData.brokerBrandName) {
+          await this.propertyRepo.update(saved.id, { brokerBrandName: brokerData.brokerBrandName });
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to fetch broker brand name for property ${saved.id}: ${(err as Error).message}`);
+      }
 
       if (geoField) {
         await this.redis.publish('new_property_nearby', JSON.stringify({
@@ -652,6 +673,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       videoUrl: p.videoUrl ?? [],
       price: p.price,
       brokerBookingFee: p.brokerBookingFee,
+      brokerBrandName: p.brokerBrandName,
       bookingState: this.computeBookingState(p),
     };
   }
@@ -808,6 +830,132 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       };
     } catch (err) {
       this.logger.error(`Failed to find nearby properties for lat=${dto.lat}, lng=${dto.lng}:`, err);
+      throw err;
+    }
+  }
+
+  async searchProperties(dto: { sessionToken: string; query?: string; location?: string; radius?: number; propertyType?: string; subCounty?: string; district?: string; minPrice?: number; maxPrice?: number; page?: number; limit?: number; lat?: number; lng?: number; radiusKm?: number }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; updatedAt?: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; bookingState: BookingState | null; distanceKm?: number | null }>; total: number }> {
+    try {
+      const page = Number(dto.page) || 1;
+      const limit = Number(dto.limit) || 12;
+
+      const qb = this.propertyRepo.createQueryBuilder('property').where('property.isAvailable = :isAvailable', { isAvailable: true });
+
+      if (dto.query) {
+        qb.andWhere(
+          `(property.title ILIKE :query OR property.location ILIKE :query OR property.description ILIKE :query OR property.propertyType ILIKE :query OR property.brokerBrandName ILIKE :query)`,
+          { query: `%${dto.query}%` },
+        );
+      }
+
+      if (dto.location) {
+        qb.andWhere('property.location ILIKE :location', { location: `%${dto.location}%` });
+      }
+
+      if (dto.propertyType) {
+        qb.andWhere('property.propertyType = :propertyType', { propertyType: dto.propertyType });
+      }
+
+      if (dto.subCounty) {
+        qb.andWhere('property.subCounty ILIKE :subCounty', { subCounty: `%${dto.subCounty}%` });
+      }
+
+      if (dto.district) {
+        qb.andWhere('property.district ILIKE :district', { district: `%${dto.district}%` });
+      }
+
+      if (dto.minPrice != null || dto.maxPrice != null) {
+        qb.andWhere(
+          `EXISTS (
+            SELECT 1 FROM jsonb_array_elements(property.allowedViewers) AS viewer
+            WHERE (viewer->>'amount')::numeric BETWEEN :minPrice AND :maxPrice
+          )`,
+          {
+            minPrice: dto.minPrice ?? 0,
+            maxPrice: dto.maxPrice ?? Number.MAX_SAFE_INTEGER,
+          },
+        );
+      }
+
+      if (dto.lat != null && dto.lng != null && dto.radiusKm) {
+        const earthRadius = 6371;
+        qb.andWhere(
+          `(${earthRadius} * acos(cos(radians(:lat)) * cos(radians((property.postgis_spatial_field->>'lat')::numeric)) * cos(radians((property.postgis_spatial_field->>'lng')::numeric) - radians(:lng)) + sin(radians(:lat)) * sin(radians((property.postgis_spatial_field->>'lat')::numeric)))) <= :radius`,
+          { lat: dto.lat, lng: dto.lng, radius: dto.radiusKm }
+        );
+      }
+
+      qb.orderBy('property.createdAt', 'DESC');
+      qb.skip((page - 1) * limit);
+      qb.take(limit);
+
+      const [properties, total] = await qb.getManyAndCount();
+
+      const brokerCodes = [...new Set(properties.map(p => p.brokersUniqueCode))];
+      const brokerPropertyCounts: Record<string, number> = {};
+      if (brokerCodes.length > 0) {
+        const counts = await this.propertyRepo.createQueryBuilder('property')
+          .select('property.brokersUniqueCode', 'brokerCode')
+          .addSelect('COUNT(*)', 'count')
+          .where('property.brokersUniqueCode IN (:...codes)', { codes: brokerCodes })
+          .groupBy('property.brokersUniqueCode')
+          .getRawMany();
+        for (const row of counts) {
+          brokerPropertyCounts[row.brokerCode] = Number(row.count);
+        }
+      }
+
+      const result = {
+        properties: properties.map(p => {
+          const geo = p.postgis_spatial_field;
+          const distance = dto.lat != null && dto.lng != null && geo ? this.haversineDistance(dto.lat, dto.lng, geo.lat, geo.lng) : null;
+          return {
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            propertyType: p.propertyType,
+            location: p.location,
+            brokersUniqueCode: p.brokersUniqueCode,
+            isAvailable: p.isAvailable,
+            subCounty: p.subCounty ?? null,
+            district: p.district ?? null,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+            photoCount: p.photoCount,
+            videoCount: p.videoCount,
+            postgisSpatialField: geo ? JSON.stringify(geo) : null,
+            imageUrl: p.imageUrl,
+            videoUrl: p.videoUrl,
+            price: p.price,
+            brokerBookingFee: p.brokerBookingFee,
+            brokerBrandName: p.brokerBrandName,
+            bookingState: this.computeBookingState(p),
+            distanceKm: distance ? Math.round(distance * 100) / 100 : null,
+            totalBrokerProperties: brokerPropertyCounts[p.brokersUniqueCode] || 0,
+          };
+        }),
+        total,
+      };
+
+      this.recordSearch({
+        sessionToken: dto.sessionToken,
+        query: dto.query,
+        location: dto.location,
+        radius: dto.radius,
+        propertyType: dto.propertyType,
+        subCounty: dto.subCounty,
+        district: dto.district,
+        minPrice: dto.minPrice,
+        maxPrice: dto.maxPrice,
+        resultPropertyIds: properties.map(p => p.id),
+        resultCount: total,
+      }).catch((err) => {
+        this.logger.warn(`Failed to record search: ${(err as Error).message}`);
+      });
+
+      return result;
+    } catch (err) {
+      this.logger.error(`Failed to search properties:`, err);
       throw err;
     }
   }
@@ -1080,7 +1228,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-   async createCustomerBooking(dto: { sessionToken: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; reason?: string; status?: string }): Promise<{ success: boolean; message: string; bookingId?: string }> {
+   async createCustomerBooking(dto: { sessionToken: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; reason?: string; status?: string }): Promise<{ success: boolean; message: string; bookingId?: string; bookingCode?: string }> {
      try {
        const validation = await this.validateCustomerSession(dto.sessionToken);
        if (!validation.valid) {
@@ -1115,6 +1263,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
          throw new BadRequestException('Payment did not return a transaction code');
        }
 
+       const bookingCode = this.generateBookingCode();
+
        const viewer = {
          customerPhone: dto.customerPhone,
          customerName: dto.customerName,
@@ -1125,6 +1275,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
          customerEmail: dto.customerEmail,
          reason: dto.reason,
          status: paymentResult?.success ? 'booked' : 'pending_payment',
+         bookingCode,
        };
 
        property.allowedViewers = [...(property.allowedViewers ?? []), viewer];
@@ -1139,13 +1290,29 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         customerPhone: dto.customerPhone,
         amount: dto.amount,
         transactionCode,
+        bookingCode,
         timestamp: new Date().toISOString(),
       }));
+
+       this.redis.publish('customer_booking_confirmation', JSON.stringify({
+         customerEmail: dto.customerEmail,
+         customerPhone: dto.customerPhone,
+         customerName: dto.customerName,
+         propertyTitle: property.title,
+         propertyId: property.id,
+         location: property.location,
+         amount: dto.amount,
+         transactionCode,
+         bookingCode,
+         date: dto.date,
+         status: paymentResult?.success ? 'booked' : 'pending_payment',
+       }));
 
       return {
         success: paymentResult?.success || false,
         message: paymentResult?.message || 'Booking created',
         bookingId: transactionCode,
+        bookingCode,
       };
     } catch (err) {
       this.logger.error(`Failed to create booking for property ${dto.propertyId}:`, err);
@@ -1197,6 +1364,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         videoUrl: property.videoUrl,
         price: property.price,
         brokerBookingFee: property.brokerBookingFee,
+        brokerBrandName: broker?.brokerBrandName || property.brokerBrandName || '',
         bookingState: this.computeBookingState(property),
         amount: property.allowedViewers?.[0]?.amount || 0,
         brokerPhone: broker?.phoneNumber || '',
@@ -1205,6 +1373,86 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       };
     } catch (err) {
       this.logger.error(`Failed to get property details for ${dto.propertyId}:`, err);
+      throw err;
+    }
+  }
+
+  async getSimilarProperties(dto: { sessionToken: string; propertyId: string; limit?: number }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; distanceKm: number | null; bookingState: any; totalBrokerProperties: number }>; total: number }> {
+    try {
+      const validation = await this.validateCustomerSession(dto.sessionToken);
+      if (!validation.valid) {
+        throw new BadRequestException('Invalid customer session');
+      }
+
+      const property = await this.propertyRepo.findOne({ where: { id: dto.propertyId } });
+      if (!property) {
+        throw new BadRequestException('Property not found');
+      }
+
+      const limit = Number(dto.limit) || 10;
+      const geo = property.postgis_spatial_field;
+      const priceRange = property.price * 0.3;
+
+      let query = this.propertyRepo.createQueryBuilder('property')
+        .where('property.isAvailable = :isAvailable', { isAvailable: true })
+        .andWhere('property.id != :id', { id: dto.propertyId })
+        .andWhere('property.propertyType = :propertyType', { propertyType: property.propertyType });
+
+      if (property.subCounty) {
+        query = query.andWhere('property.subCounty = :subCounty', { subCounty: property.subCounty });
+      }
+
+      if (property.district) {
+        query = query.andWhere('property.district = :district', { district: property.district });
+      }
+
+      if (property.price > 0) {
+        query = query.andWhere('property.price BETWEEN :minPrice AND :maxPrice', {
+          minPrice: property.price - priceRange,
+          maxPrice: property.price + priceRange,
+        });
+      }
+
+      if (geo) {
+        const earthRadius = 6371;
+        query = query.andWhere(
+          `(${earthRadius} * acos(cos(radians(:lat)) * cos(radians((property.postgis_spatial_field->>'lat')::numeric)) * cos(radians((property.postgis_spatial_field->>'lng')::numeric) - radians(:lng)) + sin(radians(:lat)) * sin(radians((property.postgis_spatial_field->>'lat')::numeric)))) <= :radius`,
+          { lat: geo.lat, lng: geo.lng, radius: 50 }
+        );
+      }
+
+      query = query.orderBy('property.createdAt', 'DESC').take(limit);
+
+      const properties = await query.getMany();
+
+      const brokerCodes = [...new Set(properties.map(p => p.brokersUniqueCode))];
+      const brokerPropertyCounts: Record<string, number> = {};
+      if (brokerCodes.length > 0) {
+        const counts = await this.propertyRepo.createQueryBuilder('property')
+          .select('property.brokersUniqueCode', 'brokerCode')
+          .addSelect('COUNT(*)', 'count')
+          .where('property.brokersUniqueCode IN (:...codes)', { codes: brokerCodes })
+          .groupBy('property.brokersUniqueCode')
+          .getRawMany();
+        for (const row of counts) {
+          brokerPropertyCounts[row.brokerCode] = Number(row.count);
+        }
+      }
+
+      return {
+        properties: properties.map(p => {
+          const pGeo = p.postgis_spatial_field;
+          const distance = pGeo && geo ? this.haversineDistance(geo.lat, geo.lng, pGeo.lat, pGeo.lng) : null;
+          return {
+            ...this.serializeProperty(p, pGeo),
+            distanceKm: distance ? Math.round(distance * 100) / 100 : null,
+            totalBrokerProperties: brokerPropertyCounts[p.brokersUniqueCode] || 0,
+          };
+        }),
+        total: properties.length,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get similar properties for ${dto.propertyId}:`, err);
       throw err;
     }
   }
@@ -1289,6 +1537,44 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       return { booking: null };
     } catch (err) {
       this.logger.error(`Failed to get booking by code ${dto.transactionCode}:`, err);
+      throw err;
+    }
+  }
+
+  async getBookingByBookingCode(dto: { bookingCode: string; customerPhone?: string }): Promise<{ booking: { id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; bookingCode: string; reason?: string; status?: string; location: string } | null }> {
+    try {
+      const [properties] = await this.propertyRepo.findAndCount({
+        where: {},
+        take: 1000,
+      });
+
+      for (const property of properties) {
+        const viewers = property.allowedViewers || [];
+        const viewer = viewers.find(v => v.bookingCode === dto.bookingCode && (!dto.customerPhone || v.customerPhone === dto.customerPhone));
+        if (viewer) {
+          return {
+            booking: {
+              id: viewer.transactionId || `${property.id}-${viewer.customerPhone}`,
+              propertyId: property.id,
+              propertyTitle: property.title,
+              customerName: viewer.customerName || 'Unknown',
+              customerPhone: viewer.customerPhone,
+              customerEmail: viewer.customerEmail,
+              date: viewer.date || property.createdAt.toISOString(),
+              amount: viewer.amount || 0,
+              transactionCode: viewer.transactionCode || '',
+              bookingCode: viewer.bookingCode || '',
+              reason: viewer.reason,
+              status: viewer.status || 'booked',
+              location: property.location,
+            },
+          };
+        }
+      }
+
+      return { booking: null };
+    } catch (err) {
+      this.logger.error(`Failed to get booking by booking code ${dto.bookingCode}:`, err);
       throw err;
     }
   }
@@ -1559,6 +1845,48 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async getAllCustomerSearches(dto: { page: number; limit: number; sessionToken?: string; query?: string }): Promise<{ searches: any[]; total: number }> {
+    try {
+      const page = Number(dto.page) || 1;
+      const limit = Number(dto.limit) || 20;
+      const where: any = {};
+
+      if (dto.sessionToken) {
+        where.sessionToken = dto.sessionToken;
+      }
+      if (dto.query) {
+        where.query = ILike(`%${dto.query}%`);
+      }
+
+      const [searches, total] = await this.searchRepo.findAndCount({
+        where,
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+
+      return {
+        searches: searches.map(s => ({
+          id: s.id,
+          sessionId: s.sessionId,
+          sessionToken: s.sessionToken,
+          query: s.query,
+          location: s.location,
+          radius: s.radius,
+          propertyType: s.propertyType,
+          filters: s.filtersJson ? JSON.parse(s.filtersJson) : null,
+          resultCount: s.resultCount,
+          resultPropertyIds: s.resultPropertyIdsJson ? JSON.parse(s.resultPropertyIdsJson) : [],
+          createdAt: s.createdAt,
+        })),
+        total,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get all customer searches: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
   async toggleFavorite(dto: { sessionToken: string; propertyId: string; propertyTitle: string; propertyLocation?: string; brokerCode?: string; imageUrl?: string; price?: number }): Promise<{ favorited: boolean }> {
     try {
       const validation = await this.validateCustomerSession(dto.sessionToken);
@@ -1626,6 +1954,36 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       };
     } catch (err) {
       this.logger.error(`Failed to get customer favorites: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async getAllCustomerFavorites(dto: { page: number; limit: number }): Promise<{ favorites: Array<{ id: string; propertyId: string; propertyTitle: string; propertyLocation: string; brokerCode: string; imageUrl: string; price: number; createdAt: Date }>; total: number }> {
+    try {
+      const page = Number(dto.page) || 1;
+      const limit = Number(dto.limit) || 20;
+
+      const [favorites, total] = await this.favoriteRepo.findAndCount({
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+
+      return {
+        favorites: favorites.map(f => ({
+          id: f.id,
+          propertyId: f.propertyId,
+          propertyTitle: f.propertyTitle,
+          propertyLocation: f.propertyLocation,
+          brokerCode: f.brokerCode,
+          imageUrl: f.imageUrl,
+          price: f.price,
+          createdAt: f.createdAt,
+        })),
+        total,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get all customer favorites: ${(err as Error).message}`);
       throw err;
     }
   }
@@ -1737,6 +2095,89 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       };
     } catch (err) {
       this.logger.error(`Failed to get all comments: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async updateCustomerSearchCustomerId(dto: { sessionToken: string; customerId: string }): Promise<{ success: boolean; updated: number }> {
+    try {
+      const result = await this.searchRepo.update({ sessionToken: dto.sessionToken, customerId: '' }, { customerId: dto.customerId });
+      return { success: true, updated: result.affected || 0 };
+    } catch (err) {
+      this.logger.error(`Failed to update customer search customerId for session ${dto.sessionToken}:`, err);
+      throw err;
+    }
+  }
+
+  async getCustomerSearchesByCustomerId(dto: { customerId: string; page: number; limit: number }): Promise<{ searches: any[]; total: number }> {
+    try {
+      const page = Number(dto.page) || 1;
+      const limit = Number(dto.limit) || 10;
+      const [searches, total] = await this.searchRepo.findAndCount({
+        where: { customerId: dto.customerId },
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+      return {
+        searches: searches.map(s => ({
+          id: s.id,
+          sessionId: s.sessionId,
+          sessionToken: s.sessionToken,
+          query: s.query,
+          location: s.location,
+          radius: s.radius,
+          propertyType: s.propertyType,
+          filters: s.filtersJson ? JSON.parse(s.filtersJson) : null,
+          resultCount: s.resultCount,
+          resultPropertyIds: s.resultPropertyIdsJson ? JSON.parse(s.resultPropertyIdsJson) : [],
+          createdAt: s.createdAt,
+        })),
+        total,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get customer searches by customerId ${dto.customerId}:`, err);
+      throw err;
+    }
+  }
+
+  async getZeroResultSearches(dto: { page: number; limit: number; fromDate?: string }): Promise<{ searches: any[]; total: number }> {
+    try {
+      const page = Number(dto.page) || 1;
+      const limit = Number(dto.limit) || 50;
+      const where: any = { resultCount: 0 };
+
+      if (dto.fromDate) {
+        where.createdAt = new Date(dto.fromDate);
+      } else {
+        where.createdAt = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      }
+
+      const [searches, total] = await this.searchRepo.findAndCount({
+        where,
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+      return {
+        searches: searches.map(s => ({
+          id: s.id,
+          sessionId: s.sessionId,
+          sessionToken: s.sessionToken,
+          customerId: s.customerId,
+          query: s.query,
+          location: s.location,
+          radius: s.radius,
+          propertyType: s.propertyType,
+          filters: s.filtersJson ? JSON.parse(s.filtersJson) : null,
+          resultCount: s.resultCount,
+          resultPropertyIds: s.resultPropertyIdsJson ? JSON.parse(s.resultPropertyIdsJson) : [],
+          createdAt: s.createdAt,
+        })),
+        total,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get zero result searches:`, err);
       throw err;
     }
   }

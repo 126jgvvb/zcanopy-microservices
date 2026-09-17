@@ -88,10 +88,26 @@ export class ListingsController {
 
   /*confirmed*/
   @Get('search')
-  @ApiOperation({ summary: 'Search properties by broker title' })
+  @ApiOperation({ summary: 'Search properties with filters' })
   async searchProperties(@Query() query: any) {
     this.logger.log(`Search properties request: ${JSON.stringify(query)}`);
-    return this.proxyService.forwardToProperty('SearchPropertiesByBrokerTitle', query);
+    const mapped = {
+      query: query.query || query.q || '',
+      location: query.location,
+      radius: query.radius ? Number(query.radius) : undefined,
+      propertyType: query.propertyType,
+      subCounty: query.subCounty,
+      district: query.district,
+      minPrice: query.minPrice ? Number(query.minPrice) : undefined,
+      maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 12,
+      lat: query.lat ? Number(query.lat) : undefined,
+      lng: query.lng ? Number(query.lng) : undefined,
+      radiusKm: query.radiusKm ? Number(query.radiusKm) : undefined,
+      sessionToken: query.sessionToken,
+    };
+    return this.proxyService.forwardToProperty('SearchProperties', mapped);
   }
 
   @Get('get_property_clients') //confirmed
