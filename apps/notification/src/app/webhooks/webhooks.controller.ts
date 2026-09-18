@@ -1,26 +1,28 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Logger, Req } from '@nestjs/common';
+import { Controller, Post, HttpCode, HttpStatus, Logger, Req } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Resend } from 'resend';
 import { NotificationService } from '../otp/notification.service';
-import { createHmac } from 'crypto';
 
-@Controller('api/webhooks')
+@Controller('webhooks')
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
-  private readonly signingSecret: string;
+  private readonly resend: Resend;
+  private readonly webhookSecret: string;
 
-  constructor(private readonly notificationService: NotificationService) {
-    this.signingSecret = process.env.SIGN_SECRET || '';
+  constructor(
+    private readonly notificationService: NotificationService,
+    configService: ConfigService,
+  ) {
+    this.resend = new Resend(configService.get<string>('RESEND_API_KEY') || '');
+    this.webhookSecret = configService.get<string>('RESEND_WEBHOOK_SECRET') || '';
   }
 
   @Post('inbound')
   @HttpCode(HttpStatus.OK)
-  async handleInboundEmail(@Req() req: any, @Body() payload: any) {
+  async handleInboundEmail(@Req() req: any) {
     try {
-      const body = this.getRequestBody(req, payload);
-
-      if (!this.verifyResendSignature(req, body)) {
-        this.logger.warn('Rejected inbound webhook: invalid Resend signature');
-        return { received: false, error: 'Invalid signature' };
-      }
+      const rawBody = this.getRawRequestBody(req);
+      const body = this.verifyAndParseWebhook(rawBody, req);
 
       if (body.type === 'email.received') {
         const emailData = body.data;
@@ -44,44 +46,44 @@ export class WebhooksController {
 
       return { received: true };
     } catch (error) {
-      this.logger.error('Failed to parse inbound webhook:', error.stack);
-      return { received: false, error: error.message };
+      this.logger.error('Failed to process inbound webhook:', (error as Error).stack);
+      return { received: false, error: (error as Error).message };
     }
   }
 
-  private getRequestBody(req: any, parsedBody: any): any {
-    if (Buffer.isBuffer(parsedBody)) {
-      try {
-        return JSON.parse(parsedBody.toString('utf8'));
-      } catch {
-        return parsedBody;
-      }
+  private getRawRequestBody(req: any): string {
+    if (Buffer.isBuffer(req.body)) {
+      return req.body.toString('utf8');
     }
-    return parsedBody || {};
+
+    if (typeof req.body === 'string') {
+      return req.body;
+    }
+
+    throw new Error('Raw webhook body is unavailable');
   }
 
-  private verifyResendSignature(req: any, body: any): boolean {
-    if (!this.signingSecret) {
-      this.logger.warn('Skipping Resend signature verification: SIGN_SECRET is not configured');
-      return true;
+  private verifyAndParseWebhook(rawBody: string, req: any): any {
+    const id = req.headers['svix-id'];
+    const timestamp = req.headers['svix-timestamp'];
+    const signature = req.headers['svix-signature'];
+
+    if (!this.webhookSecret) {
+      throw new Error('RESEND_WEBHOOK_SECRET is not configured');
     }
 
-    const signature = req.headers['svix-signature'] || req.headers['svix-signature'];
-    if (!signature) {
-      this.logger.warn('Missing Resend-Signature header');
-      return false;
+    if (!id || !timestamp || !signature) {
+      throw new Error('Missing Resend webhook headers');
     }
 
-    const rawBody = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : JSON.stringify(body);
-    const hmac = createHmac('sha256', this.signingSecret);
-    hmac.update(rawBody);
-    const expectedSignature = hmac.digest('hex');
-
-    if (signature !== expectedSignature) {
-      this.logger.warn('Resend signature mismatch');
-      return false;
-    }
-
-    return true;
+    return this.resend.webhooks.verify({
+      payload: rawBody,
+      headers: {
+        id: String(id),
+        timestamp: String(timestamp),
+        signature: String(signature),
+      },
+      webhookSecret: this.webhookSecret,
+    });
   }
 }
