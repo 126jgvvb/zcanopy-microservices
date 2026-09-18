@@ -14,7 +14,7 @@ export class WebhooksController {
     configService: ConfigService,
   ) {
     this.resend = new Resend(configService.get<string>('RESEND_API_KEY') || '');
-    this.webhookSecret = configService.get<string>('RESEND_WEBHOOK_SECRET') || '';
+    this.webhookSecret = configService.get<string>('SIGN_SECRET') || '';
   }
 
   @Post('inbound')
