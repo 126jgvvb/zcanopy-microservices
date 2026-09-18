@@ -66,7 +66,7 @@ export class WebhooksController {
       return true;
     }
 
-    const signature = req.headers['resend-signature'] || req.headers['Resend-Signature'];
+    const signature = req.headers['svix-signature'] || req.headers['svix-signature'];
     if (!signature) {
       this.logger.warn('Missing Resend-Signature header');
       return false;
