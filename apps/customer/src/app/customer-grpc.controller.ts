@@ -24,6 +24,7 @@ import type {
   GetPropertyDetailsDto,
   SimilarPropertiesQueryDto,
   SearchQueryDto,
+  GetAllCustomersDto,
 } from './dtos/customer-grpc.dto';
 
 @Controller()
@@ -162,5 +163,11 @@ export class CustomerGrpcController {
   async getSimilarProperties(dto: SimilarPropertiesQueryDto) {
     this.logger.log(`gRPC GetSimilarProperties for property=${dto.propertyId}`);
     return this.customerService.getSimilarProperties(dto.sessionToken, dto.propertyId);
+  }
+
+  @GrpcMethod('CustomerService', 'GetAllCustomers')
+  async getAllCustomers(dto: GetAllCustomersDto) {
+    this.logger.log(`gRPC GetAllCustomers request`);
+    return this.customerService.getAllCustomers(dto);
   }
 }

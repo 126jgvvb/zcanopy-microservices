@@ -57,6 +57,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     @Inject('PROPERTY_CLIENT') private readonly propertyClient: ClientGrpc,
     @Inject('PAYMENT_CLIENT') private readonly paymentClient: ClientGrpc,
     @Inject('AUTH_CLIENT') private readonly authClient: ClientGrpc,
+    @Inject('CUSTOMER_CLIENT') private readonly customerClient: ClientGrpc,
     @Inject(REDIS_CLIENT_PROVIDER) private readonly redis: Redis,
   ) {}
 
@@ -1454,6 +1455,23 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       return result;
     } catch (err) {
       this.logger.error(`Failed to get all customer searches: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async getAllCustomers(dto: { page?: number; limit?: number; isActive?: boolean }) {
+    this.logger.log('Received getAllCustomers request');
+    try {
+      const result = await lastValueFrom(
+        this.customerClient.getService('CustomerService').getAllCustomers({
+          page: Number(dto.page) || 1,
+          limit: Number(dto.limit) || 20,
+          isActive: dto.isActive,
+        }).pipe(timeout(10000)),
+      );
+      return result;
+    } catch (err) {
+      this.logger.error(`Failed to get all customers: ${(err as Error).message}`);
       throw err;
     }
   }

@@ -153,3 +153,9 @@ export interface SimilarPropertiesQueryDto {
   page: number;
   limit: number;
 }
+
+export interface GetAllCustomersDto {
+  page: number;
+  limit: number;
+  isActive?: boolean;
+}

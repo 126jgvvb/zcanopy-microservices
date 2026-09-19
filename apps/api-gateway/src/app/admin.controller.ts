@@ -227,6 +227,18 @@ export class AdminController {
     return this.proxyService.forwardToAdmin('GetActiveCustomerSessions', {});
   }
 
+  @Get('customers')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get all registered customers' })
+  async getAllCustomers(@Query() query: any) {
+    this.logger.log(`Get all customers request: ${JSON.stringify(query)}`);
+    return this.proxyService.forwardToAdmin('GetAllCustomers', {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+      isActive: query.isActive !== undefined ? query.isActive === 'true' : undefined,
+    });
+  }
+
   @Post('login')
   @ApiOperation({ summary: 'Admin login (returns base64 token)' })
   async loginAdmin(@Body() body: any) {

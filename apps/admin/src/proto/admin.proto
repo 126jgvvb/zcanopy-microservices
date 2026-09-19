@@ -39,6 +39,7 @@ service AdminService {
   rpc ApproveBrokerDocument (ApproveBrokerDocumentRequest) returns (ApproveBrokerDocumentResponse);
   rpc GetActiveCustomerSessions (GetActiveCustomerSessionsRequest) returns (GetActiveCustomerSessionsResponse);
   rpc GetAllCustomerSearches (GetAllCustomerSearchesRequest) returns (GetAllCustomerSearchesResponse);
+  rpc GetAllCustomers (GetAllCustomersRequest) returns (GetAllCustomersResponse);
   rpc GetInvoices (GetInvoicesRequest) returns (GetInvoicesResponse);
   rpc DeleteInvoice (DeleteInvoiceRequest) returns (DeleteInvoiceResponse);
   rpc DeleteInvoices (DeleteInvoicesRequest) returns (DeleteInvoicesResponse);
@@ -714,4 +715,29 @@ message CustomerSearchSummary {
 message GetAllCustomerSearchesResponse {
   repeated CustomerSearchSummary searches = 1;
   int32 total = 2;
+}
+
+message GetAllCustomersRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  bool isActive = 3;
+}
+
+message CustomerSummary {
+  string id = 1;
+  string email = 2;
+  string firstName = 3;
+  string lastName = 4;
+  string phoneNumber = 5;
+  bool isVerified = 6;
+  string authProvider = 7;
+  bool isActive = 8;
+  int64 createdAt = 9;
+}
+
+message GetAllCustomersResponse {
+  repeated CustomerSummary customers = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
 }

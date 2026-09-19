@@ -60,7 +60,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update customer phone number' })
   async updatePhone(@Req() req: any, @Body() dto: UpdatePhoneDto) {
-    const customerId = req.user?.sub;
+    const customerId = req.user?.customerId;
     this.logger.log(`Update phone request for customer=${customerId}`);
     return this.customerService.updatePhoneNumber(customerId, dto.phoneNumber);
   }
@@ -109,7 +109,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer transactions' })
   async getTransactions(@Req() req: any, @Query() query: any) {
-    const customerId = req.user?.sub;
+    const customerId = req.user?.customerId;
     const page = Number(query.page) || 1;
     const limit = Math.min(Number(query.limit) || 10, 50);
     this.logger.log(`Get transactions request for customer=${customerId}`);
@@ -120,7 +120,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer invoices' })
   async getInvoices(@Req() req: any, @Query() query: any) {
-    const customerId = req.user?.sub;
+    const customerId = req.user?.customerId;
     const page = Number(query.page) || 1;
     const limit = Math.min(Number(query.limit) || 10, 50);
     this.logger.log(`Get invoices request for customer=${customerId}`);
@@ -131,7 +131,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer messages' })
   async getMessages(@Req() req: any, @Query() query: any) {
-    const customerId = req.user?.sub;
+    const customerId = req.user?.customerId;
     const page = Number(query.page) || 1;
     const limit = Math.min(Number(query.limit) || 10, 50);
     this.logger.log(`Get messages request for customer=${customerId}`);
@@ -144,7 +144,7 @@ export class CustomerController {
     const sessionToken = this.getSessionToken(req);
     this.logger.log(`Initiate transaction request sessionId=${sessionToken} phone=${dto.phoneNumber}`);
     return this.customerService.initiateTransaction({
-      customerId: req.user?.sub || '',
+      customerId: req.user?.customerId || '',
       phoneNumber: dto.phoneNumber,
       email: dto.email,
       customerName: dto.customerName,
@@ -158,7 +158,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer profile' })
   async getProfile(@Req() req: any) {
-    const customerId = req.user?.sub;
+    const customerId = req.user?.customerId;
     this.logger.log(`Get profile request for customer=${customerId}`);
     return this.customerService.getProfile(customerId);
   }
@@ -167,7 +167,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer wallet balance' })
   async getWallet(@Req() req: any) {
-    const customerId = req.user?.sub;
+    const customerId = req.user?.customerId;
     this.logger.log(`Get wallet request for customer=${customerId}`);
     return this.customerService.getWalletBalance(customerId);
   }
@@ -177,7 +177,7 @@ export class CustomerController {
   @ApiOperation({ summary: 'Logout customer' })
   async logout(@Req() req: any) {
     const sessionToken = req.headers?.authorization?.split(' ')[1];
-    this.logger.log(`Logout request for customer=${req.user?.sub}`);
+    this.logger.log(`Logout request for customer=${req.user?.customerId}`);
     return this.customerService.logout(sessionToken);
   }
 
@@ -185,7 +185,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Unsubscribe customer' })
   async unsubscribe(@Req() req: any) {
-    const customerId = req.user?.sub;
+    const customerId = req.user?.customerId;
     this.logger.log(`Unsubscribe request for customer=${customerId}`);
     return this.customerService.unsubscribe(customerId);
   }
@@ -247,7 +247,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer notifications' })
   async getNotifications(@Req() req: any, @Query() query: any) {
-    const customerId = req.user?.sub;
+    const customerId = req.user?.customerId;
     const page = Number(query.page) || 1;
     const limit = Math.min(Number(query.limit) || 20, 50);
     this.logger.log(`Get notifications request for customer=${customerId}`);

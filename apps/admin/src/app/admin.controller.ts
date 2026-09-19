@@ -253,4 +253,10 @@ export class AdminController {
     this.logger.log('Received approveAllPendingVerifications request');
     return this.adminService.approveAllPendingVerifications(dto);
   }
+
+  @GrpcMethod('AdminService', 'GetAllCustomers')
+  async getAllCustomers(dto: any) {
+    this.logger.log('Received getAllCustomers request');
+    return this.adminService.getAllCustomers(dto);
+  }
 }

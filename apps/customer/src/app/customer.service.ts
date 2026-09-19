@@ -535,6 +535,44 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async getAllCustomers(query: { page?: number; limit?: number; isActive?: boolean }): Promise<{ customers: any[]; total: number; page: number; limit: number }> {
+    try {
+      const page = Number(query.page) || 1;
+      const limit = Number(query.limit) || 20;
+      const where: any = {};
+      if (query.isActive !== undefined) {
+        where.isActive = query.isActive;
+      }
+
+      const [customers, total] = await this.customerRepo.findAndCount({
+        where,
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+      });
+
+      return {
+        customers: customers.map(c => ({
+          id: c.id,
+          email: c.email,
+          firstName: c.firstName || undefined,
+          lastName: c.lastName || undefined,
+          phoneNumber: c.phoneNumber || undefined,
+          isVerified: c.isVerified,
+          authProvider: c.authProvider,
+          isActive: c.isActive,
+          createdAt: c.createdAt,
+        })),
+        total,
+        page,
+        limit,
+      };
+    } catch (err) {
+      this.logger.error('Failed to get all customers:', err);
+      throw err;
+    }
+  }
+
   async search(dto: { sessionToken: string; query?: string; location?: string; radius?: number; propertyType?: string; subCounty?: string; district?: string; minPrice?: number; maxPrice?: number; page?: number; limit?: number; lat?: number; lng?: number; radiusKm?: number }): Promise<any> {
     try {
       const propertyService = this.propertyClient.getService<any>('PropertyService');
