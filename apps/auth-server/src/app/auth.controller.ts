@@ -70,9 +70,9 @@ export class AuthController {
   }
 
   @GrpcMethod('AuthService', 'ValidateCustomerSession')
-  async ValidateCustomerSession(dto: { sessionToken: string }): Promise<ValidateCustomerSessionResponse> {
+  async ValidateCustomerSession(dto: { sessionToken: string; customerId?: string }): Promise<ValidateCustomerSessionResponse> {
     this.logger.log(`ValidateCustomerSession attempt for token ${dto.sessionToken}`);
-    return this.authService.validateCustomerSession(dto.sessionToken);
+    return this.authService.validateCustomerSession(dto.sessionToken, dto.customerId);
   }
 
   @GrpcMethod('AuthService', 'GetCustomerSession')

@@ -1,0 +1,23 @@
+info:
+  name: Admin Login
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/login"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "admin@zcanopy.com",
+        "password": "admin123"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

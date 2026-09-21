@@ -77,8 +77,8 @@ export class CustomerGrpcController {
 
   @GrpcMethod('CustomerService', 'Logout')
   async logout(dto: LogoutDto) {
-    this.logger.log(`gRPC Logout for session=${dto.sessionToken}`);
-    return this.customerService.logout(dto.sessionToken);
+    this.logger.log(`gRPC Logout for customer=${dto.customerId}`);
+    return this.customerService.logout(dto.customerId);
   }
 
   @GrpcMethod('CustomerService', 'Unsubscribe')
@@ -119,50 +119,50 @@ export class CustomerGrpcController {
 
   @GrpcMethod('CustomerService', 'RecordSearch')
   async recordSearch(dto: RecordSearchDto) {
-    this.logger.log(`gRPC RecordSearch for session=${dto.sessionToken}`);
+    this.logger.log(`gRPC RecordSearch for customer=${dto.customerId}`);
     return this.customerService.recordSearch(dto);
   }
 
   @GrpcMethod('CustomerService', 'Search')
   async search(dto: SearchQueryDto) {
-    this.logger.log(`gRPC Search for session=${dto.sessionToken}`);
+    this.logger.log(`gRPC Search for customer=${dto.customerId}`);
     return this.customerService.search(dto);
   }
 
   @GrpcMethod('CustomerService', 'GetCustomerSearches')
   async getCustomerSearches(dto: GetCustomerSearchesDto) {
-    this.logger.log(`gRPC GetCustomerSearches for session=${dto.sessionToken}`);
-    return this.customerService.getCustomerSearches(dto.sessionToken, dto.page, dto.limit);
+    this.logger.log(`gRPC GetCustomerSearches for customer=${dto.customerId}`);
+    return this.customerService.getCustomerSearches(dto.customerId, dto.page, dto.limit);
   }
 
   @GrpcMethod('CustomerService', 'VideoTours')
   async videoTours(dto: VideoToursQueryDto) {
-    this.logger.log(`gRPC VideoTours for session=${dto.sessionToken}`);
-    return this.customerService.videoTours(dto.sessionToken, dto);
+    this.logger.log(`gRPC VideoTours for customer=${dto.customerId}`);
+    return this.customerService.videoTours(dto.customerId, dto);
   }
 
   @GrpcMethod('CustomerService', 'GetAllProperties')
   async getAllProperties(dto: AllPropertiesQueryDto) {
-    this.logger.log(`gRPC GetAllProperties for session=${dto.sessionToken}`);
-    return this.customerService.getAllProperties(dto.sessionToken, dto);
+    this.logger.log(`gRPC GetAllProperties for customer=${dto.customerId}`);
+    return this.customerService.getAllProperties(dto.customerId, dto);
   }
 
   @GrpcMethod('CustomerService', 'Explorer')
   async explorer(dto: ExplorerQueryDto) {
-    this.logger.log(`gRPC Explorer for session=${dto.sessionToken}`);
-    return this.customerService.explorer(dto.sessionToken, dto);
+    this.logger.log(`gRPC Explorer for customer=${dto.customerId}`);
+    return this.customerService.explorer(dto.customerId, dto);
   }
 
   @GrpcMethod('CustomerService', 'GetPropertyDetails')
   async getPropertyDetails(dto: GetPropertyDetailsDto) {
-    this.logger.log(`gRPC GetPropertyDetails for property=${dto.propertyId}`);
-    return this.customerService.getPropertyDetails(dto.sessionToken, dto.propertyId);
+    this.logger.log(`gRPC GetPropertyDetails for customer=${dto.customerId} property=${dto.propertyId}`);
+    return this.customerService.getPropertyDetails(dto.customerId, dto.propertyId);
   }
 
   @GrpcMethod('CustomerService', 'GetSimilarProperties')
   async getSimilarProperties(dto: SimilarPropertiesQueryDto) {
-    this.logger.log(`gRPC GetSimilarProperties for property=${dto.propertyId}`);
-    return this.customerService.getSimilarProperties(dto.sessionToken, dto.propertyId);
+    this.logger.log(`gRPC GetSimilarProperties for customer=${dto.customerId} property=${dto.propertyId}`);
+    return this.customerService.getSimilarProperties(dto.customerId, dto.propertyId);
   }
 
   @GrpcMethod('CustomerService', 'GetAllCustomers')

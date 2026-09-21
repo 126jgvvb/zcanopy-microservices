@@ -1,0 +1,19 @@
+info:
+  name: List Public Properties
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/web/public/properties"
+  headers:
+    - name: x-session-id
+      value: "{{webSessionId}}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

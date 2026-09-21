@@ -9,6 +9,7 @@ interface AuthenticatedRequest extends Request {
     role: string;
     type: string;
     brokerCode?: string;
+    customerId?: string;
   };
 }
 

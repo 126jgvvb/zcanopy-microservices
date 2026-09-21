@@ -1,10 +1,10 @@
-import { Controller, Logger} from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import { PropertyService } from './property.service';
 import type { CreatePropertyDto, AddAllowedViewerDto, FindNearbyDto } from './property.service';
 
 interface SearchRequest {
-  sessionToken: string;
+  customerId: string;
   query?: string;
   location?: string;
   radius?: number;
@@ -13,7 +13,7 @@ interface SearchRequest {
 }
 
 interface TrackRequest {
-  sessionToken: string;
+  customerId: string;
   lat: number;
   lng: number;
   radiusKm: number;
@@ -35,7 +35,7 @@ interface UpdatePropertyRequest {
 }
 
 interface GetPropertyLocationsResponse {
-  locations:any
+  locations: any
 }
 
 @Controller()
@@ -74,7 +74,7 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'GetPropertyLocations')
-  async getPropertyLocations():Promise<GetPropertyLocationsResponse> {
+  async getPropertyLocations(): Promise<GetPropertyLocationsResponse> {
     this.logger.log(`Received get-property-locations request`);
     return await this.propertyService.getPropertyLocations();
   }
@@ -86,14 +86,14 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'RecordSearch')
-  async recordSearch(dto: { sessionToken: string; query?: string; location?: string; radius?: number; propertyType?: string; filters?: any; resultPropertyIds?: string[]; resultCount?: number; minPrice?: number; maxPrice?: number; subCounty?: string; district?: string }) {
-    this.logger.log(`Received record-search request for session ${dto.sessionToken}`);
+  async recordSearch(dto: { customerId: string; query?: string; location?: string; radius?: number; propertyType?: string; filters?: any; resultPropertyIds?: string[]; resultCount?: number; minPrice?: number; maxPrice?: number; subCounty?: string; district?: string }) {
+    this.logger.log(`Received record-search request for customer ${dto.customerId}`);
     return this.propertyService.recordSearch(dto);
   }
 
   @GrpcMethod('PropertyService', 'GetRecentSearches')
   async getRecentSearches(dto: SearchRequest) {
-    this.logger.log(`Received get-recent-searches request for session ${dto.sessionToken}`);
+    this.logger.log(`Received get-recent-searches request for customer ${dto.customerId}`);
     return this.propertyService.getRecentSearches(dto);
   }
 
@@ -105,7 +105,7 @@ export class PropertyController {
 
   @GrpcMethod('PropertyService', 'TrackNearbyProperties')
   async trackNearbyProperties(dto: TrackRequest) {
-    this.logger.log(`Received track-nearby-properties request for session ${dto.sessionToken}`);
+    this.logger.log(`Received track-nearby-properties request for customer ${dto.customerId}`);
     return this.propertyService.trackNearbyProperties(dto);
   }
 
@@ -135,44 +135,44 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'GetCustomerProperties')
-  async getCustomerProperties(dto: { sessionToken: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number; propertyType?: string }) {
-    this.logger.log(`Received get-customer-properties request`);
+  async getCustomerProperties(dto: { customerId: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number; propertyType?: string; minPrice?: number; maxPrice?: number; location?: string; brokerCode?: string; brokerBrandName?: string; subCounty?: string; district?: string; fromDate?: string; toDate?: string }) {
+    this.logger.log(`Received get-customer-properties request for customer ${dto.customerId}`);
     return this.propertyService.getCustomerProperties(dto);
   }
 
   @GrpcMethod('PropertyService', 'InitiatePropertyAccessPayment')
-  async initiatePropertyAccessPayment(dto: { sessionToken: string; brokerCode: string; propertyId?: string; amount: number; customerEmail?: string; customerPhone?: string; customerName?: string; careerExamples?: string }) {
-    this.logger.log(`Received initiate-property-access-payment request for broker ${dto.brokerCode}`);
+  async initiatePropertyAccessPayment(dto: { customerId: string; brokerCode: string; propertyId?: string; amount: number; customerEmail?: string; customerPhone?: string; customerName?: string; careerExamples?: string }) {
+    this.logger.log(`Received initiate-property-access-payment request for customer ${dto.customerId}`);
     return this.propertyService.initiatePropertyAccessPayment(dto);
   }
 
   @GrpcMethod('PropertyService', 'GetBrokerPropertiesForCustomer')
-  async getBrokerPropertiesForCustomer(dto: { sessionToken: string; brokerCode: string; page: number; limit: number }) {
-    this.logger.log(`Received get-broker-properties-for-customer request for broker ${dto.brokerCode}`);
+  async getBrokerPropertiesForCustomer(dto: { customerId: string; brokerCode: string; page: number; limit: number }) {
+    this.logger.log(`Received get-broker-properties-for-customer request for customer ${dto.customerId}`);
     return this.propertyService.getBrokerPropertiesForCustomer(dto);
   }
 
   @GrpcMethod('PropertyService', 'CreateCustomerBooking')
-  async createCustomerBooking(dto: { sessionToken: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; reason?: string; status?: string }) {
-    this.logger.log(`Received create-customer-booking request for property ${dto.propertyId}`);
+  async createCustomerBooking(dto: { customerId: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; reason?: string; status?: string }) {
+    this.logger.log(`Received create-customer-booking request for customer ${dto.customerId}`);
     return this.propertyService.createCustomerBooking(dto);
   }
 
   @GrpcMethod('PropertyService', 'GetPropertyDetailsForCustomer')
-  async getPropertyDetailsForCustomer(dto: { sessionToken: string; propertyId: string }) {
-    this.logger.log(`Received get-property-details-for-customer request for property ${dto.propertyId}`);
+  async getPropertyDetailsForCustomer(dto: { customerId: string; propertyId: string }) {
+    this.logger.log(`Received get-property-details-for-customer request for customer ${dto.customerId}`);
     return this.propertyService.getPropertyDetailsForCustomer(dto);
   }
 
   @GrpcMethod('PropertyService', 'GetSimilarProperties')
-  async getSimilarProperties(dto: { sessionToken: string; propertyId: string; limit?: number }) {
-    this.logger.log(`Received get-similar-properties request for property ${dto.propertyId}`);
+  async getSimilarProperties(dto: { customerId: string; propertyId: string; limit?: number }) {
+    this.logger.log(`Received get-similar-properties request for customer ${dto.customerId}`);
     return this.propertyService.getSimilarProperties(dto);
   }
 
   @GrpcMethod('PropertyService', 'GetCustomerBookings')
-  async getCustomerBookings(dto: { sessionToken: string; page: number; limit: number }) {
-    this.logger.log(`Received get-customer-bookings request`);
+  async getCustomerBookings(dto: { customerId: string; page: number; limit: number }) {
+    this.logger.log(`Received get-customer-bookings request for customer ${dto.customerId}`);
     return this.propertyService.getCustomerBookings(dto);
   }
 
@@ -207,7 +207,7 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'SearchPropertiesByBrokerTitle')
-  async searchPropertiesByBrokerTitle(dto: { query: string; sessionToken?: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number }) {
+  async searchPropertiesByBrokerTitle(dto: { query: string; customerId?: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number }) {
     this.logger.log(`Received search-properties-by-broker-title request for query=${dto.query}`);
     return this.propertyService.SearchPropertiesByBrokerTitle(dto);
   }
@@ -225,32 +225,32 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'RecordCustomerSearch')
-  async recordCustomerSearch(dto: { sessionToken: string; query?: string; location?: string; radius?: number; propertyType?: string; filters?: any; resultPropertyIds?: string[]; resultCount?: number; minPrice?: number; maxPrice?: number; subCounty?: string; district?: string }) {
-    this.logger.log(`Received record-customer-search request for session ${dto.sessionToken}`);
+  async recordCustomerSearch(dto: { customerId: string; query?: string; location?: string; radius?: number; propertyType?: string; filters?: any; resultPropertyIds?: string[]; resultCount?: number; minPrice?: number; maxPrice?: number; subCounty?: string; district?: string }) {
+    this.logger.log(`Received record-customer-search request for customer ${dto.customerId}`);
     return this.propertyService.recordSearch(dto);
   }
 
   @GrpcMethod('PropertyService', 'GetCustomerSearches')
-  async getCustomerSearches(dto: { sessionToken: string; page: number; limit: number }) {
-    this.logger.log(`Received get-customer-searches request`);
+  async getCustomerSearches(dto: { customerId: string; page: number; limit: number }) {
+    this.logger.log(`Received get-customer-searches request for customer ${dto.customerId}`);
     return this.propertyService.getCustomerSearches(dto);
   }
 
   @GrpcMethod('PropertyService', 'GetAllCustomerSearches')
-  async getAllCustomerSearches(dto: { page: number; limit: number; sessionToken?: string; query?: string }) {
+  async getAllCustomerSearches(dto: { page: number; limit: number; customerId?: string; query?: string }) {
     this.logger.log(`Received get-all-customer-searches request`);
     return this.propertyService.getAllCustomerSearches(dto);
   }
 
   @GrpcMethod('PropertyService', 'ToggleFavorite')
-  async toggleFavorite(dto: { sessionToken: string; propertyId: string; propertyTitle: string; propertyLocation?: string; brokerCode?: string; imageUrl?: string; price?: number }) {
-    this.logger.log(`Received toggle-favorite request for property ${dto.propertyId}`);
+  async toggleFavorite(dto: { customerId: string; propertyId: string; propertyTitle: string; propertyLocation?: string; brokerCode?: string; imageUrl?: string; price?: number }) {
+    this.logger.log(`Received toggle-favorite request for customer ${dto.customerId}`);
     return this.propertyService.toggleFavorite(dto);
   }
 
   @GrpcMethod('PropertyService', 'GetCustomerFavorites')
-  async getCustomerFavorites(dto: { sessionToken: string; page: number; limit: number }) {
-    this.logger.log(`Received get-customer-favorites request`);
+  async getCustomerFavorites(dto: { customerId: string; page: number; limit: number }) {
+    this.logger.log(`Received get-customer-favorites request for customer ${dto.customerId}`);
     return this.propertyService.getCustomerFavorites(dto);
   }
 
@@ -261,8 +261,8 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'AddComment')
-  async addComment(dto: { sessionToken: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; comment: string; rating?: number }) {
-    this.logger.log(`Received add-comment request for property ${dto.propertyId}`);
+  async addComment(dto: { customerId: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; comment: string; rating?: number }) {
+    this.logger.log(`Received add-comment request for customer ${dto.customerId}`);
     return this.propertyService.addComment(dto);
   }
 
@@ -279,14 +279,14 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'SearchProperties')
-  async searchProperties(dto: { sessionToken: string; query?: string; location?: string; radius?: number; propertyType?: string; subCounty?: string; district?: string; minPrice?: number; maxPrice?: number; page?: number; limit?: number; lat?: number; lng?: number; radiusKm?: number }) {
-    this.logger.log(`Received search-properties request for session ${dto.sessionToken}`);
+  async searchProperties(dto: { customerId: string; query?: string; location?: string; radius?: number; propertyType?: string; subCounty?: string; district?: string; minPrice?: number; maxPrice?: number; page?: number; limit?: number; lat?: number; lng?: number; radiusKm?: number }) {
+    this.logger.log(`Received search-properties request for customer ${dto.customerId}`);
     return this.propertyService.searchProperties(dto);
   }
 
   @GrpcMethod('PropertyService', 'UpdateCustomerSearchCustomerId')
-  async updateCustomerSearchCustomerId(dto: { sessionToken: string; customerId: string }) {
-    this.logger.log(`Received update-customer-search-customer-id request for session ${dto.sessionToken}`);
+  async updateCustomerSearchCustomerId(dto: { customerId: string }) {
+    this.logger.log(`Received update-customer-search-customer-id request`);
     return this.propertyService.updateCustomerSearchCustomerId(dto);
   }
 

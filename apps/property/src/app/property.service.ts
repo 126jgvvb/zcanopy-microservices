@@ -73,7 +73,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PropertyService.name);
   private redis!: Redis;
   private redisSubscriber!: Redis;
-  private nearbySubscribers: Map<string, { sessionToken: string; radius: number; lat: number; lng: number }[]> = new Map();
+  private nearbySubscribers: Map<string, { customerId: string; radius: number; lat: number; lng: number }[]> = new Map();
 
   constructor(
     @InjectRepository(PropertyEntity)
@@ -146,7 +146,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
   private async handleNearbyPropertyUpdate(data: { propertyId: string; lat: number; lng: number; title: string; propertyType: string }) {
     try {
       const channelName = 'nearby_property_updates';
-      const matchedTokens: string[] = [];
+      const matchedCustomerIds: string[] = [];
 
       for (const [propertyType, subscribers] of this.nearbySubscribers) {
         if (data.propertyType && propertyType && data.propertyType !== propertyType) {
@@ -155,18 +155,18 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         for (const sub of subscribers) {
           const distance = this.haversineDistance(sub.lat, sub.lng, data.lat, data.lng);
           if (distance <= sub.radius) {
-            matchedTokens.push(sub.sessionToken);
+            matchedCustomerIds.push(sub.customerId);
           }
         }
       }
 
-      if (matchedTokens.length > 0) {
+      if (matchedCustomerIds.length > 0) {
         await this.redis.publish(channelName, JSON.stringify({
           propertyId: data.propertyId,
           title: data.title,
           lat: data.lat,
           lng: data.lng,
-          matchedSessions: matchedTokens,
+          matchedCustomers: matchedCustomerIds,
         }));
       }
     } catch (err) {
@@ -733,16 +733,11 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getRecentSearches(dto: { sessionToken: string; limit?: number }): Promise<{ searches: Array<{ id: string; query: string; location: string; radius: number; propertyType: string; createdAt: Date }> }> {
+  async getRecentSearches(dto: { customerId: string; limit?: number }): Promise<{ searches: Array<{ id: string; query: string; location: string; radius: number; propertyType: string; createdAt: Date }> }> {
     try {
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
-
       const limit = Number(dto.limit) || 10;
       const searches = await this.searchRepo.find({
-        where: { sessionId: validation.sessionId },
+        where: { customerId: dto.customerId },
         order: { createdAt: 'DESC' },
         take: limit,
       });
@@ -758,7 +753,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         })),
       };
     } catch (err) {
-      this.logger.error(`Failed to get recent searches for session ${dto.sessionToken}:`, err);
+      this.logger.error(`Failed to get recent searches for customer ${dto.customerId}:`, err);
       throw err;
     }
   }
@@ -834,7 +829,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async searchProperties(dto: { sessionToken: string; query?: string; location?: string; radius?: number; propertyType?: string; subCounty?: string; district?: string; minPrice?: number; maxPrice?: number; page?: number; limit?: number; lat?: number; lng?: number; radiusKm?: number }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; updatedAt?: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; bookingState: BookingState | null; distanceKm?: number | null }>; total: number }> {
+  async searchProperties(dto: { customerId: string; query?: string; location?: string; radius?: number; propertyType?: string; subCounty?: string; district?: string; minPrice?: number; maxPrice?: number; page?: number; limit?: number; lat?: number; lng?: number; radiusKm?: number; brokerBrandName?: string }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; updatedAt?: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; bookingState: BookingState | null; distanceKm?: number | null }>; total: number }> {
     try {
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 12;
@@ -850,6 +845,10 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
       if (dto.location) {
         qb.andWhere('property.location ILIKE :location', { location: `%${dto.location}%` });
+      }
+
+      if (dto.brokerBrandName) {
+        qb.andWhere('property.brokerBrandName ILIKE :brokerBrandName', { brokerBrandName: `%${dto.brokerBrandName}%` });
       }
 
       if (dto.propertyType) {
@@ -938,7 +937,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       };
 
       this.recordSearch({
-        sessionToken: dto.sessionToken,
+        customerId: dto.customerId,
         query: dto.query,
         location: dto.location,
         radius: dto.radius,
@@ -960,29 +959,14 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async trackNearbyProperties(dto: { sessionToken: string; lat: number; lng: number; radiusKm: number; propertyType?: string }): Promise<{ success: boolean; channel: string }> {
+  async trackNearbyProperties(dto: { customerId: string; lat: number; lng: number; radiusKm: number; propertyType?: string }): Promise<{ success: boolean; channel: string }> {
     try {
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
-
-      await lastValueFrom(
-        this.authClient.getService('AuthService').UpdateCustomerLocation({
-          sessionToken: dto.sessionToken,
-          lat: dto.lat,
-          lng: dto.lng,
-        }),
-      ).catch((err) => {
-        this.logger.warn(`Failed to persist customer location: ${err}`);
-      });
-
       const channelName = 'nearby_property_updates';
 
       const existingSubscribers = this.nearbySubscribers.get(dto.propertyType || '') || [];
-      const filtered = existingSubscribers.filter(s => s.sessionToken !== dto.sessionToken);
+      const filtered = existingSubscribers.filter(s => s.customerId !== dto.customerId);
       filtered.push({
-        sessionToken: dto.sessionToken,
+        customerId: dto.customerId,
         radius: dto.radiusKm,
         lat: dto.lat,
         lng: dto.lng,
@@ -996,20 +980,13 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         channel: channelName,
       };
     } catch (err) {
-      this.logger.error(`Failed to track nearby properties for session ${dto.sessionToken}:`, err);
+      this.logger.error(`Failed to track nearby properties for customer ${dto.customerId}:`, err);
       throw err;
     }
   }
 
-  async getCustomerProperties(dto: { sessionToken: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number; propertyType?: string }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; distanceKm: number | null; bookingState: any; totalBrokerProperties: number }>; total: number }> {
+  async getCustomerProperties(dto: { customerId: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number; propertyType?: string; minPrice?: number; maxPrice?: number; location?: string; brokerCode?: string; brokerBrandName?: string; subCounty?: string; district?: string; fromDate?: string; toDate?: string }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; distanceKm: number | null; bookingState: any; totalBrokerProperties: number }>; total: number }> {
     try {
-      console.log('sessionToken', dto.sessionToken);
-
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
-
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 10;
 
@@ -1017,6 +994,42 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
       if (dto.propertyType) {
         query = query.andWhere('property.propertyType = :propertyType', { propertyType: dto.propertyType });
+      }
+
+      if (dto.location) {
+        query = query.andWhere('property.location ILIKE :location', { location: `%${dto.location}%` });
+      }
+
+      if (dto.brokerCode) {
+        query = query.andWhere('property.brokersUniqueCode = :brokerCode', { brokerCode: dto.brokerCode });
+      }
+
+      if (dto.brokerBrandName) {
+        query = query.andWhere('property.brokerBrandName ILIKE :brokerBrandName', { brokerBrandName: `%${dto.brokerBrandName}%` });
+      }
+
+      if (dto.subCounty) {
+        query = query.andWhere('property.subCounty ILIKE :subCounty', { subCounty: `%${dto.subCounty}%` });
+      }
+
+      if (dto.district) {
+        query = query.andWhere('property.district ILIKE :district', { district: `%${dto.district}%` });
+      }
+
+      if (dto.fromDate) {
+        query = query.andWhere('property.createdAt >= :fromDate', { fromDate: dto.fromDate });
+      }
+
+      if (dto.toDate) {
+        query = query.andWhere('property.createdAt <= :toDate', { toDate: dto.toDate + 'T23:59:59Z' });
+      }
+
+      if (dto.minPrice != null) {
+        query = query.andWhere('property.price >= :minPrice', { minPrice: dto.minPrice });
+      }
+
+      if (dto.maxPrice != null) {
+        query = query.andWhere('property.price <= :maxPrice', { maxPrice: dto.maxPrice });
       }
 
       if (dto.lat != null && dto.lng != null) {
@@ -1062,22 +1075,18 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         total,
       };
     } catch (err) {
-      this.logger.error(`Failed to get customer properties for session ${dto.sessionToken}:`, err);
+      this.logger.error(`Failed to get customer properties for customer ${dto.customerId}:`, err);
       throw err;
     }
   }
 
-   async initiatePropertyAccessPayment(dto: { sessionToken: string; brokerCode: string; propertyId?: string; amount: number; customerEmail?: string; customerPhone?: string; customerName?: string; careerExamples?: string }): Promise<{ success: boolean; message: string; referenceNumber?: string; transactionId?: string }> {
-    this.logger.log(`[access-payment] START brokerCode=${dto.brokerCode} amount=${dto.amount} propertyId=${dto.propertyId ?? 'none'} sessionToken=${dto.sessionToken.substring(0, 8)}...`);
-    const validation = await this.validateCustomerSession(dto.sessionToken);
-    this.logger.log(`[access-payment] session validation result valid=${validation.valid} sessionId=${validation.sessionId} deviceId=${validation.deviceId}`);
-    if (!validation.valid) {
-      throw new BadRequestException('Invalid customer session');
-    }
+   async initiatePropertyAccessPayment(dto: { customerId: string; brokerCode: string; propertyId?: string; amount: number; customerEmail?: string; customerPhone?: string; customerName?: string; careerExamples?: string }): Promise<{ success: boolean; message: string; referenceNumber?: string; transactionId?: string }> {
+    this.logger.log(`[access-payment] START brokerCode=${dto.brokerCode} amount=${dto.amount} propertyId=${dto.propertyId ?? 'none'} customerId=${dto.customerId}`);
+    // No session validation needed - customerId comes from JWT
 
-    this.logger.log(`[access-payment] checking existing access for sessionToken=${dto.sessionToken.substring(0, 8)}... brokerCode=${dto.brokerCode}`);
+    this.logger.log(`[access-payment] checking existing access for customerId=${dto.customerId} brokerCode=${dto.brokerCode}`);
     const existingAccess = await this.accessRepo.findOne({
-      where: { sessionToken: dto.sessionToken, brokerCode: dto.brokerCode, paymentStatus: 'SUCCESS' },
+      where: { customerId: dto.customerId, brokerCode: dto.brokerCode, paymentStatus: 'SUCCESS' },
     });
     this.logger.log(`[access-payment] existingAccess check done found=${!!existingAccess}`);
 
@@ -1128,7 +1137,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
       this.logger.log(`[access-payment] saving access record paymentStatus=${isSuccess ? 'SUCCESS' : 'PENDING'}`);
       const access = this.accessRepo.create({
-        sessionToken: dto.sessionToken,
+        customerId: dto.customerId,
         brokerCode: dto.brokerCode,
         propertyId: dto.propertyId,
         paymentStatus: isSuccess ? 'SUCCESS' : 'PENDING',
@@ -1172,7 +1181,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`[access-payment] FAILED error=${(error as Error).message} stack=${(error as Error).stack}`);
       this.logger.log(`[access-payment] saving failed access record`);
       const failedAccess = this.accessRepo.create({
-        sessionToken: dto.sessionToken,
+        customerId: dto.customerId,
         brokerCode: dto.brokerCode,
         propertyId: dto.propertyId,
         paymentStatus: 'FAILED',
@@ -1197,13 +1206,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getBrokerPropertiesForCustomer(dto: { sessionToken: string; brokerCode: string; page: number; limit: number }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; amount: number; bookingState: any }>; total: number }> {
+  async getBrokerPropertiesForCustomer(dto: { customerId: string; brokerCode: string; page: number; limit: number }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; amount: number; bookingState: any }>; total: number }> {
     try {
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
-
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 10;
 
@@ -1223,64 +1227,61 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         total,
       };
     } catch (err) {
-      this.logger.error(`Failed to get broker properties for customer session ${dto.sessionToken}:`, err);
+      this.logger.error(`Failed to get broker properties for customer ${dto.customerId}:`, err);
       throw err;
     }
   }
 
-   async createCustomerBooking(dto: { sessionToken: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; reason?: string; status?: string }): Promise<{ success: boolean; message: string; bookingId?: string; bookingCode?: string }> {
-     try {
-       const validation = await this.validateCustomerSession(dto.sessionToken);
-       if (!validation.valid) {
-         throw new BadRequestException('Invalid customer session');
-       }
+async createCustomerBooking(dto: { customerId: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; reason?: string; status?: string }): Promise<{ success: boolean; message: string; bookingId?: string; bookingCode?: string }> {
+    try {
+      // No session validation needed - customerId comes from JWT
 
-       const property = await this.propertyRepo.findOne({ where: { id: dto.propertyId } });
-       if (!property) {
-         throw new BadRequestException('Property not found');
-       }
+      const property = await this.propertyRepo.findOne({ where: { id: dto.propertyId } });
+      if (!property) {
+        throw new BadRequestException('Property not found');
+      }
 
-       if (!property.isAvailable || (property.allowedViewers ?? []).length > 0) {
-         throw new BadRequestException('Property is already booked');
-       }
+      if (!property.isAvailable || (property.allowedViewers ?? []).length > 0) {
+        throw new BadRequestException('Property is already booked');
+      }
 
-       const paymentResult: any = await firstValueFrom(
-         this.paymentClient.getService('PaymentService').processPropertyPayment({
-           customerPhone: dto.customerPhone,
-           customerEmail: dto.customerEmail,
-           customerName: dto.customerName,
-           amount: dto.amount,
-           reasonForPayment: 'booking',
-           propertyId: dto.propertyId,
-           brokerCode: property.brokersUniqueCode,
-         }).pipe(
-           timeout(120000),
-         ),
-       );
+      const paymentResult: any = await firstValueFrom(
+        this.paymentClient.getService('PaymentService').processPropertyPayment({
+          customerPhone: dto.customerPhone,
+          customerEmail: dto.customerEmail,
+          customerName: dto.customerName,
+          amount: dto.amount,
+          reasonForPayment: 'booking',
+          propertyId: dto.propertyId,
+          brokerCode: property.brokersUniqueCode,
+        }).pipe(
+          timeout(120000),
+        ),
+      );
 
-       const transactionCode = paymentResult?.transactionCode;
-       if (!transactionCode) {
-         throw new BadRequestException('Payment did not return a transaction code');
-       }
+      const transactionCode = paymentResult?.transactionCode;
+      if (!transactionCode) {
+        throw new BadRequestException('Payment did not return a transaction code');
+      }
 
-       const bookingCode = this.generateBookingCode();
+      const bookingCode = this.generateBookingCode();
 
-       const viewer = {
-         customerPhone: dto.customerPhone,
-         customerName: dto.customerName,
-         transactionCode,
-         amount: dto.amount,
-         transactionId: paymentResult?.transactionId || `booking-${Date.now()}`,
-         date: dto.date,
-         customerEmail: dto.customerEmail,
-         reason: dto.reason,
-         status: paymentResult?.success ? 'booked' : 'pending_payment',
-         bookingCode,
-       };
+      const viewer = {
+        customerPhone: dto.customerPhone,
+        customerName: dto.customerName,
+        transactionCode,
+        amount: dto.amount,
+        transactionId: paymentResult?.transactionId || `booking-${Date.now()}`,
+        date: dto.date,
+        customerEmail: dto.customerEmail,
+        reason: dto.reason,
+        status: paymentResult?.success ? 'booked' : 'pending_payment',
+        bookingCode,
+      };
 
-       property.allowedViewers = [...(property.allowedViewers ?? []), viewer];
-       property.isAvailable = false;
-       await this.propertyRepo.save(property);
+      property.allowedViewers = [...(property.allowedViewers ?? []), viewer];
+      property.isAvailable = false;
+      await this.propertyRepo.save(property);
 
       this.redis.publish('broker_booking_created', JSON.stringify({
         brokerCode: property.brokersUniqueCode,
@@ -1294,19 +1295,19 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         timestamp: new Date().toISOString(),
       }));
 
-       this.redis.publish('customer_booking_confirmation', JSON.stringify({
-         customerEmail: dto.customerEmail,
-         customerPhone: dto.customerPhone,
-         customerName: dto.customerName,
-         propertyTitle: property.title,
-         propertyId: property.id,
-         location: property.location,
-         amount: dto.amount,
-         transactionCode,
-         bookingCode,
-         date: dto.date,
-         status: paymentResult?.success ? 'booked' : 'pending_payment',
-       }));
+      this.redis.publish('customer_booking_confirmation', JSON.stringify({
+        customerEmail: dto.customerEmail,
+        customerPhone: dto.customerPhone,
+        customerName: dto.customerName,
+        propertyTitle: property.title,
+        propertyId: property.id,
+        location: property.location,
+        amount: dto.amount,
+        transactionCode,
+        bookingCode,
+        date: dto.date,
+        status: paymentResult?.success ? 'booked' : 'pending_payment',
+      }));
 
       return {
         success: paymentResult?.success || false,
@@ -1320,12 +1321,9 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getPropertyDetailsForCustomer(dto: { sessionToken: string; propertyId: string }): Promise<any> {
+  async getPropertyDetailsForCustomer(dto: { customerId: string; propertyId: string }): Promise<any> {
     try {
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
+      // No session validation needed - customerId comes from JWT
 
       const property = await this.propertyRepo.findOne({ where: { id: dto.propertyId } });
       if (!property) {
@@ -1377,13 +1375,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getSimilarProperties(dto: { sessionToken: string; propertyId: string; limit?: number }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; distanceKm: number | null; bookingState: any; totalBrokerProperties: number }>; total: number }> {
+  async getSimilarProperties(dto: { customerId: string; propertyId: string; limit?: number }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; distanceKm: number | null; bookingState: any; totalBrokerProperties: number }>; total: number }> {
     try {
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
-
       const property = await this.propertyRepo.findOne({ where: { id: dto.propertyId } });
       if (!property) {
         throw new BadRequestException('Property not found');
@@ -1457,13 +1450,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getCustomerBookings(dto: { sessionToken: string; page: number; limit: number }): Promise<{ bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string }>; total: number }> {
+  async getCustomerBookings(dto: { customerId: string; page: number; limit: number }): Promise<{ bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string }>; total: number }> {
     try {
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
-
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 10;
 
@@ -1499,7 +1487,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
       return { bookings, total: bookings.length };
     } catch (err) {
-      this.logger.error(`Failed to get customer bookings for session ${dto.sessionToken}:`, err);
+      this.logger.error(`Failed to get customer bookings for customer ${dto.customerId}:`, err);
       throw err;
     }
   }
@@ -1621,7 +1609,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async SearchPropertiesByBrokerTitle(dto: { query: string; sessionToken?: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; distanceKm: number | null; bookingState: any; totalBrokerProperties: number }>; total: number }> {
+  async SearchPropertiesByBrokerTitle(dto: { query: string; customerId?: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; distanceKm: number | null; bookingState: any; totalBrokerProperties: number }>; total: number }> {
     try {
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 10;
@@ -1772,21 +1760,10 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async recordSearch(dto: { sessionToken: string; query?: string; location?: string; radius?: number; propertyType?: string; filters?: any; resultPropertyIds?: string[]; resultCount?: number; minPrice?: number; maxPrice?: number; subCounty?: string; district?: string }): Promise<{ success: boolean }> {
+  async recordSearch(dto: { customerId: string; query?: string; location?: string; radius?: number; propertyType?: string; filters?: any; resultPropertyIds?: string[]; resultCount?: number; minPrice?: number; maxPrice?: number; subCounty?: string; district?: string }): Promise<{ success: boolean }> {
     try {
-      const sessionToken = dto.sessionToken;
-      let sessionId = '';
-
-      if (sessionToken) {
-        const validation = await this.validateCustomerSession(sessionToken);
-        if (validation.valid) {
-          sessionId = validation.sessionId;
-        }
-      }
-
       const search = this.searchRepo.create({
-        sessionId: sessionId || `anon-${Date.now()}`,
-        sessionToken: sessionToken || '',
+        customerId: dto.customerId,
         query: dto.query || '',
         location: dto.location || '',
         radius: Number(dto.radius) || 0,
@@ -1808,18 +1785,13 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getCustomerSearches(dto: { sessionToken: string; page: number; limit: number }): Promise<{ searches: any[]; total: number }> {
+  async getCustomerSearches(dto: { customerId: string; page: number; limit: number }): Promise<{ searches: any[]; total: number }> {
     try {
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
-
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 10;
 
       const [searches, total] = await this.searchRepo.findAndCount({
-        where: { sessionId: validation.sessionId },
+        where: { customerId: dto.customerId },
         order: { createdAt: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
@@ -1845,14 +1817,14 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getAllCustomerSearches(dto: { page: number; limit: number; sessionToken?: string; query?: string }): Promise<{ searches: any[]; total: number }> {
+  async getAllCustomerSearches(dto: { page: number; limit: number; customerId?: string; query?: string }): Promise<{ searches: any[]; total: number }> {
     try {
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 20;
       const where: any = {};
 
-      if (dto.sessionToken) {
-        where.sessionToken = dto.sessionToken;
+      if (dto.customerId) {
+        where.customerId = dto.customerId;
       }
       if (dto.query) {
         where.query = ILike(`%${dto.query}%`);
@@ -1868,8 +1840,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       return {
         searches: searches.map(s => ({
           id: s.id,
-          sessionId: s.sessionId,
-          sessionToken: s.sessionToken,
+          customerId: s.customerId,
           query: s.query,
           location: s.location,
           radius: s.radius,
@@ -1887,15 +1858,12 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async toggleFavorite(dto: { sessionToken: string; propertyId: string; propertyTitle: string; propertyLocation?: string; brokerCode?: string; imageUrl?: string; price?: number }): Promise<{ favorited: boolean }> {
+  async toggleFavorite(dto: { customerId: string; propertyId: string; propertyTitle: string; propertyLocation?: string; brokerCode?: string; imageUrl?: string; price?: number }): Promise<{ favorited: boolean }> {
     try {
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
+      // No session validation needed - customerId comes from JWT
 
       const existing = await this.favoriteRepo.findOne({
-        where: { sessionId: validation.sessionId, propertyId: dto.propertyId },
+        where: { customerId: dto.customerId, propertyId: dto.propertyId },
       });
 
       if (existing) {
@@ -1904,8 +1872,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       }
 
       const favorite = this.favoriteRepo.create({
-        sessionId: validation.sessionId,
-        sessionToken: dto.sessionToken,
+        customerId: dto.customerId,
         propertyId: dto.propertyId,
         propertyTitle: dto.propertyTitle,
         propertyLocation: dto.propertyLocation || '',
@@ -1922,18 +1889,13 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getCustomerFavorites(dto: { sessionToken: string; page: number; limit: number }): Promise<{ favorites: Array<{ id: string; propertyId: string; propertyTitle: string; propertyLocation: string; brokerCode: string; imageUrl: string; price: number; createdAt: Date }>; total: number }> {
+  async getCustomerFavorites(dto: { customerId: string; page: number; limit: number }): Promise<{ favorites: Array<{ id: string; propertyId: string; propertyTitle: string; propertyLocation: string; brokerCode: string; imageUrl: string; price: number; createdAt: Date }>; total: number }> {
     try {
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
-
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 10;
 
       const [favorites, total] = await this.favoriteRepo.findAndCount({
-        where: { sessionId: validation.sessionId },
+        where: { customerId: dto.customerId },
         order: { createdAt: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
@@ -1988,16 +1950,12 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async addComment(dto: { sessionToken: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; comment: string; rating?: number }): Promise<{ success: boolean; commentId?: string }> {
+  async addComment(dto: { customerId: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; comment: string; rating?: number }): Promise<{ success: boolean; commentId?: string }> {
     try {
-      const validation = await this.validateCustomerSession(dto.sessionToken);
-      if (!validation.valid) {
-        throw new BadRequestException('Invalid customer session');
-      }
+      // No session validation needed - customerId comes from JWT
 
       const comment = this.commentRepo.create({
-        sessionId: validation.sessionId,
-        sessionToken: dto.sessionToken,
+        customerId: dto.customerId,
         propertyId: dto.propertyId,
         customerName: dto.customerName,
         customerPhone: dto.customerPhone,
@@ -2099,12 +2057,13 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async updateCustomerSearchCustomerId(dto: { sessionToken: string; customerId: string }): Promise<{ success: boolean; updated: number }> {
+  async updateCustomerSearchCustomerId(dto: { customerId: string }): Promise<{ success: boolean; updated: number }> {
     try {
-      const result = await this.searchRepo.update({ sessionToken: dto.sessionToken, customerId: '' }, { customerId: dto.customerId });
-      return { success: true, updated: result.affected || 0 };
+      // This method is for linking anonymous sessions to a customer after login
+      // Since we now use customerId directly, this might not be needed
+      return { success: true, updated: 0 };
     } catch (err) {
-      this.logger.error(`Failed to update customer search customerId for session ${dto.sessionToken}:`, err);
+      this.logger.error(`Failed to update customer search customerId:`, err);
       throw err;
     }
   }
@@ -2122,8 +2081,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       return {
         searches: searches.map(s => ({
           id: s.id,
-          sessionId: s.sessionId,
-          sessionToken: s.sessionToken,
+          customerId: s.customerId,
           query: s.query,
           location: s.location,
           radius: s.radius,
@@ -2162,8 +2120,6 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       return {
         searches: searches.map(s => ({
           id: s.id,
-          sessionId: s.sessionId,
-          sessionToken: s.sessionToken,
           customerId: s.customerId,
           query: s.query,
           location: s.location,

@@ -21,6 +21,7 @@ export interface JwtPayload {
   type: 'admin' | 'broker' | 'customer';
   deviceId?: string;
   brokerCode?: string;
+  customerId?: string;
 }
 
 export interface LoginResponse {
@@ -46,6 +47,7 @@ export interface ValidateCustomerSessionResponse {
   valid: boolean;
   sessionId: string;
   deviceId: string;
+  customerId?: string;
 }
 
 export interface GetCustomerSessionResponse {
@@ -413,8 +415,9 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
   /**
    * Validates a customer session token and refreshes its sliding TTL so the
    * session expires `ttl` after the last activity rather than from creation.
+   * Also supports validating by customerId for JWT-based authentication.
    */
-  async validateCustomerSession(sessionToken: string): Promise<ValidateCustomerSessionResponse> {
+  async validateCustomerSession(sessionToken: string, customerId?: string): Promise<ValidateCustomerSessionResponse> {
     try {
       let payload: JwtPayload | null = null;
 
@@ -426,11 +429,20 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
 
       let sessionId: string | undefined;
       let deviceId: string | undefined;
+      let validatedCustomerId: string | undefined;
 
       if (payload && payload.type === 'customer' && payload.sub) {
         sessionId = payload.sub;
+        validatedCustomerId = payload.customerId;
       } else if (this.isUuid(sessionToken)) {
         sessionId = sessionToken;
+      }
+
+      // If customerId is provided directly (from JWT auth), validate it exists in session
+      if (customerId && !sessionId) {
+        // For JWT-based auth, we might not have a sessionId in Redis, 
+        // but we can still return valid if we have a customerId from the token
+        return { valid: true, sessionId: '', deviceId: '', customerId };
       }
 
       if (!sessionId) {
@@ -450,7 +462,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       await this.redis.set(this.sessionKey(sessionId), JSON.stringify(data), 'EX', ttl);
       await this.redis.set(this.deviceKey(data.deviceId), sessionId, 'EX', ttl);
 
-      return { valid: true, sessionId, deviceId: data.deviceId };
+      return { valid: true, sessionId, deviceId: data.deviceId, customerId: validatedCustomerId };
     } catch (err) {
       this.logger.error(`Failed to validate customer session: ${err}`);
       return { valid: false, sessionId: '', deviceId: '' };

@@ -1,16 +1,13 @@
 import {Entity,Column,PrimaryGeneratedColumn,Index} from 'typeorm';
 
 @Entity()
-@Index(['sessionId','propertyId'],{unique:true})
+@Index(['customerId','propertyId'],{unique:true})
 export class CustomerFavoriteEntity{
   @PrimaryGeneratedColumn()
   id!:string;
 
   @Column({default:''})
-  sessionId!:string;
-
-  @Column({default:''})
-  sessionToken!:string;
+  customerId!:string;
 
   @Column({default:''})
   propertyId!:string;

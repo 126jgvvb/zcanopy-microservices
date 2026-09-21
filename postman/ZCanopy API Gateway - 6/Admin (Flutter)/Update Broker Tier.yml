@@ -1,0 +1,22 @@
+info:
+  name: Update Broker Tier
+  type: http
+  seq: 10
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/admin/brokers/{{brokerId}}/tier"
+  body:
+    type: json
+    data: |-
+      {
+        "tier": "premium"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

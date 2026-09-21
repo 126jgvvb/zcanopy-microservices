@@ -37,7 +37,7 @@ export interface GetWalletBalanceDto {
 }
 
 export interface LogoutDto {
-  sessionToken: string;
+  customerId: string;
 }
 
 export interface UnsubscribeDto {
@@ -79,7 +79,7 @@ export interface InitiateTransactionDto {
 }
 
 export interface SearchQueryDto {
-  sessionToken: string;
+  customerId: string;
   query?: string;
   location?: string;
   radius?: number;
@@ -96,7 +96,7 @@ export interface SearchQueryDto {
 }
 
 export interface RecordSearchDto {
-  sessionToken: string;
+  customerId: string;
   query?: string;
   location?: string;
   radius?: number;
@@ -111,13 +111,13 @@ export interface RecordSearchDto {
 }
 
 export interface GetCustomerSearchesDto {
-  sessionToken: string;
+  customerId: string;
   page: number;
   limit: number;
 }
 
 export interface VideoToursQueryDto {
-  sessionToken: string;
+  customerId: string;
   lat?: number;
   lng?: number;
   radiusKm?: number;
@@ -127,7 +127,7 @@ export interface VideoToursQueryDto {
 }
 
 export interface AllPropertiesQueryDto {
-  sessionToken: string;
+  customerId: string;
   lat?: number;
   lng?: number;
   radiusKm?: number;
@@ -137,18 +137,18 @@ export interface AllPropertiesQueryDto {
 }
 
 export interface ExplorerQueryDto {
-  sessionToken: string;
+  customerId: string;
   page: number;
   limit: number;
 }
 
 export interface GetPropertyDetailsDto {
-  sessionToken: string;
+  customerId: string;
   propertyId: string;
 }
 
 export interface SimilarPropertiesQueryDto {
-  sessionToken: string;
+  customerId: string;
   propertyId: string;
   page: number;
   limit: number;

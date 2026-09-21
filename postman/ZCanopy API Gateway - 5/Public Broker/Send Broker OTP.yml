@@ -1,0 +1,23 @@
+info:
+  name: Send Broker OTP
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/broker/otp/send"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "alice@example.com",
+        "phoneNumber": "+256701234567"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

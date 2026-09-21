@@ -1,0 +1,26 @@
+info:
+  name: Create Broker
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/brokers"
+  body:
+    type: json
+    data: |-
+      {
+        "username": "John Doe",
+        "title": "Senior Agent",
+        "email": "broker@example.com",
+        "phoneNumber": "0700000000",
+        "password": "password123"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

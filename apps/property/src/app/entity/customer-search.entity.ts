@@ -6,10 +6,7 @@ export class CustomerSearchEntity{
   id!:string;
 
   @Column({default:''})
-  sessionId!:string;
-
-  @Column({default:''})
-  sessionToken!:string;
+  customerId!:string;
 
   @Column({default:''})
   query!:string;
@@ -43,9 +40,6 @@ export class CustomerSearchEntity{
 
   @Column({default:''})
   district!:string;
-
-  @Column({default:''})
-  customerId!:string;
 
   @Column({default: new Date()})
   createdAt!:Date;

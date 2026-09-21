@@ -7,10 +7,7 @@ export class CustomerCommentEntity{
   id!:string;
 
   @Column({default:''})
-  sessionId!:string;
-
-  @Column({default:''})
-  sessionToken!:string;
+  customerId!:string;
 
   @Column({default:''})
   propertyId!:string;

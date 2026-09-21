@@ -67,9 +67,31 @@ export class WebPublicController {
       district: query.district,
       minPrice: query.minPrice ? Number(query.minPrice) : undefined,
       maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,
+      brokerBrandName: query.brokerBrandName,
       lat: query.lat ? Number(query.lat) : undefined,
       lng: query.lng ? Number(query.lng) : undefined,
       radiusKm: query.radiusKm ? Number(query.radiusKm) : undefined,
+    });
+  }
+
+  @Get('explorer')
+  @ApiOperation({ summary: 'Public explorer properties for web dashboard' })
+  async explorer(@Query() query: any, @Req() req: any) {
+    this.logger.log(`Web public explorer request sessionId=${this.getSessionToken(req)}`);
+    return this.proxyService.forwardToProperty('GetCustomerProperties', {
+      sessionToken: this.getSessionToken(req),
+      page: Number(query.page) || 1,
+      limit: Math.min(Number(query.limit) || 12, 12),
+      propertyType: query.propertyType,
+      location: query.location,
+      brokerCode: query.brokerCode,
+      brokerBrandName: query.brokerBrandName,
+      subCounty: query.subCounty,
+      district: query.district,
+      minPrice: query.minPrice ? Number(query.minPrice) : undefined,
+      maxPrice: query.maxPrice ? Number(query.maxPrice) : undefined,
+      fromDate: query.fromDate,
+      toDate: query.toDate,
     });
   }
 }

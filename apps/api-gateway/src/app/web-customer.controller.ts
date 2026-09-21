@@ -5,21 +5,23 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 
 @ApiTags('web-customer')
 @Controller('web/customer')
+@UseGuards(JwtAuthGuard)
 export class WebCustomerController {
   private readonly logger = new Logger(WebCustomerController.name);
 
   constructor(private readonly proxyService: ProxyService) {}
 
-  private getSessionToken(req: any): string {
-    return req?.session?.sessionId || req?.headers?.['x-session-id'] || 'public-web';
+  private getCustomerId(req: any): string {
+    return req.user?.customerId;
   }
 
   @Get('broker/:brokerCode/properties')
   @ApiOperation({ summary: 'Get broker properties for customer web dashboard' })
   async getBrokerProperties(@Query() query: any, @Param('brokerCode') brokerCode: string, @Req() req: any) {
-    this.logger.log(`Web customer broker properties request for ${brokerCode} sessionId=${this.getSessionToken(req)}`);
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer broker properties request for ${brokerCode} customerId=${customerId}`);
     return this.proxyService.forwardToProperty('GetBrokerPropertiesForCustomer', {
-      sessionToken: this.getSessionToken(req),
+      customerId,
       brokerCode,
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 12,
@@ -29,10 +31,11 @@ export class WebCustomerController {
   @Get('search')
   @ApiOperation({ summary: 'Search properties for customer web dashboard' })
   async searchProperties(@Query() query: any, @Req() req: any) {
-    this.logger.log(`Web customer property search request for query=${query.q} sessionId=${this.getSessionToken(req)}`);
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer property search request for query=${query.q} customerId=${customerId}`);
     return this.proxyService.forwardToProperty('SearchProperties', {
       query: query.q || '',
-      sessionToken: this.getSessionToken(req),
+      customerId,
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 12,
       location: query.location,
@@ -50,17 +53,22 @@ export class WebCustomerController {
 
   @Post('search/record')
   @ApiOperation({ summary: 'Record customer search from web dashboard' })
-  async recordSearch(@Body() body: any) {
-    this.logger.log(`Web customer record search request for session ${body.sessionToken}`);
-    return this.proxyService.forwardToProperty('RecordCustomerSearch', body);
+  async recordSearch(@Body() body: any, @Req() req: any) {
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer record search request for customer ${customerId}`);
+    return this.proxyService.forwardToProperty('RecordCustomerSearch', {
+      ...body,
+      customerId,
+    });
   }
 
   @Get('searches')
   @ApiOperation({ summary: 'Get customer searches from web dashboard' })
   async getSearches(@Req() req: any, @Query() query: any) {
-    this.logger.log(`Web customer get searches request`);
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer get searches request for customer ${customerId}`);
     return this.proxyService.forwardToProperty('GetCustomerSearches', {
-      sessionToken: this.getSessionToken(req),
+      customerId,
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 10,
     });
@@ -68,19 +76,22 @@ export class WebCustomerController {
 
   @Post('favorites/toggle')
   @ApiOperation({ summary: 'Toggle favorite from web dashboard' })
-  async toggleFavorite(@Body() body: any,@Req() req:any) {
-    const sessionId=this.getSessionToken(req);
-    body.sessionToken=sessionId;
-    this.logger.log(`Web customer toggle favorite request for property ${body.propertyId}`);
-    return this.proxyService.forwardToProperty('ToggleFavorite', body);
+  async toggleFavorite(@Body() body: any, @Req() req: any) {
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer toggle favorite request for property ${body.propertyId} customer=${customerId}`);
+    return this.proxyService.forwardToProperty('ToggleFavorite', {
+      ...body,
+      customerId,
+    });
   }
 
   @Get('favorites')
   @ApiOperation({ summary: 'Get customer favorites from web dashboard' })
   async getFavorites(@Req() req: any, @Query() query: any) {
-    this.logger.log(`Web customer get favorites request`);
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer get favorites request for customer ${customerId}`);
     return this.proxyService.forwardToProperty('GetCustomerFavorites', {
-      sessionToken: this.getSessionToken(req),
+      customerId,
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 10,
     });
@@ -88,11 +99,13 @@ export class WebCustomerController {
 
   @Post('comments')
   @ApiOperation({ summary: 'Add property comment from web dashboard' })
-  async addComment(@Body() body: any,@Req() req:any) {
-    const sessionId=this.getSessionToken(req);
-    body.sessionToken=sessionId;
-    this.logger.log(`Web customer add comment request for property ${body.propertyId}`);
-    return this.proxyService.forwardToProperty('AddComment', body);
+  async addComment(@Body() body: any, @Req() req: any) {
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer add comment request for property ${body.propertyId} customer=${customerId}`);
+    return this.proxyService.forwardToProperty('AddComment', {
+      ...body,
+      customerId,
+    });
   }
 
   @Get('properties/:id/comments')
@@ -109,9 +122,10 @@ export class WebCustomerController {
   @Get('bookings')
   @ApiOperation({ summary: 'List customer bookings for web dashboard' })
   async getBookings(@Req() req: any, @Query() query: any) {
-    this.logger.log(`Web customer bookings request sessionId=${this.getSessionToken(req)}`);
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer bookings request for customer=${customerId}`);
     return this.proxyService.forwardToProperty('GetCustomerBookings', {
-      sessionToken: this.getSessionToken(req),
+      customerId,
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 20,
     });
@@ -120,9 +134,10 @@ export class WebCustomerController {
   @Post('properties/access-payment')
   @ApiOperation({ summary: 'Initiate payment for property access from web dashboard (creates booking + viewer record with transaction code)' })
   async initiatePropertyAccessPayment(@Req() req: any, @Body() body: any) {
-    this.logger.log(`Web customer initiate property access payment sessionId=${this.getSessionToken(req)} brokerCode=${body.brokerCode}`);
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer initiate property access payment customerId=${customerId} brokerCode=${body.brokerCode}`);
     return this.proxyService.forwardToProperty('CreateCustomerBooking', {
-      sessionToken: this.getSessionToken(req),
+      customerId,
       propertyId: body.propertyId,
       customerName: body.customerName,
       customerPhone: body.customerPhone,
@@ -137,9 +152,10 @@ export class WebCustomerController {
   @Post('bookings')
   @ApiOperation({ summary: 'Create booking from customer web dashboard' })
   async createBooking(@Req() req: any, @Body() body: any) {
-    this.logger.log(`Web customer create booking request sessionId=${this.getSessionToken(req)}`);
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer create booking request customerId=${customerId}`);
     return this.proxyService.forwardToProperty('CreateCustomerBooking', {
-      sessionToken: this.getSessionToken(req),
+      customerId,
       propertyId: body.propertyId,
       customerName: body.customerName,
       customerPhone: body.customerPhone,
@@ -162,10 +178,10 @@ export class WebCustomerController {
   }
 
   @Get('profile')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer profile for web dashboard' })
   async getProfile(@Req() req: any) {
-    this.logger.log(`Web customer profile request for user ${req.user?.customerId}`);
-    return this.proxyService.forwardToCustomer('GetProfile', { customerId: req.user?.customerId });
+    const customerId = this.getCustomerId(req);
+    this.logger.log(`Web customer profile request for user ${customerId}`);
+    return this.proxyService.forwardToCustomer('GetProfile', { customerId });
   }
 }

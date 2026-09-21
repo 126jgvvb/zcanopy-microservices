@@ -1,0 +1,23 @@
+info:
+  name: Submit Verification Documents
+  type: http
+  seq: 13
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/broker/verification/documents"
+  body:
+    type: json
+    data: |-
+      {
+        "idFrontUrl": "https://spaces.example.com/broker-docs/id-front.jpg",
+        "idBackUrl": "https://spaces.example.com/broker-docs/id-back.jpg"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

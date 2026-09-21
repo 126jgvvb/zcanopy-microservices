@@ -1,0 +1,23 @@
+info:
+  name: Update FCM Token
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/users/update_fcm_token"
+  body:
+    type: json
+    data: |-
+      {
+        "userId": "user-id-123",
+        "fcmToken": "new-fcm-token"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

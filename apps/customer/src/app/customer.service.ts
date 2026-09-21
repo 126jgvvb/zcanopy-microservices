@@ -305,13 +305,13 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async logout(sessionToken: string): Promise<{ success: boolean }> {
+  async logout(customerId: string): Promise<{ success: boolean }> {
     try {
       const authService = this.authClient.getService<any>('AuthService');
-      await lastValueFrom(authService.RevokeCustomerSession({ sessionToken }));
+      await lastValueFrom(authService.RevokeCustomerSession({ customerId }));
       return { success: true };
     } catch (err) {
-      this.logger.error(`Failed to logout customer session ${sessionToken}:`, err);
+      this.logger.error(`Failed to logout customer ${customerId}:`, err);
       return { success: false };
     }
   }
@@ -413,12 +413,12 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async recordSearch(dto: { sessionToken: string; query?: string; location?: string; radius?: number; propertyType?: string; minPrice?: number; maxPrice?: number; subCounty?: string; district?: string; hadResults?: boolean; resultPropertyIds?: string[]; resultCount?: number }): Promise<{ success: boolean }> {
+  async recordSearch(dto: { customerId: string; query?: string; location?: string; radius?: number; propertyType?: string; minPrice?: number; maxPrice?: number; subCounty?: string; district?: string; hadResults?: boolean; resultPropertyIds?: string[]; resultCount?: number }): Promise<{ success: boolean }> {
     try {
       const propertyService = this.propertyClient.getService<any>('PropertyService');
       const result = await lastValueFrom(
         propertyService.RecordCustomerSearch({
-          sessionToken: dto.sessionToken,
+          customerId: dto.customerId,
           query: dto.query || '',
           location: dto.location || '',
           radius: Number(dto.radius) || 0,
@@ -434,30 +434,30 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
       ) as any;
       return result;
     } catch (err) {
-      this.logger.error(`Failed to record search for session ${dto.sessionToken}:`, err);
+      this.logger.error(`Failed to record search for customer ${dto.customerId}:`, err);
       return { success: false };
     }
   }
 
-  async getCustomerSearches(sessionToken: string, page = 1, limit = 10): Promise<{ searches: any[]; total: number }> {
+  async getCustomerSearches(customerId: string, page = 1, limit = 10): Promise<{ searches: any[]; total: number }> {
     try {
       const propertyService = this.propertyClient.getService<any>('PropertyService');
       const result = await lastValueFrom(
-        propertyService.GetCustomerSearches({ sessionToken, page, limit }).pipe(timeout(5000)),
+        propertyService.GetCustomerSearches({ customerId, page, limit }).pipe(timeout(5000)),
       ) as any;
       return { searches: result.searches || [], total: result.total || 0 };
     } catch (err) {
-      this.logger.error(`Failed to get customer searches for session ${sessionToken}:`, err);
+      this.logger.error(`Failed to get customer searches for customer ${customerId}:`, err);
       return { searches: [], total: 0 };
     }
   }
 
-  async videoTours(sessionToken: string, query: any): Promise<any> {
+  async videoTours(customerId: string, query: any): Promise<any> {
     try {
       const propertyService = this.propertyClient.getService<any>('PropertyService');
       return lastValueFrom(
         propertyService.GetCustomerProperties({
-          sessionToken,
+          customerId,
           page: Number(query.page) || 1,
           limit: Math.min(Number(query.limit) || 12, 12),
           lat: query.lat ? Number(query.lat) : undefined,
@@ -467,17 +467,17 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
         }).pipe(timeout(5000)),
       );
     } catch (err) {
-      this.logger.error(`Failed to get video tours for session ${sessionToken}:`, err);
+      this.logger.error(`Failed to get video tours for customer ${customerId}:`, err);
       throw new BadRequestException('Failed to get video tours');
     }
   }
 
-  async getAllProperties(sessionToken: string, query: any): Promise<any> {
+  async getAllProperties(customerId: string, query: any): Promise<any> {
     try {
       const propertyService = this.propertyClient.getService<any>('PropertyService');
       return lastValueFrom(
         propertyService.GetCustomerProperties({
-          sessionToken,
+          customerId,
           page: Number(query.page) || 1,
           limit: Math.min(Number(query.limit) || 12, 12),
           lat: query.lat ? Number(query.lat) : undefined,
@@ -487,17 +487,17 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
         }).pipe(timeout(5000)),
       );
     } catch (err) {
-      this.logger.error(`Failed to get all properties for session ${sessionToken}:`, err);
+      this.logger.error(`Failed to get all properties for customer ${customerId}:`, err);
       throw new BadRequestException('Failed to get properties');
     }
   }
 
-  async explorer(sessionToken: string, query: any): Promise<any> {
+  async explorer(customerId: string, query: any): Promise<any> {
     try {
       const propertyService = this.propertyClient.getService<any>('PropertyService');
       const result = await lastValueFrom(
         propertyService.GetCustomerProperties({
-          sessionToken,
+          customerId,
           page: Number(query.page) || 1,
           limit: Math.min(Number(query.limit) || 12, 12),
         }).pipe(timeout(5000)),
@@ -506,16 +506,16 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
       const videoCount = (result.properties || []).filter((p: any) => p.videoUrl && p.videoUrl.length > 0).length;
       return { ...result, videoCount };
     } catch (err) {
-      this.logger.error(`Failed to get explorer properties for session ${sessionToken}:`, err);
+      this.logger.error(`Failed to get explorer properties for customer ${customerId}:`, err);
       throw new BadRequestException('Failed to get explorer properties');
     }
   }
 
-  async getPropertyDetails(sessionToken: string, propertyId: string): Promise<any> {
+  async getPropertyDetails(customerId: string, propertyId: string): Promise<any> {
     try {
       const propertyService = this.propertyClient.getService<any>('PropertyService');
       return lastValueFrom(
-        propertyService.GetPropertyDetailsForCustomer({ sessionToken, propertyId }).pipe(timeout(5000)),
+        propertyService.GetPropertyDetailsForCustomer({ customerId, propertyId }).pipe(timeout(5000)),
       );
     } catch (err) {
       this.logger.error(`Failed to get property details for ${propertyId}:`, err);
@@ -523,11 +523,11 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getSimilarProperties(sessionToken: string, propertyId: string): Promise<any> {
+  async getSimilarProperties(customerId: string, propertyId: string): Promise<any> {
     try {
       const propertyService = this.propertyClient.getService<any>('PropertyService');
       return lastValueFrom(
-        propertyService.GetPropertyDetailsForCustomer({ sessionToken, propertyId }).pipe(timeout(5000)),
+        propertyService.GetPropertyDetailsForCustomer({ customerId, propertyId }).pipe(timeout(5000)),
       );
     } catch (err) {
       this.logger.error(`Failed to get similar properties for ${propertyId}:`, err);
@@ -573,12 +573,12 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async search(dto: { sessionToken: string; query?: string; location?: string; radius?: number; propertyType?: string; subCounty?: string; district?: string; minPrice?: number; maxPrice?: number; page?: number; limit?: number; lat?: number; lng?: number; radiusKm?: number }): Promise<any> {
+  async search(dto: { customerId: string; query?: string; location?: string; radius?: number; propertyType?: string; subCounty?: string; district?: string; minPrice?: number; maxPrice?: number; page?: number; limit?: number; lat?: number; lng?: number; radiusKm?: number }): Promise<any> {
     try {
       const propertyService = this.propertyClient.getService<any>('PropertyService');
       const result = await lastValueFrom(
         propertyService.SearchProperties({
-          sessionToken: dto.sessionToken,
+          customerId: dto.customerId,
           query: dto.query || '',
           page: Number(dto.page) || 1,
           limit: Number(dto.limit) || 12,
@@ -596,7 +596,7 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
       ) as any;
 
       await this.recordSearch({
-        sessionToken: dto.sessionToken,
+        customerId: dto.customerId,
         query: dto.query,
         location: dto.location,
         radius: dto.radius,
@@ -614,7 +614,7 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
 
       return result;
     } catch (err) {
-      this.logger.error(`Failed to search properties for session ${dto.sessionToken}:`, err);
+      this.logger.error(`Failed to search properties for customer ${dto.customerId}:`, err);
       throw new BadRequestException('Failed to search properties');
     }
   }

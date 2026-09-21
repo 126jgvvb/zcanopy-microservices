@@ -1,0 +1,21 @@
+info:
+  name: Web Customer Logout
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/logout"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{customerAccessToken}}
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

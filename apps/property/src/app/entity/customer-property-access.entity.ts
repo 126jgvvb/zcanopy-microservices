@@ -5,11 +5,8 @@ export class CustomerPropertyAccessEntity {
   @PrimaryGeneratedColumn()
   id!: string;
 
-  @Column()
-  sessionToken!: string;
-
-@Column({default:''})
-  sessionToken!: string;
+  @Column({default:''})
+  customerId!: string;
 
   @Column({default:''})
   brokerCode!: string;
