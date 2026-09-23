@@ -1,0 +1,26 @@
+info:
+  name: Issue Anonymous Customer Session
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/customer/session"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "deviceId": "{{deviceId}}",
+        "ttlSeconds": 604800
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

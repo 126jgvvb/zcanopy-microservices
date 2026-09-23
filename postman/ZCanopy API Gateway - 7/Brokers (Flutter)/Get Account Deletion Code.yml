@@ -1,0 +1,24 @@
+info:
+  name: Get Account Deletion Code
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/users/get-account-deletion-code"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "broker@example.com",
+        "phoneNumber": "0700000000",
+        "userID": "user-id-123"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

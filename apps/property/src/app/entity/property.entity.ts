@@ -6,6 +6,7 @@ export interface GeoSpatialField {
 }
 
 export interface AllowedViewer {
+  customerId?: string;
   customerPhone: string;
   customerName: string;
   transactionCode: string;

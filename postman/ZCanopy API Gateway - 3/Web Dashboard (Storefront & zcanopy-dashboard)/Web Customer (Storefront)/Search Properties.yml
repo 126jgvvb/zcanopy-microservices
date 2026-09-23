@@ -9,7 +9,9 @@ http:
   headers:
     - name: x-session-id
       value: "{{webSessionId}}"
-  auth: inherit
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyNDVkNmRkYS1lZTk3LTQ1YjItOWZhMy1lOTAzNzAxNDViOTIiLCJlbWFpbCI6IndhZGlrYWtldmluQGdtYWlsLmNvbSIsInJvbGUiOiJjdXN0b21lciIsInR5cGUiOiJjdXN0b21lciIsImN1c3RvbWVySWQiOjQsImlhdCI6MTc5MDA2NTgxNSwiZXhwIjoxNzkyNjU3ODE1fQ.jWqVvC85o9QetutQHqjjd2dvfOAGbF-wCl3ZdHVmY-c
 
 settings:
   encodeUrl: true

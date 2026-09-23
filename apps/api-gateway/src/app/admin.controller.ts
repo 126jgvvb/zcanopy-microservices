@@ -239,6 +239,94 @@ export class AdminController {
     });
   }
 
+  @Get('customers/export')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Export all customers' })
+  async exportCustomers(@Query() query: any) {
+    this.logger.log(`Export customers request: ${JSON.stringify(query)}`);
+    return this.proxyService.forwardToAdmin('GetAllCustomers', {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 1000,
+      isActive: query.isActive !== undefined ? query.isActive === 'true' : undefined,
+    });
+  }
+
+  @Get('customers/:customerId')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get customer details' })
+  async getCustomerDetails(@Param('customerId') customerId: string) {
+    this.logger.log(`Get customer details request for ${customerId}`);
+    const customer = await this.proxyService.forwardToCustomer('GetProfile', { customerId }).catch(() => null);
+    if (!customer || (customer as any)?.error) {
+      return { customer: null };
+    }
+    return customer;
+  }
+
+  @Get('customers/:customerId/favorites')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get customer favorites' })
+  async getCustomerFavorites(@Param('customerId') customerId: string, @Query() query: any) {
+    this.logger.log(`Get customer favorites request for ${customerId}`);
+    const customer = await this.proxyService.forwardToCustomer('GetProfile', { customerId }).catch(() => null);
+    if (!customer || (customer as any)?.error) {
+      return { favorites: [], total: 0 };
+    }
+    return this.proxyService.forwardToProperty('GetCustomerFavorites', {
+      customerId,
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+    });
+  }
+
+  @Get('customers/:customerId/bookings')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get customer bookings' })
+  async getCustomerBookings(@Param('customerId') customerId: string, @Query() query: any) {
+    this.logger.log(`Get customer bookings request for ${customerId}`);
+    const customer = await this.proxyService.forwardToCustomer('GetProfile', { customerId }).catch(() => null);
+    if (!customer || (customer as any)?.error) {
+      return { bookings: [], total: 0 };
+    }
+    return this.proxyService.forwardToProperty('GetCustomerBookings', {
+      customerId,
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+    });
+  }
+
+  @Get('customers/:customerId/invoices')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get customer invoices' })
+  async getCustomerInvoices(@Param('customerId') customerId: string, @Query() query: any) {
+    this.logger.log(`Get customer invoices request for ${customerId}`);
+    const customer = await this.proxyService.forwardToCustomer('GetProfile', { customerId }).catch(() => null);
+    if (!customer || (customer as any)?.error) {
+      return { invoices: [], total: 0 };
+    }
+    return this.proxyService.forwardToCustomer('GetInvoices', {
+      customerId,
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+    });
+  }
+
+  @Get('customers/:customerId/transactions')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get customer transactions' })
+  async getCustomerTransactions(@Param('customerId') customerId: string, @Query() query: any) {
+    this.logger.log(`Get customer transactions request for ${customerId}`);
+    const customer = await this.proxyService.forwardToCustomer('GetProfile', { customerId }).catch(() => null);
+    if (!customer || (customer as any)?.error) {
+      return { transactions: [], total: 0 };
+    }
+    return this.proxyService.forwardToCustomer('GetTransactions', {
+      customerId,
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+    });
+  }
+
   @Post('login')
   @ApiOperation({ summary: 'Admin login (returns base64 token)' })
   async loginAdmin(@Body() body: any) {
@@ -404,7 +492,7 @@ export class AdminController {
     return this.proxyService.forwardToAdmin('GetAllCustomerSearches', {
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 20,
-      sessionToken: query.sessionToken || '',
+      customerId: query.customerId || '',
       query: query.q || '',
     });
   }

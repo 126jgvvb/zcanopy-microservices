@@ -1,6 +1,7 @@
-import { Controller, Logger, Get, Query, Post, Body, Param, Req } from '@nestjs/common';
+import { Controller, Logger, Get, Query, Post, Body, Param, Req, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ProxyService } from './proxy.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @ApiTags('customer')
 @Controller('customer')
@@ -10,7 +11,7 @@ export class CustomerController {
   constructor(private readonly proxyService: ProxyService) {}
 
   private getSessionToken(req: any): string {
-    return req?.headers?.['x-session-id'] || req?.session?.sessionId || 'public-web';
+    return req?.headers?.['x-session-id'] || req?.session?.sessionId || '';
   }
 
   private mapSessionId(query: any): any {
@@ -48,14 +49,13 @@ export class CustomerController {
   }
 
   @Post('properties/access-payment')//confirmed
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Initiate payment for broker property access' })
-  async initiatePropertyAccessPayment(@Body() body: any) {
-    if (body.sessionID && !body.sessionToken) {
-      body = { ...body, sessionToken: body.sessionID };
-    }
-    this.logger.log(`Initiate property access payment for broker ${body.brokerCode}`);
+  async initiatePropertyAccessPayment(@Req() req: any, @Body() body: any) {
+    const customerId = req.user?.customerId;
+    this.logger.log(`Initiate property access payment for customer=${customerId} broker=${body.brokerCode}`);
     return this.proxyService.forwardToProperty('CreateCustomerBooking', {
-      sessionToken: body.sessionToken,
+      customerId,
       propertyId: body.propertyId,
       customerName: body.customerName,
       customerPhone: body.customerPhone,
@@ -81,13 +81,22 @@ export class CustomerController {
   }
 
   @Post('bookings') //confirmed
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create customer booking' })
-  async createCustomerBooking(@Body() body: any) {
-    if (body.sessionID && !body.sessionToken) {
-      body = { ...body, sessionToken: body.sessionID };
-    }
-    this.logger.log(`Create customer booking request for property ${body.propertyId}`);
-    return this.proxyService.forwardToProperty('CreateCustomerBooking', body);
+  async createCustomerBooking(@Req() req: any, @Body() body: any) {
+    const customerId = req.user?.customerId;
+    this.logger.log(`Create customer booking request for customer=${customerId} property=${body.propertyId}`);
+    return this.proxyService.forwardToProperty('CreateCustomerBooking', {
+      customerId,
+      propertyId: body.propertyId,
+      customerName: body.customerName,
+      customerPhone: body.customerPhone,
+      customerEmail: body.customerEmail,
+      date: body.date || new Date().toISOString(),
+      amount: body.amount,
+      reason: body.reason || 'property_access',
+      status: body.status || 'pending',
+    });
   }
 
   @Post('bookings/retrieve')//confirmed
@@ -129,12 +138,13 @@ export class CustomerController {
   }
 
   @Get('bookings')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer bookings by session' })
-  async getCustomerBookings(@Query() query: any, @Req() req: any) {
-    const sessionToken = this.getSessionToken(req);
-    this.logger.log(`Get customer bookings request sessionId=${sessionToken}`);
+  async getCustomerBookings(@Req() req: any, @Query() query: any) {
+    const customerId = req.user?.customerId;
+    this.logger.log(`Get customer bookings request for customer=${customerId}`);
     return this.proxyService.forwardToProperty('GetCustomerBookings', {
-      sessionToken,
+      customerId,
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 10,
     });
@@ -148,10 +158,16 @@ export class CustomerController {
   }
 
   @Get('bookings/phone')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get bookings by phone number (for reinstall)' })
-  async getBookingsByPhone(@Query() query: any) {
-    this.logger.log(`Get bookings by phone request for ${query.customerPhone}`);
-    return this.proxyService.forwardToProperty('GetBookingsByPhone', query);
+  async getBookingsByPhone(@Req() req: any, @Query() query: any) {
+    const customerId = req.user?.customerId;
+    this.logger.log(`Get bookings by phone request for customer=${customerId} phone=${query.customerPhone}`);
+    return this.proxyService.forwardToProperty('GetBookingsByPhone', {
+      customerPhone: query.customerPhone,
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 10,
+    });
   }
 
   @Get('search')
@@ -184,14 +200,17 @@ export class CustomerController {
   }
 
   @Get('searches')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer searches' })
-  async getCustomerSearches(@Query() query: any, @Req() req: any) {
-    const sessionToken = this.getSessionToken(req);
-    this.logger.log(`Get customer searches request sessionId=${sessionToken}`);
+  async getCustomerSearches(@Req() req: any, @Query() query: any) {
+    const customerId = req.user?.customerId;
+    const page = Number(query.page) || 1;
+    const limit = Math.min(Number(query.limit) || 10, 50);
+    this.logger.log(`Get customer searches request for customer=${customerId}`);
     return this.proxyService.forwardToProperty('GetCustomerSearches', {
-      sessionToken,
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
+      customerId,
+      page,
+      limit,
     });
   }
 
@@ -207,29 +226,52 @@ export class CustomerController {
   }
 
   @Post('favorites/toggle')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Toggle customer favorite' })
-  async toggleFavorite(@Body() body: any) {
-    this.logger.log(`Toggle favorite request for property ${body.propertyId}`);
-    return this.proxyService.forwardToProperty('ToggleFavorite', body);
+  async toggleFavorite(@Req() req: any, @Body() body: any) {
+    const customerId = req.user?.customerId;
+    this.logger.log(`Toggle favorite request for customer=${customerId} property=${body.propertyId}`);
+    return this.proxyService.forwardToProperty('ToggleFavorite', {
+      customerId,
+      propertyId: body.propertyId,
+      propertyTitle: body.propertyTitle,
+      propertyLocation: body.propertyLocation,
+      brokerCode: body.brokerCode,
+      imageUrl: body.imageUrl,
+      price: body.price,
+    });
   }
 
   @Get('favorites')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer favorites' })
-  async getCustomerFavorites(@Query() query: any, @Req() req: any) {
-    const sessionToken = this.getSessionToken(req);
-    this.logger.log(`Get customer favorites request sessionId=${sessionToken}`);
+  async getCustomerFavorites(@Req() req: any, @Query() query: any) {
+    const customerId = req.user?.customerId;
+    const page = Number(query.page) || 1;
+    const limit = Math.min(Number(query.limit) || 10, 50);
+    this.logger.log(`Get customer favorites request for customer=${customerId}`);
     return this.proxyService.forwardToProperty('GetCustomerFavorites', {
-      sessionToken,
-      page: Number(query.page) || 1,
-      limit: Number(query.limit) || 10,
+      customerId,
+      page,
+      limit,
     });
   }
 
   @Post('comments')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Add property comment and rating' })
-  async addComment(@Body() body: any) {
-    this.logger.log(`Add comment request for property ${body.propertyId}`);
-    return this.proxyService.forwardToProperty('AddComment', body);
+  async addComment(@Req() req: any, @Body() body: any) {
+    const customerId = req.user?.customerId;
+    this.logger.log(`Add comment request for customer=${customerId} property=${body.propertyId}`);
+    return this.proxyService.forwardToProperty('AddComment', {
+      customerId,
+      propertyId: body.propertyId,
+      customerName: body.customerName,
+      customerPhone: body.customerPhone,
+      customerEmail: body.customerEmail,
+      comment: body.comment,
+      rating: body.rating,
+    });
   }
 
   @Get('properties/:id/comments')

@@ -1,0 +1,33 @@
+info:
+  name: Get Notifications
+  type: http
+  seq: 16
+
+http:
+  method: POST
+  url: "{{baseUrl}}/notifications/get_notifications"
+  body:
+    type: json
+    data: |-
+      {
+        "sessionToken": "{{customerSessionToken}}",
+        "page": 1,
+        "limit": 10,
+        "status": "unread",
+        "type": "booking",
+        "channel": "push",
+        "read": false
+      }
+  auth: inherit
+
+runtime:
+  variables:
+    - name: customerSessionToken
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwM2MxZjAzOC00YmJjLTQxMDQtYTkzMi1mYzFiMjM0ZTZjNzAiLCJlbWFpbCI6IiIsInJvbGUiOiJjdXN0b21lciIsInR5cGUiOiJjdXN0b21lciIsImRldmljZUlkIjoiZGV2aWNlLTAwMSIsImlhdCI6MTc5MDYyNzA3LCJleHAiOjE3OTAxNDkxMDd9.LREKZE8BCLh7GYeVPOS_BuZNrf_LgWTVASlDNs3Ee5U
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

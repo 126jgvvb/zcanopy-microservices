@@ -6,7 +6,9 @@ info:
 http:
   method: GET
   url: "{{baseUrl}}/admin/customers/{{customerId}}/bookings"
-  auth: inherit
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZW1haWwiOiJuZXdhZG1pbkB6Y2Fub3B5LmNvbSIsInJvbGUiOiJhZG1pbiIsInR5cGUiOiJhZG1pbiIsImlhdCI6MTc5MDEzNzI1NywiZXhwIjoxNzkwMTM4MTU3fQ.RjoMJAZ2uHy5jtlTEDOjQf8Ztm9tTdDh2uCogr5uVrs
 
 settings:
   encodeUrl: true

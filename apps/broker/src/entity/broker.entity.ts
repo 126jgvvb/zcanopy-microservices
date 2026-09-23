@@ -1,4 +1,4 @@
-import {Entity, Column,PrimaryGeneratedColumn} from 'typeorm';
+import {Entity, Column, PrimaryColumn, BeforeInsert} from 'typeorm';
 
 export interface BrokerMessage {
   senderName?: string;
@@ -24,8 +24,8 @@ export interface BrokerBooking {
 
 @Entity()
 export class BrokerEntity{
- @PrimaryGeneratedColumn()
- id!:string;
+  @PrimaryColumn({ type: 'varchar', length: 6 })
+  id!: string;
 
   @Column({default: 'delos-broker'})
   username!:string;
@@ -36,17 +36,25 @@ export class BrokerEntity{
   @Column({default: 'delos-broker@gmail.com'})
   email!: string;
 
- @Column({default: '+2348123456789'})
- phoneNumber!: string;
+  @Column({default: '+2348123456789'})
+  phoneNumber!: string;
 
- @Column({default: 'password'})
- password!: string;
+  @Column({default: 'password'})
+  password!: string;
 
- @Column({default: new Date()})
- createdAt!: Date;
+  @Column({default: new Date()})
+  createdAt!: Date;
 
- @Column({default: new Date()})
- updatedAt!: Date;
+  @Column({default: new Date()})
+  updatedAt!: Date;
+
+  @BeforeInsert()
+  generateId() {
+    if (!this.id) {
+      // Generate a 6-digit numeric ID
+      this.id = Math.floor(100000 + Math.random() * 900000).toString();
+    }
+  }
 
  @Column({default: new Date()})
  deletedAt!: Date;
@@ -128,6 +136,21 @@ export class BrokerEntity{
 
   @Column({ nullable: true })
   brokerBrandName?: string;
+
+  @Column({ type: 'text', nullable: true })
+  bio?: string;
+
+  @Column({ nullable: true })
+  legalName?: string;
+
+  @Column({ nullable: true })
+  idNumber?: string;
+
+  @Column({ nullable: true })
+  idFrontUrl?: string;
+
+  @Column({ nullable: true })
+  idBackUrl?: string;
 
 }
 

@@ -1,0 +1,22 @@
+info:
+  name: Delete Broker
+  type: http
+  seq: 9
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/admin/brokers/{{brokerId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "adminId": "{{adminId}}"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

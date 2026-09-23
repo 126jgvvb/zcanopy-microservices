@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, NotFoundException, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, OnModuleInit, OnModuleDestroy, Inject, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -89,6 +89,8 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
         }
       }
     });
+
+    await this.backfillMissingCustomerData();
   }
 
   async onModuleDestroy() {
@@ -134,7 +136,24 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
         throw new BadRequestException('Customer with this email already exists');
       }
 
+      // Generate unique 6-digit customer ID with retry on collision
+      let customerId: string;
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      while (attempts < maxAttempts) {
+        customerId = Math.floor(100000 + Math.random() * 900000).toString();
+        const idExists = await this.customerRepo.findOne({ where: { id: customerId } });
+        if (!idExists) break;
+        attempts++;
+      }
+
+      if (attempts >= maxAttempts) {
+        throw new InternalServerErrorException('Failed to generate unique customer ID');
+      }
+
       const customer = this.customerRepo.create({
+        id: customerId,
         email: dto.email,
         passwordHash: this.hashPassword(dto.password),
         firstName: dto.firstName,
@@ -203,7 +222,24 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (!customer) {
+        // Generate unique 6-digit customer ID with retry on collision
+        let customerId: string;
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        while (attempts < maxAttempts) {
+          customerId = Math.floor(100000 + Math.random() * 900000).toString();
+          const idExists = await this.customerRepo.findOne({ where: { id: customerId } });
+          if (!idExists) break;
+          attempts++;
+        }
+
+        if (attempts >= maxAttempts) {
+          throw new InternalServerErrorException('Failed to generate unique customer ID');
+        }
+
         customer = this.customerRepo.create({
+          id: customerId,
           email: dto.email || `${dto.googleId}@google.local`,
           googleId: dto.googleId,
           firstName: dto.firstName,
@@ -746,5 +782,34 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
       authProvider: customer.authProvider,
       createdAt: customer.createdAt,
     };
+  }
+
+  private async backfillMissingCustomerData(): Promise<void> {
+    try {
+      const nullOtpResult = await this.otpRepo.createQueryBuilder().delete().where('customerId IS NULL').execute();
+      const deletedOtps = (nullOtpResult as any)?.affected || 0;
+      if (deletedOtps > 0) {
+        this.logger.warn(`Removed ${deletedOtps} orphaned customer OTP(s) with null customerId`);
+      }
+
+      const nullCustomerResult = await this.customerRepo.createQueryBuilder().delete().where('id IS NULL').execute();
+      const deletedCustomers = (nullCustomerResult as any)?.affected || 0;
+      if (deletedCustomers > 0) {
+        this.logger.warn(`Removed ${deletedCustomers} customer record(s) with null id`);
+      }
+
+      const backfillResult = await this.customerRepo
+        .createQueryBuilder()
+        .update(CustomerEntity)
+        .set({ id: () => "LPAD(floor(random() * 900000 + 100000)::text, 6, '0')" })
+        .where('id IS NULL')
+        .execute();
+      const backfilled = (backfillResult as any)?.affected || 0;
+      if (backfilled > 0) {
+        this.logger.warn(`Backfilled ${backfilled} customer record(s) with generated id`);
+      }
+    } catch (err) {
+      this.logger.error(`Failed to backfill missing customer data: ${(err as Error).message}`);
+    }
   }
 }

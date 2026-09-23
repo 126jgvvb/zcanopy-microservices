@@ -1,0 +1,23 @@
+info:
+  name: Dev Login
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/dev-login"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "admin@zcanopy.dev",
+        "password": "admin123"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

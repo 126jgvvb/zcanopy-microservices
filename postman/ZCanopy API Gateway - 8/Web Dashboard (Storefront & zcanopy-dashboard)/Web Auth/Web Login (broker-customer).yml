@@ -1,0 +1,27 @@
+info:
+  name: Web Login (broker|customer)
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/auth/login"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "email": "user@example.com",
+        "password": "password123",
+        "type": "broker"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -113,7 +113,7 @@ export class BrokerController {
   }
 
   @GrpcMethod('BrokerService','DeleteBroker')
-  async deleteBroker(dto: { id: number }) {
+  async deleteBroker(dto: { id: string }) {
     this.logger.log(`DeleteBroker called for id=${dto.id}`);
     return this.brokerService.deleteBroker(dto.id);
   }

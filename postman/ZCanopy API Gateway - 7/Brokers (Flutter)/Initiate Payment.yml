@@ -1,0 +1,24 @@
+info:
+  name: Initiate Payment
+  type: http
+  seq: 14
+
+http:
+  method: POST
+  url: "{{baseUrl}}/gate-way/initiate-payment"
+  body:
+    type: json
+    data: |-
+      {
+        "userId": "user-id-123",
+        "phoneNumber": "0700000000",
+        "amount": 10000
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

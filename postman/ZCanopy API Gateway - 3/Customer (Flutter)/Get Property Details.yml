@@ -5,8 +5,14 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/web/customer/properties?propertyId=property-id-123"
-  auth: inherit
+  url: "{{baseUrl}}/web/customer/properties?propertyId=9"
+  params:
+    - name: propertyId
+      value: "9"
+      type: query
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwM2MxZjAzOC00YmJjLTQxMDQtYTkzMi1mYzFiMjM0ZTZjNzAiLCJlbWFpbCI6IiIsInJvbGUiOiJjdXN0b21lciIsInR5cGUiOiJjdXN0b21lciIsImRldmljZUlkIjoiZGV2aWNlLTAwMSIsImlhdCI6MTc5MDYyNzA3LCJleHAiOjE3OTAxNDkxMDd9.LREKZE8BCLh7GYeVPOS_BuZNrf_LgWTVASlDNs3Ee5U
 
 settings:
   encodeUrl: true

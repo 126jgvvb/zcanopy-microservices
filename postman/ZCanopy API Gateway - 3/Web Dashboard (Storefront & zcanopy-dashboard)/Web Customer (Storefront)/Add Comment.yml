@@ -15,7 +15,7 @@ http:
     type: json
     data: |-
       {
-        "propertyId": "p1",
+        "propertyId": 9,
         "customerName": "John Doe",
         "customerPhone": "+256700000000",
         "customerEmail": "john@example.com",

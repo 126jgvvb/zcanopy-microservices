@@ -1,0 +1,27 @@
+info:
+  name: Save User Info
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/users/save-user-info"
+  body:
+    type: json
+    data: |-
+      {
+        "userId": "user-id-123",
+        "username": "broker_name",
+        "email": "broker@example.com",
+        "phoneNumber": "0700000000",
+        "photoURL": "https://example.com/photo.jpg",
+        "accountType": "broker"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

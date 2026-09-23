@@ -68,6 +68,7 @@ export class WebCustomerController {
     const customerId = this.getCustomerId(req);
     this.logger.log(`Web customer get searches request for customer ${customerId}`);
     return this.proxyService.forwardToProperty('GetCustomerSearches', {
+      sessionToken:"any",
       customerId,
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 10,

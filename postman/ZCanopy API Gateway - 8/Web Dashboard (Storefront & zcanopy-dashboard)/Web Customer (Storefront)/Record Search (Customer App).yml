@@ -1,0 +1,42 @@
+info:
+  name: Record Search (Customer App)
+  type: http
+  seq: 16
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/search/record"
+  headers:
+    - name: Authorization
+      value: Bearer {{customerAccessToken}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "query": "apartment in kololo",
+        "location": "Kampala",
+        "radius": 10,
+        "propertyType": "apartment",
+        "filters": {
+          "subCounty": "Kololo",
+          "district": "Kampala",
+          "minPrice": 100000,
+          "maxPrice": 500000
+        },
+        "resultPropertyIds": ["p1", "p2", "p3"],
+        "resultCount": 5,
+        "minPrice": 100000,
+        "maxPrice": 500000,
+        "subCounty": "Kololo",
+        "district": "Kampala"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

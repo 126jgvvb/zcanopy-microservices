@@ -118,7 +118,7 @@ message GetWalletBalanceResponse {
 }
 
 message LogoutRequest {
-  string sessionToken = 1;
+  string customerId = 1;
 }
 
 message LogoutResponse {
@@ -196,7 +196,7 @@ message InitiateTransactionResponse {
 }
 
 message RecordSearchRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string query = 2;
   string location = 3;
   double radius = 4;
@@ -215,7 +215,7 @@ message RecordSearchResponse {
 }
 
 message GetCustomerSearchesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 page = 2;
   int32 limit = 3;
 }
@@ -226,7 +226,7 @@ message GetCustomerSearchesResponse {
 }
 
 message VideoToursRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   double lat = 2;
   double lng = 3;
   double radiusKm = 4;
@@ -242,7 +242,7 @@ message VideoToursResponse {
 }
 
 message GetAllPropertiesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   double lat = 2;
   double lng = 3;
   double radiusKm = 4;
@@ -257,7 +257,7 @@ message GetAllPropertiesResponse {
 }
 
 message ExplorerRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 page = 2;
   int32 limit = 3;
 }
@@ -269,7 +269,7 @@ message ExplorerResponse {
 }
 
 message GetPropertyDetailsRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string propertyId = 2;
 }
 
@@ -278,7 +278,7 @@ message GetPropertyDetailsResponse {
 }
 
 message GetSimilarPropertiesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string propertyId = 2;
   int32 page = 3;
   int32 limit = 4;

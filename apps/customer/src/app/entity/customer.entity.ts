@@ -1,12 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, BeforeInsert } from 'typeorm';
 import { CustomerOtpEntity } from './customer-otp.entity';
 import { CustomerMessageEntity } from './customer-message.entity';
 import { CustomerNotificationEntity } from './customer-notification.entity';
 
 @Entity('customers')
 export class CustomerEntity {
-  @PrimaryGeneratedColumn()
-  id!: string;
+  @PrimaryColumn({ type: 'varchar', length: 6 })
+  id!: string | null;
 
   @Column({ unique: true })
   email!: string;
@@ -53,6 +53,14 @@ export class CustomerEntity {
   @OneToMany(() => CustomerMessageEntity, msg => msg.customer)
   messages!: CustomerMessageEntity[];
 
-  @OneToMany(() => CustomerNotificationEntity, notification => notification.customer)
+  @OneToMany(() => CustomerNotificationEntity, notif => notif.customer)
   notifications!: CustomerNotificationEntity[];
+
+  @BeforeInsert()
+  generateId() {
+    if (!this.id) {
+      // Generate a 6-digit numeric ID
+      this.id = Math.floor(100000 + Math.random() * 900000).toString();
+    }
+  }
 }

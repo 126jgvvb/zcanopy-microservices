@@ -13,7 +13,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule,Transport } from '@nestjs/microservices';
 import { OtpStoreService } from './otp/otp-store.service';
 import { redisOtpProvider } from './otp/redis-otp.provider';
-import { join } from 'path';
+import { join, resolve } from 'path';
+
+const projectRoot = resolve(__dirname, '../..', '..', '..', '..');
 
 @Module({
   imports: [
@@ -69,7 +71,7 @@ import { join } from 'path';
           },
         }),
       },
-      {
+      {   
         name: 'ADMIN_CLIENT',
         useFactory: () => ({
           transport: Transport.GRPC,

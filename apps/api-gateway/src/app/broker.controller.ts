@@ -20,6 +20,17 @@ export class BrokerController {
     return this.proxyService.forwardToBroker('GetAllBrokers', query);
   }
 
+  @Get('me')
+  @ApiOperation({ summary: 'Get the authenticated broker profile' })
+  async getMe(@Req() req: any) {
+    const brokerCode = req.user?.brokerCode;
+    if (!brokerCode) {
+      throw new UnauthorizedException('Broker identity not found in token');
+    }
+    this.logger.log(`Get authenticated broker profile for ${brokerCode}`);
+    return this.proxyService.forwardToBroker('GetBrokerByCode', { brokerCode });
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get broker by ID' })
   async getBrokerById(@Param('id') id: string) {
@@ -34,16 +45,38 @@ export class BrokerController {
     return this.proxyService.forwardToBroker('CreateBroker', body);
   }
 
+  @Put('me')
+  @ApiOperation({ summary: 'Update the authenticated broker' })
+  async updateMe(@Req() req: any, @Body() body: any) {
+    const brokerCode = req.user?.brokerCode;
+    if (!brokerCode) {
+      throw new UnauthorizedException('Broker identity not found in token');
+    }
+    this.logger.log(`Update authenticated broker ${brokerCode}`);
+    return this.proxyService.forwardToBroker('UpdateBroker', { brokerCode, ...body });
+  }
+
   @Put(':id')
-  @ApiOperation({ summary: 'Update broker' })
+  @ApiOperation({ summary: 'Update broker by ID' })
   async updateBroker(@Param('id') id: string, @Body() body: any) {
     this.logger.log(`Update broker request for ${id}`);
     return this.proxyService.forwardToBroker('UpdateBroker', { id, ...body });
   }
 
+  @Delete('me')
+  @ApiOperation({ summary: 'Delete the authenticated broker account' })
+  async deleteMe(@Req() req: any) {
+    const brokerCode = req.user?.brokerCode;
+    if (!brokerCode) {
+      throw new UnauthorizedException('Broker identity not found in token');
+    }
+    this.logger.log(`Delete authenticated broker ${brokerCode}`);
+    return this.proxyService.forwardToBroker('DeleteBrokerAccount', { brokerCode });
+  }
+
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete broker' })
-  async deleteBroker(@Param('id') id: number) {
+  @ApiOperation({ summary: 'Delete broker by ID' })
+  async deleteBroker(@Param('id') id: string) {
     this.logger.log(`Delete broker request for ${id}`);
     return this.proxyService.forwardToBroker('DeleteBroker', { id });
   }
@@ -62,8 +95,19 @@ export class BrokerController {
     return this.proxyService.forwardToBroker('GetRecentSignups', query);
   }
 
+  @Get('dashboard/me')
+  @ApiOperation({ summary: 'Get the authenticated broker dashboard' })
+  async getMyDashboard(@Req() req: any) {
+    const brokerCode = req.user?.brokerCode;
+    if (!brokerCode) {
+      throw new UnauthorizedException('Broker identity not found in token');
+    }
+    this.logger.log(`Get authenticated broker dashboard for ${brokerCode}`);
+    return this.proxyService.forwardToBroker('GetBrokerDashboard', { brokerCode });
+  }
+
   @Get('dashboard/:brokerId')
-  @ApiOperation({ summary: 'Get broker dashboard' })
+  @ApiOperation({ summary: 'Get broker dashboard by ID' })
   async getBrokerDashboard(@Param('brokerId') brokerId: string) {
     this.logger.log(`Get broker dashboard request for ${brokerId}`);
     return this.proxyService.forwardToBroker('GetBrokerDashboard', { brokerId });
@@ -76,24 +120,33 @@ export class BrokerController {
     return this.proxyService.forwardToBroker('SearchBrokers', { query: q });
   }
 
-  @Post(':id/subscribe')
+  @Post('me/subscribe')
   @ApiOperation({ summary: 'Subscribe the authenticated broker to a tier via mobile money' })
-  async subscribeBroker(
+  async subscribeMe(
     @Req() req: any,
+    @Body() body: any,
+  ) {
+    const brokerCode = req.user?.brokerCode;
+    if (!brokerCode) {
+      throw new UnauthorizedException('Broker identity not found in token');
+    }
+    this.logger.log(`Subscribe authenticated broker ${brokerCode}, tier=${body.tier}`);
+    return this.proxyService.forwardToBroker('ProcessSubscriptionPayment', {
+      brokerCode,
+      tier: body.tier,
+      phoneNumber: body.phoneNumber,
+    });
+  }
+
+  @Post(':id/subscribe')
+  @ApiOperation({ summary: 'Subscribe a broker to a tier via mobile money' })
+  async subscribeBroker(
     @Param('id') id: string,
     @Body() body: any,
   ) {
-    const tokenBrokerCode = req.user?.brokerCode;
-    if (!tokenBrokerCode) {
-      throw new UnauthorizedException('Broker identity not found in token');
-    }
-    // The path id must refer to the authenticated broker (code or internal id).
-    if (id && id !== tokenBrokerCode && id !== req.user?.sub) {
-      throw new ForbiddenException('Cannot subscribe a broker other than the authenticated one');
-    }
-    this.logger.log(`Subscribe broker request for ${tokenBrokerCode}, tier=${body.tier}`);
+    this.logger.log(`Subscribe broker request for ${id}, tier=${body.tier}`);
     return this.proxyService.forwardToBroker('ProcessSubscriptionPayment', {
-      brokerId: tokenBrokerCode,
+      brokerId: id,
       tier: body.tier,
       phoneNumber: body.phoneNumber,
     });

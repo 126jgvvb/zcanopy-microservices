@@ -219,7 +219,7 @@ export class AdminController {
   }
 
   @GrpcMethod('AdminService', 'GetAllCustomerSearches')
-  async getAllCustomerSearches(dto: any) {
+  async getAllCustomerSearches(dto: { page: number; limit: number; customerId?: string; query?: string }) {
     this.logger.log('Received getAllCustomerSearches request');
     return this.adminService.getAllCustomerSearches(dto);
   }

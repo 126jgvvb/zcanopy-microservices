@@ -1,0 +1,22 @@
+info:
+  name: Approve All Verifications
+  type: http
+  seq: 12
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/pending/verifications/approve-all"
+  body:
+    type: json
+    data: |-
+      {
+        "adminId": "{{adminId}}"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

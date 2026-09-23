@@ -1267,6 +1267,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
       const bookingCode = this.generateBookingCode();
 
       const viewer = {
+        customerId: dto.customerId,
         customerPhone: dto.customerPhone,
         customerName: dto.customerName,
         transactionCode,
@@ -1466,7 +1467,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
       for (const property of properties) {
         const viewers = property.allowedViewers || [];
         for (const viewer of viewers) {
-          if (viewer && viewer.customerPhone) {
+          if (viewer && viewer.customerPhone && viewer.customerId === dto.customerId) {
             bookings.push({
               id: viewer.transactionId || `${property.id}-${viewer.customerPhone}`,
               propertyId: property.id,
@@ -1800,11 +1801,13 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
       return {
         searches: searches.map(s => ({
           id: s.id,
+          customerId: s.customerId,
           query: s.query,
           location: s.location,
           radius: s.radius,
           propertyType: s.propertyType,
-          filters: s.filtersJson ? JSON.parse(s.filtersJson) : null,
+          // filters excluded from list response to avoid protobuf buffer overflow
+          filters: null,
           resultCount: s.resultCount,
           resultPropertyIds: s.resultPropertyIdsJson ? JSON.parse(s.resultPropertyIdsJson) : [],
           createdAt: s.createdAt,
@@ -1845,9 +1848,11 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
           location: s.location,
           radius: s.radius,
           propertyType: s.propertyType,
-          filters: s.filtersJson ? JSON.parse(s.filtersJson) : null,
+          // filters excluded from list response to avoid protobuf buffer overflow
+          filters: null,
           resultCount: s.resultCount,
-          resultPropertyIds: s.resultPropertyIdsJson ? JSON.parse(s.resultPropertyIdsJson) : [],
+          // Limit resultPropertyIds to prevent protobuf buffer overflow
+          resultPropertyIds: s.resultPropertyIdsJson ? JSON.parse(s.resultPropertyIdsJson).slice(0, 10) : [],
           createdAt: s.createdAt,
         })),
         total,
@@ -2086,7 +2091,8 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
           location: s.location,
           radius: s.radius,
           propertyType: s.propertyType,
-          filters: s.filtersJson ? JSON.parse(s.filtersJson) : null,
+          // filters excluded from list response to avoid protobuf buffer overflow
+          filters: null,
           resultCount: s.resultCount,
           resultPropertyIds: s.resultPropertyIdsJson ? JSON.parse(s.resultPropertyIdsJson) : [],
           createdAt: s.createdAt,
@@ -2117,7 +2123,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         skip: (page - 1) * limit,
         take: limit,
       });
-      return {
+return {
         searches: searches.map(s => ({
           id: s.id,
           customerId: s.customerId,
@@ -2125,7 +2131,8 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
           location: s.location,
           radius: s.radius,
           propertyType: s.propertyType,
-          filters: s.filtersJson ? JSON.parse(s.filtersJson) : null,
+          // filters excluded from list response to avoid protobuf buffer overflow
+          filters: null,
           resultCount: s.resultCount,
           resultPropertyIds: s.resultPropertyIdsJson ? JSON.parse(s.resultPropertyIdsJson) : [],
           createdAt: s.createdAt,

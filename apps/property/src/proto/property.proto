@@ -37,6 +37,7 @@ service PropertyService {
   rpc GetAllCustomerFavorites (GetAllCustomerFavoritesRequest) returns (GetAllCustomerFavoritesResponse);
   rpc AddComment (AddCommentRequest) returns (AddCommentResponse);
   rpc GetPropertyComments (GetPropertyCommentsRequest) returns (GetPropertyCommentsResponse);
+  rpc GetAllComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
   rpc SearchProperties (SearchPropertiesRequest) returns (SearchPropertiesResponse);
   rpc GetSimilarProperties (GetSimilarPropertiesRequest) returns (GetSimilarPropertiesResponse);
 }
@@ -216,7 +217,7 @@ message GetBrokerBookingsResponse {
 }
 
 message RecordSearchRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string query = 2;
   string location = 3;
   double radius = 4;
@@ -228,7 +229,7 @@ message RecordSearchResponse {
 }
 
 message GetRecentSearchesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 limit = 2;
 }
 
@@ -279,7 +280,7 @@ message NearbyProperty {
 }
 
 message TrackNearbyPropertiesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   double lat = 2;
   double lng = 3;
   double radiusKm = 4;
@@ -313,7 +314,7 @@ message Booking {
 }
 
 message GetCustomerPropertiesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 page = 2;
   int32 limit = 3;
   double lat = 4;
@@ -328,7 +329,7 @@ message GetCustomerPropertiesResponse {
 }
 
 message InitiatePropertyAccessPaymentRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string brokerCode = 2;
   string propertyId = 3;
   double amount = 4;
@@ -346,7 +347,7 @@ message InitiatePropertyAccessPaymentResponse {
 }
 
 message GetBrokerPropertiesForCustomerRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string brokerCode = 2;
   int32 page = 3;
   int32 limit = 4;
@@ -358,7 +359,7 @@ message GetBrokerPropertiesForCustomerResponse {
 }
 
 message CreateCustomerBookingRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string propertyId = 2;
   string customerName = 3;
   string customerPhone = 4;
@@ -376,7 +377,7 @@ message CreateCustomerBookingResponse {
 }
 
 message GetPropertyDetailsForCustomerRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string propertyId = 2;
 }
 
@@ -403,7 +404,7 @@ message GetPropertyDetailsForCustomerResponse {
 }
 
 message GetCustomerBookingsRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 page = 2;
   int32 limit = 3;
 }
@@ -474,7 +475,7 @@ message DeclineBookingResponse {
 
 message SearchPropertiesByBrokerTitleRequest {
   string query = 1;
-  string sessionToken = 2;
+  string customerId = 2;
   int32 page = 3;
   int32 limit = 4;
   double lat = 5;
@@ -522,7 +523,7 @@ message CustomerBooking {
 }
 
 message RecordCustomerSearchRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string query = 2;
   string location = 3;
   double radius = 4;
@@ -541,22 +542,22 @@ message RecordCustomerSearchResponse {
 }
 
 message GetCustomerSearchesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 page = 2;
   int32 limit = 3;
 }
 
 message CustomerSearch {
   string id = 1;
-  string sessionId = 2;
-  string sessionToken = 3;
-  string query = 4;
-  string location = 5;
-  double radius = 6;
-  string propertyType = 7;
-  string filters = 8;
-  int32 resultCount = 9;
-  string createdAt = 10;
+  string customerId = 2;
+  string query = 3;
+  string location = 4;
+  double radius = 5;
+  string propertyType = 6;
+  string filters = 7;
+  int32 resultCount = 8;
+  string createdAt = 9;
+  repeated string resultPropertyIds = 10;
 }
 
 message GetCustomerSearchesResponse {
@@ -567,7 +568,7 @@ message GetCustomerSearchesResponse {
 message GetAllCustomerSearchesRequest {
   int32 page = 1;
   int32 limit = 2;
-  string sessionToken = 3;
+  string customerId = 3;
   string query = 4;
 }
 
@@ -577,7 +578,7 @@ message GetAllCustomerSearchesResponse {
 }
 
 message ToggleFavoriteRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string propertyId = 2;
   string propertyTitle = 3;
   string propertyLocation = 4;
@@ -591,7 +592,7 @@ message ToggleFavoriteResponse {
 }
 
 message GetCustomerFavoritesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 page = 2;
   int32 limit = 3;
 }
@@ -629,7 +630,7 @@ message GetAllCustomerFavoritesResponse {
 }
 
 message AddCommentRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string propertyId = 2;
   string customerName = 3;
   string customerPhone = 4;
@@ -677,7 +678,7 @@ message GetAllCommentsResponse {
 }
 
 message SearchPropertiesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string query = 2;
   string location = 3;
   double radius = 4;

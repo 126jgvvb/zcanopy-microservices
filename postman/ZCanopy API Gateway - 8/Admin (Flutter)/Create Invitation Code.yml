@@ -1,0 +1,23 @@
+info:
+  name: Create Invitation Code
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/admin/invitation-code"
+  body:
+    type: json
+    data: |-
+      {
+        "role": "admin",
+        "expiryHours": 24
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

@@ -792,6 +792,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
           broker: cached,
           walletBalance,
           transactions: transactions.transactions || [],
+          messages: cached.messages || [],
+          bookings: cached.bookings || [],
         };
       }
 
@@ -811,6 +813,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         broker,
         walletBalance,
         transactions: transactions.transactions || [],
+        messages: broker.messages || [],
+        bookings: broker.bookings || [],
       };
     } catch (err) {
       this.logger.error(`Failed to get broker details for ${dto.brokerId}:`, err);
@@ -829,6 +833,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         broker: cached,
         walletBalance: cached.walletBalance || 0,
         transactions: [],
+        messages: cached.messages || [],
+        bookings: cached.bookings || [],
       };
     } catch (err) {
       this.logger.error(`Failed to get broker details from cache for ${dto.brokerId}:`, err);
@@ -1441,14 +1447,14 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getAllCustomerSearches(dto: { page: number; limit: number; sessionToken?: string; query?: string }) {
+  async getAllCustomerSearches(dto: { page: number; limit: number; customerId?: string; query?: string }) {
     this.logger.log(`Received getAll-customer-searches request`);
     try {
       const result = await lastValueFrom(
         this.propertyClient.getService('PropertyService').getAllCustomerSearches({
           page: Number(dto.page) || 1,
-          limit: Number(dto.limit) || 20,
-          sessionToken: dto.sessionToken || '',
+          limit: Math.min(Number(dto.limit) || 10, 10),  // Cap at 10 for admin to prevent buffer overflow
+          customerId: dto.customerId || '',
           query: dto.query || '',
         }).pipe(timeout(10000)),
       );

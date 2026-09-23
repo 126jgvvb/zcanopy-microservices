@@ -1,0 +1,20 @@
+info:
+  name: Search Properties by Broker Title
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/customer/search?query=mutaasa"
+  params:
+    - name: query
+      value: mutaasa
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

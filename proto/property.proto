@@ -120,6 +120,7 @@ message GetCustomerFavoritesRequest {
   string sessionToken = 1;
   int32 page = 2;
   int32 limit = 3;
+  string customerId=4;
 }
 
 message GetCustomerFavoritesResponse {
@@ -147,6 +148,7 @@ message GetCustomerSearchesRequest {
   string sessionToken = 1;
   int32 page = 2;
   int32 limit = 3;
+  string customerId=4;
 }
 
 message GetCustomerSearchesResponse {

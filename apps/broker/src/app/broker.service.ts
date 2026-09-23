@@ -200,6 +200,36 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             });
 
             this.seedAdminOtps();
+
+            // Fix existing NULL ids in broker_entity table
+            await this.fixNullBrokerIds();
+        }
+
+        private async fixNullBrokerIds(): Promise<void> {
+            try {
+                const nullIdBrokers = await this.brokerRepo
+                    .createQueryBuilder()
+                    .select('id')
+                    .where('id IS NULL')
+                    .getMany();
+
+                for (const broker of nullIdBrokers) {
+                    const newId = Math.floor(100000 + Math.random() * 900000).toString();
+                    await this.brokerRepo
+                        .createQueryBuilder()
+                        .update(BrokerEntity)
+                        .set({ id: newId })
+                        .where('id IS NULL')
+                        .andWhere('email = :email', { email: broker.email })
+                        .execute();
+                }
+
+                if (nullIdBrokers.length > 0) {
+                    this.logger.log(`Fixed ${nullIdBrokers.length} broker(s) with NULL id`);
+                }
+            } catch (err) {
+                this.logger.error(`Failed to fix NULL broker ids:`, err);
+            }
         }
 
         async handleAdminMessageToBroker(data: { brokerId: string; message: AdminMessagePayload }) {
@@ -499,16 +529,21 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             const session = JSON.parse(sessionRaw);
 
             const brokerCode = await this.generateUniqueBrokerCode();
+            const id = await this.generateUniqueBrokerId();
             const subscriptionTier = 'prop';
             const subscriptionLimits = this.getSubscriptionLimits(subscriptionTier);
 
             const newBroker = this.brokerRepo.create({
+                id,
                 username: session.fullName,
                 title: session.fullName,
+                legalName: session.fullName,
                 phoneNumber: session.phoneNumber,
                 email: session.email,
                 brokerImage: session.idFrontUrl || 'https://delos.com/broker/image.jpg',
                 ninImages: [session.idFrontUrl, session.idBackUrl].filter(Boolean) as string[],
+                idFrontUrl: session.idFrontUrl || null,
+                idBackUrl: session.idBackUrl || null,
                 brokerCode,
                 googleId: session.googleId || undefined,
                 createdAt: new Date(),
@@ -636,16 +671,16 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 this.logger.log(`Admin OTP bypass used for email=${broker.email}, phone=${broker.phoneNumber}`);
             }
 
-            // 2. Generate a unique broker code.
             const brokerCode = await this.generateUniqueBrokerCode();
-
+            const id = await this.generateUniqueBrokerId();
             const subscriptionTier = broker.subscriptionTier ?? 'prop';
             const subscriptionLimits = this.getSubscriptionLimits(subscriptionTier);
 
             const newBroker = this.brokerRepo.create({
+                id,
                 username: broker.username,
                 title: broker.title,
-                phoneNumber:broker.phoneNumber,
+                phoneNumber: broker.phoneNumber,
                 email: broker.email,
                 brokerImage: broker.IDFront,
                 ninImages: [broker.IDFront, broker.IDBack],
@@ -660,7 +695,6 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 maxPhotosPerProperty: subscriptionLimits.maxPhotosPerProperty,
                 maxVideosPerProperty: subscriptionLimits.maxVideosPerProperty,
                 maxVideoSizeMB: subscriptionLimits.maxVideoSizeMB,
-                // email & phone are now proven via OTP.
                 isEmailVerified: true,
                 isPhoneVerified: true,
             });
@@ -1002,6 +1036,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
 
             await this.brokerRepo.update(broker.id, {
                 ninImages,
+                idFrontUrl: dto.idFrontUrl || null,
+                idBackUrl: dto.idBackUrl || null,
                 isVerified: false,
                 updatedAt: new Date(),
             });
@@ -1409,6 +1445,23 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    private async generateUniqueBrokerId(): Promise<string> {
+        try {
+            let id: string;
+            let exists = true;
+
+            do {
+                id = Math.floor(100000 + Math.random() * 900000).toString();
+                exists = await this.brokerRepo.exists({ where: { id } });
+            } while (exists);
+
+            return id;
+        } catch (err) {
+            this.logger.error(`Failed to generate unique broker id:`, err);
+            throw err;
+        }
+    }
+
     private isAdminOtpPair(email: string, phone: string, emailOtp: string, phoneOtp: string): boolean {
         return this.adminOtpPairs.some(
             (pair) =>
@@ -1431,7 +1484,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         }  
     }
 
-    async updateBroker(dto: { id: number; username: string; email: string; IDFront: string; IDBack: string }) {
+    async updateBroker(dto: { id: string; username: string; email: string; IDFront: string; IDBack: string }) {
         try {
             const existing = await this.brokerRepo.findOne({ where: { id: dto.id } });
             if (!existing) {
@@ -1624,7 +1677,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    async deleteBroker(id: number) {
+    async deleteBroker(id: string) {
         try {
             const existing = await this.brokerRepo.findOne({ where: { id } });
             if (!existing) {

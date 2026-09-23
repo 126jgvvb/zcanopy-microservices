@@ -231,8 +231,9 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'GetCustomerSearches')
-  async getCustomerSearches(dto: { customerId: string; page: number; limit: number }) {
-    this.logger.log(`Received get-customer-searches request for customer ${dto.customerId}`);
+  async getCustomerSearches(dto: { sessionToken:string, customerId: string; page: number; limit: number }) {
+    this.logger.log(`Received get-customer-searches request for customer ${dto.sessionToken} :: ${dto.customerId}`);
+    dto.customerId=dto.sessionToken;
     return this.propertyService.getCustomerSearches(dto);
   }
 
@@ -249,8 +250,9 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'GetCustomerFavorites')
-  async getCustomerFavorites(dto: { customerId: string; page: number; limit: number }) {
-    this.logger.log(`Received get-customer-favorites request for customer ${dto.customerId}`);
+  async getCustomerFavorites(dto: any) {
+    this.logger.log(`Received get-customer-favorites request for customer ${JSON.stringify(dto)}`);
+    dto.customerId=dto.sessionToken;
     return this.propertyService.getCustomerFavorites(dto);
   }
 

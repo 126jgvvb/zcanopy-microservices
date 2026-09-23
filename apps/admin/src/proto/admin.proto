@@ -695,21 +695,21 @@ message ApproveAllPendingVerificationsResponse {
 message GetAllCustomerSearchesRequest {
   int32 page = 1;
   int32 limit = 2;
-  string sessionToken = 3;
+  string customerId = 3;
   string query = 4;
 }
 
 message CustomerSearchSummary {
   string id = 1;
-  string sessionId = 2;
-  string sessionToken = 3;
-  string query = 4;
-  string location = 5;
-  double radius = 6;
-  string propertyType = 7;
-  string filters = 8;
-  int32 resultCount = 9;
-  string createdAt = 10;
+  string customerId = 2;
+  string query = 3;
+  string location = 4;
+  double radius = 5;
+  string propertyType = 6;
+  string filters = 7;
+  int32 resultCount = 8;
+  string createdAt = 9;
+  repeated string resultPropertyIds = 10;
 }
 
 message GetAllCustomerSearchesResponse {

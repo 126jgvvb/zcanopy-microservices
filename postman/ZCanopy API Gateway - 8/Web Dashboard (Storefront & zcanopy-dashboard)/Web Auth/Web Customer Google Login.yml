@@ -1,0 +1,28 @@
+info:
+  name: Web Customer Google Login
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/web/customer/login/google"
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "googleId": "google-user-id",
+        "email": "customer@gmail.com",
+        "firstName": "John",
+        "lastName": "Doe"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

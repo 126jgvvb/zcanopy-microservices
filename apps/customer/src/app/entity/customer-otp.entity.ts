@@ -30,6 +30,6 @@ export class CustomerOtpEntity {
   @ManyToOne(() => CustomerEntity, customer => customer.otps, { onDelete: 'CASCADE' })
   customer!: CustomerEntity;
 
-  @Column()
+  @Column({ nullable: true })
   customerId!: string;
 }
