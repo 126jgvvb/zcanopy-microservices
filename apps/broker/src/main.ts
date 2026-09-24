@@ -50,10 +50,11 @@ async function bootstrap() {
     },
   },);
 
+  const httpPort=303;
 
   await app.startAllMicroservices();
-  await app.listen(port);
-  Logger.log( `Broker Application is running on: http://localhost:${port}/${globalPrefix}`,);
+  await app.listen(httpPort);
+  Logger.log( `Broker Application is running on: http://localhost:${httpPort}/${globalPrefix}`,);
 }
 
 bootstrap();

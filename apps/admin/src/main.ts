@@ -36,10 +36,12 @@ async function bootstrap() {
     },
   });
 
+  const httpPort=306;
+
   await app.startAllMicroservices();
-  await app.listen(port);
+  await app.listen(httpPort);
   Logger.log(
-    `🚀 Admin service is running on: http://localhost:${port}/${globalPrefix} (gRPC + Redis)`,
+    `🚀 Admin service is running on: http://localhost:${httpPort}/${globalPrefix} (gRPC + Redis)`,
   );
 }
 
