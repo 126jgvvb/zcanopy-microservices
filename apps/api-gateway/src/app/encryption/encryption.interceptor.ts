@@ -16,7 +16,7 @@ export class EncryptionInterceptor implements NestInterceptor {
         if (route.includes('devLogin')) {
           return data;
         }
-        if (route.startsWith('WebAuthController/') || route.startsWith('WebCustomerController/') || route.startsWith('WebBrokerController/')) {
+        if (route.startsWith('WebAuthController/') || route.startsWith('WebCustomerController/') || route.startsWith('WebBrokerController/') || route.startsWith('UploadController/')) {
           return data;
         }
         if (!this.shouldEncryptResponse(data)) {

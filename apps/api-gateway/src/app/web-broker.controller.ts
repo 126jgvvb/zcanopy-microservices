@@ -231,6 +231,11 @@ export class WebBrokerController {
     }
 
     if (body.newPassword !== body.confirmPassword) {
+      this.logger.warn(
+        `Password mismatch for broker ${this.getBrokerCode(req)}: ` +
+        `newPassword=${JSON.stringify(body.newPassword)} (type=${typeof body.newPassword}), ` +
+        `confirmPassword=${JSON.stringify(body.confirmPassword)} (type=${typeof body.confirmPassword})`,
+      );
       return { success: false, message: 'Passwords do not match' };
     }
 
