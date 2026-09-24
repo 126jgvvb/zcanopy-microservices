@@ -5,11 +5,13 @@ info:
 
 http:
   method: GET
-  url: "{{baseUrl}}/web/broker/properties/prop-123"
+  url: "{{baseUrl}}/web/broker/properties/13"
   headers:
     - name: Authorization
       value: Bearer {{accessToken}}
-  auth: inherit
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2MTg1MTAiLCJlbWFpbCI6IndhZGlrYWtldmluQGdtYWlsLmNvbSIsInJvbGUiOiJicm9rZXIiLCJ1c2VybmFtZSI6IndhZGlrYSBrZXZpbiIsImJyb2tlckNvZGUiOiI0MDE5MTQxOCIsImlhdCI6MTc5MDI0NjIxMCwiZXhwIjoxNzkwODUxMDEwfQ.YWhj-N01LqGTAXtWIh6rW235-K_IJ47xm4AcBetjTBQ
 
 settings:
   encodeUrl: true

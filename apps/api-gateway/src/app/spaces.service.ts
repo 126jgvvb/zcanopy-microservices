@@ -49,4 +49,40 @@ export class SpacesService {
       publicUrl: `${this.cdnBaseUrl}/${key}`,
     };
   }
+
+  async uploadBuffer(filename: string, contentType: string, buffer: Buffer, folder = 'properties') {
+    const key = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}-${filename.replace(/\s+/g, '-')}`;
+
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+      ACL: 'public-read',
+    });
+
+    await this.s3.send(command);
+
+    return {
+      key,
+      publicUrl: `${this.cdnBaseUrl}/${key}`,
+    };
+  }
+}
+
+  // DigitalOcean Spaces requires bucket-level CORS configuration.
+  // Example CORS rule for direct browser uploads:
+  //
+  // <CORSConfiguration>
+  //   <CORSRule>
+  //     <AllowedOrigin>http://localhost:3001</AllowedOrigin>
+  //     <AllowedOrigin>https://your-dashboard-domain.com</AllowedOrigin>
+  //     <AllowedMethod>PUT</AllowedMethod>
+  //     <AllowedMethod>GET</AllowedMethod>
+  //     <AllowedMethod>POST</AllowedMethod>
+  //     <AllowedHeader>*</AllowedHeader>
+  //     <ExposeHeader>ETag</ExposeHeader>
+  //     <MaxAgeSeconds>3000</MaxAgeSeconds>
+  //   </CORSRule>
+  // </CORSConfiguration>
 }

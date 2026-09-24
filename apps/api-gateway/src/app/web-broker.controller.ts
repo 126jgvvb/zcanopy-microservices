@@ -47,16 +47,18 @@ export class WebBrokerController {
     });
   }
 
-  @Get('properties/:id')
+   @Get('properties/:id')
   @ApiOperation({ summary: 'Get single property details for web dashboard' })
   async getProperty(@Req() req: any, @Param('id') id: string) {
     this.logger.log(`Web broker property detail request for ${this.getBrokerCode(req)} id=${id}`);
-    return this.proxyService.forwardToProperty('GetProperties', {
+    const result = await this.proxyService.forwardToProperty('GetProperties', {
       id,
       brokerCode: this.getBrokerCode(req),
       page: 1,
       limit: 1,
     });
+    const properties = (result as any)?.properties || [];
+    return properties[0] || null;
   }
 
   @Post('properties')

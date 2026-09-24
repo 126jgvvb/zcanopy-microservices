@@ -1,5 +1,6 @@
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, UseInterceptors, UploadedFile, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { SpacesService } from './spaces.service';
 
 @ApiTags('upload')
@@ -15,5 +16,26 @@ export class UploadController {
     }
 
     return this.spacesService.generateUploadUrl(body.filename, body.contentType, body.folder || 'properties');
+  }
+
+  @Post('proxy')
+  @ApiOperation({ summary: 'Upload a file through the API gateway when CORS blocks direct Spaces uploads' })
+  @UseInterceptors(FileInterceptor('file'))
+  async proxy(@UploadedFile() file: Express.Multer.File, @Query('folder') folder?: string) {
+    if (!file) {
+      throw new BadRequestException('file is required');
+    }
+
+    const result = await this.spacesService.uploadBuffer(
+      file.originalname,
+      file.mimetype,
+      file.buffer,
+      folder || 'properties',
+    );
+
+    return {
+      key: result.key,
+      publicUrl: result.publicUrl,
+    };
   }
 }
