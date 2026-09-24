@@ -46,7 +46,7 @@ export class PropertyController {
 
   @GrpcMethod('PropertyService', 'CreateProperty')
   async createProperty(dto: CreatePropertyDto) {
-    this.logger.log(`Received create-property request for broker code ${dto.brokersUniqueCode}`);
+    this.logger.log(`Received create-property ${JSON.stringify(dto)} request for broker code ${dto.brokersUniqueCode}`);
     const property = await this.propertyService.createProperty(dto);
     return {
       id: property.id,

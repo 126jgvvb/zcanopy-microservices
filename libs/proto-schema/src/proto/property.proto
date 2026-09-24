@@ -205,6 +205,8 @@ message CreatePropertyRequest {
   string district = 15;
   string  brokerBookingFee=16;
   string price=17;
+  double lat = 18;
+  double lng = 19;
 }
 
 message CreatePropertyResponse {
@@ -263,6 +265,7 @@ message UpdatePropertyRequest {
   double lng = 9;
   string subCounty = 10;
   string district = 11;
+  Coordinates coordinates = 12;
 }
 
 message UpdatePropertyResponse {

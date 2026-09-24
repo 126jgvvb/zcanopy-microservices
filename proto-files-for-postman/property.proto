@@ -51,6 +51,8 @@ message CreatePropertyRequest {
   Coordinates coordinates = 13;
   string subCounty = 14;
   string district = 15;
+  double lat = 16;
+  double lng = 17;
 }
 
 message CreatePropertyResponse {
@@ -109,6 +111,7 @@ message UpdatePropertyRequest {
   double lng = 9;
   string subCounty = 10;
   string district = 11;
+  Coordinates coordinates = 12;
 }
 
 message UpdatePropertyResponse {

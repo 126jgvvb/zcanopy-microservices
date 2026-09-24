@@ -1,5 +1,5 @@
 info:
-  name: Get User Properties
+  name: Get User Properties(all properties)
   type: http
   seq: 4
 

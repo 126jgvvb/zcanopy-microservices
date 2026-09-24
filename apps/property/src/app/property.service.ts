@@ -197,14 +197,15 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         !dto.location ||
         !dto.videoUrl ||
         dto.videoUrl.length === 0 ||
-        !dto.coordinates ||
-        dto.coordinates.lat == null ||
-        dto.coordinates.lng == null
+        dto.lat == null ||
+        dto.lng == null
       ) {
         throw new BadRequestException(
           'location, lat, lng and videoUrl are required to create a property',
         );
       }
+
+      dto.coordinates={lat:dto.lat,lng:dto.lng};
 
       if(dto.price==0 || dto.price==undefined){
         this.logger.log('Recieved 0 for price..aborting');

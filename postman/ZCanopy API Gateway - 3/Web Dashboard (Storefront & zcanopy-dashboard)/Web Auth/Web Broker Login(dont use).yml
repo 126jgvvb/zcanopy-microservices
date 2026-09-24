@@ -1,5 +1,5 @@
 info:
-  name: Web Broker Login
+  name: Web Broker Login(dont use)
   type: http
   seq: 2
 
@@ -13,7 +13,7 @@ http:
     type: json
     data: |-
       {
-        "brokerCode": "BROKER123",
+        "brokerCode": "40191418",
         "password": "password123",
         "deviceId": "web-dashboard"
       }

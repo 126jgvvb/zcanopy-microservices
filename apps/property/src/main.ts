@@ -35,10 +35,12 @@ async function bootstrap() {
     },
   });
 
+  const httpPort=304;
+
   await app.startAllMicroservices();
-  await app.listen(port);
+  await app.listen(httpPort);
   Logger.log(
-    `🚀 Property service is running on: http://localhost:${port}/${globalPrefix} (gRPC on ${port})`,
+    `🚀 Property service is running on: http://localhost:${httpPort}/${globalPrefix} (gRPC on ${port})`,
   );
 }
 
