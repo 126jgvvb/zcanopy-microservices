@@ -929,7 +929,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                         '1 video per property',
                         '500MB max video size',
                     ],
-                    limits: this.getSubscriptionLimits('prop'),
+                    ...this.getSubscriptionLimits('prop'),
                 },
                 {
                     tier: 'buttress',
@@ -944,7 +944,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                         '4GB max video size',
                         'Priority support',
                     ],
-                    limits: this.getSubscriptionLimits('buttress'),
+                    ...this.getSubscriptionLimits('buttress'),
                 },
                 {
                     tier: 'fibrous',
@@ -960,7 +960,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                         'Premium support',
                         'Advanced analytics',
                     ],
-                    limits: this.getSubscriptionLimits('fibrous'),
+                    ...this.getSubscriptionLimits('fibrous'),
                 },
             ];
 
@@ -1388,9 +1388,9 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
     private getTierPrice(tier: string): number {
         switch (tier) {
             case 'fibrous':
-                return 250;  //25000
+                return 25000;
             case 'buttress':
-                return 500; //50000
+                return 50000;
             case 'prop':
             default:
                 return 0;

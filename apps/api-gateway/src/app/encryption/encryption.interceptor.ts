@@ -16,13 +16,14 @@ export class EncryptionInterceptor implements NestInterceptor {
         if (route.includes('devLogin')) {
           return data;
         }
-        if (route.startsWith('WebAuthController/') || route.startsWith('WebCustomerController/')) {
+        if (route.startsWith('WebAuthController/') || route.startsWith('WebCustomerController/') || route.startsWith('WebBrokerController/')) {
           return data;
         }
         if (!this.shouldEncryptResponse(data)) {
           return data;
         }
-        this.logger.log(`Response before encryption [${route}]: ${JSON.stringify(data)}`);
+        const jsonStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
+        this.logger.log(`Encrypting response [${route}] (${jsonStr.length} bytes)`);
         try {
           return await this.encryptionService.encryptResponse(data);
         } catch {
