@@ -69,20 +69,3 @@ export class SpacesService {
     };
   }
 }
-
-  // DigitalOcean Spaces requires bucket-level CORS configuration.
-  // Example CORS rule for direct browser uploads:
-  //
-  // <CORSConfiguration>
-  //   <CORSRule>
-  //     <AllowedOrigin>http://localhost:3001</AllowedOrigin>
-  //     <AllowedOrigin>https://your-dashboard-domain.com</AllowedOrigin>
-  //     <AllowedMethod>PUT</AllowedMethod>
-  //     <AllowedMethod>GET</AllowedMethod>
-  //     <AllowedMethod>POST</AllowedMethod>
-  //     <AllowedHeader>*</AllowedHeader>
-  //     <ExposeHeader>ETag</ExposeHeader>
-  //     <MaxAgeSeconds>3000</MaxAgeSeconds>
-  //   </CORSRule>
-  // </CORSConfiguration>
-}
