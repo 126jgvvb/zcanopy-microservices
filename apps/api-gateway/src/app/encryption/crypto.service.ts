@@ -9,13 +9,19 @@ export class CryptoService {
   constructor() {
     const key = process.env.ENCRYPTION_KEY;
     if (!key) {
-      this.keyBuffer = Buffer.from('dev-only-insecure-encryption-key-change-me-1234567890', 'utf8').subarray(0, 32);
+      this.keyBuffer = Buffer.from(
+        'sBXZBcqwKPmzNv+ifnUFdgVkh01jgTqDgGALrBgMIRLmQbcwJtc6Vb4W+axZRe+w',
+        'base64',
+      ).subarray(0, 32);
       console.warn('ENCRYPTION_KEY is not set; using an insecure development fallback key.');
       return;
     }
     this.keyBuffer = Buffer.from(key, 'hex');
     if (this.keyBuffer.length !== 32) {
-      throw new Error('ENCRYPTION_KEY must be a 64-character hex string (32 bytes)');
+      this.keyBuffer = Buffer.from(key, 'base64').subarray(0, 32);
+    }
+    if (this.keyBuffer.length !== 32) {
+      throw new Error('ENCRYPTION_KEY must decode to 32 bytes');
     }
   }
 

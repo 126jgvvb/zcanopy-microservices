@@ -17,7 +17,7 @@ config:
 request:
   variables:
     - name: baseUrl
-      value: http://localhost:3000/api
+      value: https://api-gateway-production-f9cc.up.railway.app/api
     - name: accessToken
       value: ""
     - name: sessionToken

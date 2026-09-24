@@ -16,6 +16,12 @@ export class EncryptionInterceptor implements NestInterceptor {
         if (route.includes('devLogin')) {
           return data;
         }
+        if (route.startsWith('WebAuthController/') || route.startsWith('WebCustomerController/')) {
+          return data;
+        }
+        if (!this.shouldEncryptResponse(data)) {
+          return data;
+        }
         this.logger.log(`Response before encryption [${route}]: ${JSON.stringify(data)}`);
         try {
           return await this.encryptionService.encryptResponse(data);
@@ -24,5 +30,31 @@ export class EncryptionInterceptor implements NestInterceptor {
         }
       }),
     );
+  }
+
+  private shouldEncryptResponse(data: any): boolean {
+    if (data === null || data === undefined) {
+      return false;
+    }
+
+    if (Array.isArray(data)) {
+      return false;
+    }
+
+    if (typeof data !== 'object') {
+      return true;
+    }
+
+    const hasPaginationShape =
+      data &&
+      typeof data === 'object' &&
+      ('total' in data || 'page' in data || 'limit' in data || 'hasMore' in data || 'totalPages' in data);
+
+    if (hasPaginationShape) {
+      return false;
+    }
+
+    const jsonStr = JSON.stringify(data);
+    return jsonStr.length < 4096;
   }
 }
