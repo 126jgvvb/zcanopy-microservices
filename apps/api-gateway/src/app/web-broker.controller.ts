@@ -321,7 +321,8 @@ export class WebBrokerController {
   async getVerificationStatus(@Req() req: any) {
     this.logger.log(`Web broker verification status request for ${this.getBrokerCode(req)}`);
     const broker = await this.proxyService.forwardToBroker('GetBrokerByCode', { brokerCode: this.getBrokerCode(req) });
-    const brokerData = broker as any;
+    const Data = broker as any;
+    const brokerData=Data.broker;
 
     this.logger.log(`Broker raw ninImages: ${JSON.stringify(brokerData.ninImages)}`);
     console.log(`[WebBrokerController] raw broker data for verification:`, JSON.stringify(brokerData));
