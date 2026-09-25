@@ -34,9 +34,15 @@ export class WebBrokerController {
   }
 
   @Get('properties')
-  @ApiOperation({ summary: 'List broker properties for web dashboard' })
+  @ApiOperation({ summary: 'List broker properties or get single property details for web dashboard' })
   async getProperties(@Req() req: any, @Query() query: any) {
-    this.logger.log(`Web broker properties request for ${this.getBrokerCode(req)}`);
+    this.logger.log(`Web broker properties request for ${this.getBrokerCode(req)} query=${JSON.stringify(query)}`);
+    if (query.id) {
+      const result = await this.proxyService.forwardToProperty('GetPublicPropertyDetails', {
+        propertyId: query.id,
+      });
+      return result;
+    }
     return this.proxyService.forwardToProperty('GetProperties', {
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 12,
@@ -47,9 +53,19 @@ export class WebBrokerController {
     });
   }
 
-   @Get('properties/:id')
-  @ApiOperation({ summary: 'Get single property details for web dashboard' })
+  @Get('properties/:id')
+  @ApiOperation({ summary: 'Get single property details for web dashboard by path param' })
   async getProperty(@Req() req: any, @Param('id') id: string) {
+    this.logger.log(`Web broker property detail request for ${this.getBrokerCode(req)} id=${id}`);
+    const result = await this.proxyService.forwardToProperty('GetPublicPropertyDetails', {
+      propertyId: id,
+    });
+    return result;
+  }
+
+  @Get('properties/:id')
+  @ApiOperation({ summary: 'Get single property details for web dashboard' })
+  async getPropertyN(@Req() req: any, @Param('id') id: string) {
     this.logger.log(`Web broker property detail request for ${this.getBrokerCode(req)} id=${id}`);
     const result = await this.proxyService.forwardToProperty('GetProperties', {
       id,
@@ -61,24 +77,7 @@ export class WebBrokerController {
     return properties[0] || null;
   }
 
-
-
-  @Get('properties')
-  @ApiOperation({ summary: 'Get single property details for web dashboard with query params' })
-  async getPropertyN(@Query() query:any) {
-    this.logger.log(`Web broker property detail request for ${query.brokerCode} id=${query.id}`);
-    const result = await this.proxyService.forwardToProperty('GetProperties', {
-      query:query.id,
-      brokerCode: query.brokerCode,
-      page: 1,
-      limit: 1,
-    });
-    const properties = (result as any)?.properties || [];
-    return properties[0] || null;
-  }
-
-
-
+  
   @Post('properties')
   @ApiOperation({ summary: 'Create property from web dashboard' })
   async createProperty(@Req() req: any, @Body() body: any) {

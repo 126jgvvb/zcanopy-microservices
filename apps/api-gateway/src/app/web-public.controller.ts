@@ -41,6 +41,7 @@ export class WebPublicController {
     });
   }
 
+  /*
   @Get('properties/:id')
   @ApiOperation({ summary: 'Public property details for web dashboard' })
   async getPublicPropertyDetails(@Param('id') id: string, @Req() req: any) {
@@ -48,7 +49,26 @@ export class WebPublicController {
     return this.proxyService.forwardToProperty('GetPublicPropertyDetails', {
       propertyId: id,
     });
+  }*/
+
+
+
+  @Get('properties')
+  @ApiOperation({ summary: 'Get single property details for web dashboard' })
+  async getPropertyN(@Query() query: any) {
+    this.logger.log(`Web public property detail request for ${query.brokerCode} id=${query.id}`);
+    const result = await this.proxyService.forwardToProperty('GetProperties', {
+      id:query.id,
+      brokerCode: query.brokerCode,
+      page: 1,
+      limit: 1,
+    });
+    const properties = (result as any)?.properties || [];
+    return properties[0] || null;
   }
+
+
+  
 
   @Get('search')
   @ApiOperation({ summary: 'Search properties for web dashboard' })
