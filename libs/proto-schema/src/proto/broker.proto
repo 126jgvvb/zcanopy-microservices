@@ -43,9 +43,26 @@ service BrokerService{
   rpc UpdateUserField (UpdateUserFieldRequest) returns (UpdateUserFieldResponse);
   rpc DeleteBrokerAccount (DeleteBrokerAccountRequest) returns (DeleteBrokerAccountResponse);
   rpc SendBrokerOtp (SendBrokerOtpRequest) returns (SendBrokerOtpResponse);
+  rpc SubmitVerificationDocuments (SubmitVerificationDocumentsRequest) returns (SubmitVerificationDocumentsResponse);
 }
 
 
+
+
+
+
+
+
+message SubmitVerificationDocumentsRequest {
+  string brokerCode = 1;
+  string idFrontUrl = 2;
+  string idBackUrl = 3;
+}
+
+message SubmitVerificationDocumentsResponse {
+  bool success = 1;
+  string message = 2;
+}
 
 message SendBrokerOtpRequest {
   string email = 1;
