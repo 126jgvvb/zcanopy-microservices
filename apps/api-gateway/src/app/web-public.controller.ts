@@ -53,7 +53,7 @@ export class WebPublicController {
 
 
 
-  @Get('properties')
+  @Get('property-info')
   @ApiOperation({ summary: 'Get single property details for web dashboard' })
   async getPropertyN(@Query() query: any) {
     this.logger.log(`Web public property detail request for ${query.brokerCode} id=${query.id}`);
