@@ -323,6 +323,9 @@ export class WebBrokerController {
     const broker = await this.proxyService.forwardToBroker('GetBrokerByCode', { brokerCode: this.getBrokerCode(req) });
     const brokerData = broker as any;
 
+    this.logger.log(`Broker raw ninImages: ${JSON.stringify(brokerData.ninImages)}`);
+    console.log(`[WebBrokerController] raw broker data for verification:`, JSON.stringify(brokerData));
+
     const ninImages = Array.isArray(brokerData.ninImages) ? brokerData.ninImages : [];
     const hasUploadedDocuments =
       ninImages.length >= 2 &&
