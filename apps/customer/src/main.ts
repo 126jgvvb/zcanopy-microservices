@@ -12,6 +12,7 @@ async function bootstrap() {
   app.setGlobalPrefix(globalPrefix);
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 3007;
+  const httpPort=307;
 
   const customerProtoPath = join(__dirname, './proto/customer.proto');
   const resolvedProtoPath = resolve(customerProtoPath);
@@ -32,9 +33,9 @@ async function bootstrap() {
   });
 
   await app.startAllMicroservices();
-  await app.listen(port);
+  await app.listen(httpPort);
   Logger.log(
-    `Customer service is running on: http://localhost:${port}/${globalPrefix} (gRPC on ${port})`,
+    `Customer service is running on: http://localhost:${httpPort}/${globalPrefix} (gRPC on ${port})`,
   );
 }
 
