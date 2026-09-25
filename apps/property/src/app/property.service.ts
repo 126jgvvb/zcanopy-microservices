@@ -1377,7 +1377,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     }
   }
 
-  async getPublicPropertyDetails(dto: { propertyId: string }): Promise<any> {
+  async getPublicPropertyDetails(dto: { propertyId: string; brokerCode?: string }): Promise<any> {
     try {
       const property = await this.propertyRepo.findOne({ where: { id: dto.propertyId } });
       if (!property) {

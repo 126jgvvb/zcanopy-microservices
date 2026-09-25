@@ -682,6 +682,7 @@ message GetSimilarPropertiesResponse {
 
 message GetPublicPropertyDetailsRequest {
   string propertyId = 1;
+  string brokerCode = 2;
 }
 
 message GetPublicPropertyDetailsResponse {
