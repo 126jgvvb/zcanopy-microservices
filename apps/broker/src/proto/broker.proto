@@ -45,6 +45,7 @@ service BrokerService{
   rpc SendBrokerOtp (SendBrokerOtpRequest) returns (SendBrokerOtpResponse);
   rpc VerifyBrokerOtp (VerifyBrokerOtpRequest) returns (VerifyBrokerOtpResponse);
   rpc VerifyOtp (VerifyOtpRequest) returns (VerifyOtpResponse);
+  rpc SubmitVerificationDocuments (SubmitVerificationDocumentsRequest) returns (SubmitVerificationDocumentsResponse);
 }
 
 message SaveBrokerFcmTokenRequest {
@@ -579,6 +580,17 @@ message VerifyOtpRequest {
 }
 
 message VerifyOtpResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SubmitVerificationDocumentsRequest {
+  string brokerCode = 1;
+  string idFrontUrl = 2;
+  string idBackUrl = 3;
+}
+
+message SubmitVerificationDocumentsResponse {
   bool success = 1;
   string message = 2;
 }
