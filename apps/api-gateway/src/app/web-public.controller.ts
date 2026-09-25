@@ -57,7 +57,7 @@ export class WebPublicController {
   @ApiOperation({ summary: 'Get single property details for web dashboard' })
   async getPropertyN(@Query() query: any) {
     this.logger.log(`Web public property detail request for ${query.brokerCode} id=${query.id}`);
-    const result = await this.proxyService.forwardToProperty('GetPublicPropertyDetails', {
+    const result = await this.proxyService.forwardToProperty('GetProperties', {
       propertyId: query.id,
       brokerCode: query.brokerCode,
     });
