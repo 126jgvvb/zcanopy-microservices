@@ -61,6 +61,24 @@ export class WebBrokerController {
     return properties[0] || null;
   }
 
+
+
+  @Get('properties')
+  @ApiOperation({ summary: 'Get single property details for web dashboard with query params' })
+  async getPropertyN(@Query() query:any) {
+    this.logger.log(`Web broker property detail request for ${query.brokerCode} id=${query.id}`);
+    const result = await this.proxyService.forwardToProperty('GetProperties', {
+      query:query.id,
+      brokerCode: query.brokerCode,
+      page: 1,
+      limit: 1,
+    });
+    const properties = (result as any)?.properties || [];
+    return properties[0] || null;
+  }
+
+
+
   @Post('properties')
   @ApiOperation({ summary: 'Create property from web dashboard' })
   async createProperty(@Req() req: any, @Body() body: any) {
