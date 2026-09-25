@@ -57,16 +57,13 @@ export class WebPublicController {
   @ApiOperation({ summary: 'Get single property details for web dashboard' })
   async getPropertyN(@Query() query: any) {
     this.logger.log(`Web public property detail request for ${query.brokerCode} id=${query.id}`);
-    const result = await this.proxyService.forwardToProperty('GetProperties', {
+    const result = await this.proxyService.forwardToProperty('GetPublicPropertyDetails', {
       propertyId: query.id,
       brokerCode: query.brokerCode,
-        page: 1,
-      limit: 1,
     });
+    console.log('[WebPublicController] property-info result:', JSON.stringify(result, null, 2));
     const properties = (result as any)?.properties || [];
-   if(properties.length>0) return properties.find((item: any) => String(item.id) === String(query.id)) || null;
-  
-    return result;
+    return properties.find((item: any) => String(item.id) === String(query.id)) || null;
   }
 
 
