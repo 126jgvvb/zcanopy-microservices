@@ -60,6 +60,8 @@ export class WebPublicController {
     const result = await this.proxyService.forwardToProperty('GetProperties', {
       propertyId: query.id,
       brokerCode: query.brokerCode,
+        page: 1,
+      limit: 1,
     });
     const properties = (result as any)?.properties || [];
    if(properties.length>0) return properties.find((item: any) => String(item.id) === String(query.id)) || null;
