@@ -322,11 +322,19 @@ export class WebBrokerController {
     this.logger.log(`Web broker verification status request for ${this.getBrokerCode(req)}`);
     const broker = await this.proxyService.forwardToBroker('GetBrokerByCode', { brokerCode: this.getBrokerCode(req) });
     const brokerData = broker as any;
+
+    const ninImages = Array.isArray(brokerData.ninImages) ? brokerData.ninImages : [];
+    const hasUploadedDocuments =
+      ninImages.length >= 2 &&
+      ninImages.every((url: string) => typeof url === 'string' && url.startsWith('https://zcanopy-properties-media.fra1.digitaloceanspaces.com'));
+
+    const verificationStatus = brokerData.isVerified ? 'approved' : hasUploadedDocuments ? 'pending' : 'unsubmitted';
+
     return {
       isVerified: brokerData.isVerified || false,
-      idFrontUrl: brokerData.ninImages?.[0] || null,
-      idBackUrl: brokerData.ninImages?.[1] || null,
-      verificationStatus: brokerData.isVerified ? 'approved' : (brokerData.ninImages?.length >= 2 ? 'pending' : 'unsubmitted'),
+      idFrontUrl: ninImages[0] || null,
+      idBackUrl: ninImages[1] || null,
+      verificationStatus,
     };
   }
 
