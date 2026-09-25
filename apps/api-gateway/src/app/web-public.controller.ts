@@ -45,8 +45,7 @@ export class WebPublicController {
   @ApiOperation({ summary: 'Public property details for web dashboard' })
   async getPublicPropertyDetails(@Param('id') id: string, @Req() req: any) {
     this.logger.log(`Web public property details request for ${id} sessionId=${this.getSessionToken(req)}`);
-    return this.proxyService.forwardToProperty('GetPropertyDetailsForCustomer', {
-      sessionToken: this.getSessionToken(req),
+    return this.proxyService.forwardToProperty('GetPublicPropertyDetails', {
       propertyId: id,
     });
   }

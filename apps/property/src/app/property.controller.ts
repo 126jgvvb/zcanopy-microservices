@@ -164,6 +164,12 @@ export class PropertyController {
     return this.propertyService.getPropertyDetailsForCustomer(dto);
   }
 
+  @GrpcMethod('PropertyService', 'GetPublicPropertyDetails')
+  async getPublicPropertyDetails(dto: { propertyId: string }) {
+    this.logger.log(`Received get-public-property-details request for property ${dto.propertyId}`);
+    return this.propertyService.getPublicPropertyDetails(dto);
+  }
+
   @GrpcMethod('PropertyService', 'GetSimilarProperties')
   async getSimilarProperties(dto: { customerId: string; propertyId: string; limit?: number }) {
     this.logger.log(`Received get-similar-properties request for customer ${dto.customerId}`);

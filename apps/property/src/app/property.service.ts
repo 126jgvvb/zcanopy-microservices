@@ -1377,6 +1377,49 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     }
   }
 
+  async getPublicPropertyDetails(dto: { propertyId: string }): Promise<any> {
+    try {
+      const property = await this.propertyRepo.findOne({ where: { id: dto.propertyId } });
+      if (!property) {
+        throw new BadRequestException('Property not found');
+      }
+
+      const broker = await firstValueFrom(
+        this.brokerClient.getService('BrokerService').GetBrokerByCode({ brokerCode: property.brokersUniqueCode }).pipe(
+          timeout(5000),
+        ),
+      );
+
+      return {
+        id: property.id,
+        title: property.title,
+        description: property.description,
+        propertyType: property.propertyType,
+        location: property.location,
+        brokersUniqueCode: property.brokersUniqueCode,
+        isAvailable: property.isAvailable,
+        createdAt: property.createdAt,
+        updatedAt: property.updatedAt,
+        photoCount: property.photoCount,
+        videoCount: property.videoCount,
+        postgisSpatialField: property.postgis_spatial_field ? JSON.stringify(property.postgis_spatial_field) : null,
+        imageUrl: property.imageUrl,
+        videoUrl: property.videoUrl,
+        price: property.price,
+        brokerBookingFee: property.brokerBookingFee,
+        brokerBrandName: broker?.brokerBrandName || property.brokerBrandName || '',
+        bookingState: this.computeBookingState(property),
+        amount: property.allowedViewers?.[0]?.amount || 0,
+        brokerPhone: broker?.phoneNumber || '',
+        brokerName: broker?.username || '',
+        canBook: true,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get public property details for ${dto.propertyId}:`, err);
+      throw err;
+    }
+  }
+
   async getSimilarProperties(dto: { customerId: string; propertyId: string; limit?: number }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; distanceKm: number | null; bookingState: any; totalBrokerProperties: number }>; total: number }> {
     try {
       const property = await this.propertyRepo.findOne({ where: { id: dto.propertyId } });

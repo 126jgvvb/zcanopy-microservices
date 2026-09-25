@@ -20,6 +20,7 @@ service PropertyService {
   rpc GetBrokerPropertiesForCustomer (GetBrokerPropertiesForCustomerRequest) returns (GetBrokerPropertiesForCustomerResponse);
   rpc CreateCustomerBooking (CreateCustomerBookingRequest) returns (CreateCustomerBookingResponse);
   rpc GetPropertyDetailsForCustomer (GetPropertyDetailsForCustomerRequest) returns (GetPropertyDetailsForCustomerResponse);
+  rpc GetPublicPropertyDetails (GetPublicPropertyDetailsRequest) returns (GetPublicPropertyDetailsResponse);
   rpc GetCustomerBookings (GetCustomerBookingsRequest) returns (GetCustomerBookingsResponse);
   rpc GetBookingByCode (GetBookingByCodeRequest) returns (GetBookingByCodeResponse);
   rpc GetBookingByBookingCode (GetBookingByBookingCodeRequest) returns (GetBookingByBookingCodeResponse);
@@ -677,4 +678,33 @@ message GetSimilarPropertiesRequest {
 message GetSimilarPropertiesResponse {
   repeated Property properties = 1;
   int32 total = 2;
+}
+
+message GetPublicPropertyDetailsRequest {
+  string propertyId = 1;
+}
+
+message GetPublicPropertyDetailsResponse {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string propertyType = 4;
+  string location = 5;
+  string brokersUniqueCode = 6;
+  bool isAvailable = 7;
+  string createdAt = 8;
+  string updatedAt = 9;
+  int32 photoCount = 10;
+  int32 videoCount = 11;
+  string postgisSpatialField = 12;
+  repeated string imageUrl = 13;
+  repeated string videoUrl = 14;
+  BookingState bookingState = 15;
+  double amount = 16;
+  string brokerPhone = 17;
+  string brokerName = 18;
+  bool canBook = 19;
+  double price = 20;
+  double brokerBookingFee = 21;
+  string brokerBrandName = 22;
 }

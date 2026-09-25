@@ -1042,6 +1042,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 updatedAt: new Date(),
             });
 
+            await this.invalidateBrokerCache(dto.brokerCode);
+
             this.redisClient.emit('broker_verification_submitted', {
                 brokerId: broker.id,
                 brokerCode: dto.brokerCode,
