@@ -2,6 +2,7 @@ import { Controller, Logger, Get, Post, Put, Body, Query, UseGuards, Req } from 
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ProxyService } from './proxy.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { Public } from './public.decorator';
 
 @ApiTags('web-customer')
 @Controller('web/customer')
@@ -16,6 +17,7 @@ export class CustomerWebController {
   }
 
   @Post('register')
+  @Public()
   @ApiOperation({ summary: 'Register customer with email and password from web dashboard' })
   async register(@Body() body: any) {
     this.logger.log(`Web customer register request for email=${body.email}`);
@@ -23,6 +25,7 @@ export class CustomerWebController {
   }
 
   @Post('login')
+  @Public()
   @ApiOperation({ summary: 'Login customer with email and password from web dashboard' })
   async login(@Body() body: any) {
     this.logger.log(`Web customer login request for email=${body.email}`);
@@ -44,6 +47,7 @@ export class CustomerWebController {
   }
 
   @Put('profile/phone')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update customer phone number from web dashboard' })
   async updatePhone(@Req() req: any, @Body() body: any) {
     const customerId = this.getCustomerId(req);
@@ -52,6 +56,7 @@ export class CustomerWebController {
   }
 
   @Get('video-tours')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get video tours from web dashboard' })
   async videoTours(@Query() query: any, @Req() req: any) {
     const customerId = this.getCustomerId(req);
@@ -68,6 +73,7 @@ export class CustomerWebController {
   }
 
   @Get('all-properties')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get all properties from web dashboard' })
   async allProperties(@Query() query: any, @Req() req: any) {
     const customerId = this.getCustomerId(req);
@@ -106,6 +112,7 @@ export class CustomerWebController {
   }
 
   @Get('properties')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get property details from web dashboard' })
   async getPropertyDetails(@Query() query: any, @Req() req: any) {
     const customerId = this.getCustomerId(req);
@@ -117,6 +124,7 @@ export class CustomerWebController {
   }
 
   @Get('properties/similar')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get similar properties from web dashboard' })
   async getSimilarProperties(@Query() query: any, @Req() req: any) {
     const customerId = this.getCustomerId(req);
@@ -129,6 +137,7 @@ export class CustomerWebController {
   }
 
   @Get('transactions')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer transactions from web dashboard' })
   async getTransactions(@Req() req: any, @Query() query: any) {
     const customerId = this.getCustomerId(req);
@@ -141,6 +150,7 @@ export class CustomerWebController {
   }
 
   @Get('invoices')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer invoices from web dashboard' })
   async getInvoices(@Req() req: any, @Query() query: any) {
     const customerId = this.getCustomerId(req);
@@ -153,6 +163,7 @@ export class CustomerWebController {
   }
 
   @Get('messages')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer messages from web dashboard' })
   async getMessages(@Req() req: any, @Query() query: any) {
     const customerId = this.getCustomerId(req);
@@ -165,6 +176,7 @@ export class CustomerWebController {
   }
 
   @Post('transactions/initiate')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Initiate transaction from web dashboard' })
   async initiateTransaction(@Req() req: any, @Body() body: any) {
     const customerId = this.getCustomerId(req);
@@ -183,6 +195,7 @@ export class CustomerWebController {
   }
 
   @Get('profile')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer profile from web dashboard' })
   async getProfile(@Req() req: any) {
     const customerId = this.getCustomerId(req);
@@ -191,6 +204,7 @@ export class CustomerWebController {
   }
 
   @Get('wallet')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer wallet balance from web dashboard' })
   async getWallet(@Req() req: any) {
     const customerId = this.getCustomerId(req);
@@ -199,6 +213,7 @@ export class CustomerWebController {
   }
 
   @Post('logout')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Logout customer from web dashboard' })
   async logout(@Req() req: any) {
     const customerId = this.getCustomerId(req);
@@ -207,6 +222,7 @@ export class CustomerWebController {
   }
 
   @Post('unsubscribe')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Unsubscribe customer from web dashboard' })
   async unsubscribe(@Req() req: any) {
     const customerId = this.getCustomerId(req);

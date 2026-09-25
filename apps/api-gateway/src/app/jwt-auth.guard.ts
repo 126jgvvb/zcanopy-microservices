@@ -1,6 +1,7 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger, SetMetadata } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { IS_PUBLIC_KEY } from './public.decorator';
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -19,6 +20,23 @@ export class JwtAuthGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
 
   canActivate(context: ExecutionContext): boolean {
+    const isPublic = (() => {
+      try {
+        const handler = context.getHandler();
+        const route = context.getClass();
+        const fromHandler = Reflect.getMetadata(IS_PUBLIC_KEY, handler);
+        const fromClass = Reflect.getMetadata(IS_PUBLIC_KEY, route);
+        return Boolean(fromHandler || fromClass);
+      } catch {
+        return false;
+      }
+    })();
+
+    if (isPublic) {
+      this.logger.log('JwtAuthGuard: public route, skipping authentication');
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const token = this.extractToken(request);
 
