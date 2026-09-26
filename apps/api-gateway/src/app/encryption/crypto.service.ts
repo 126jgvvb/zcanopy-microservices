@@ -8,21 +8,22 @@ export class CryptoService {
 
   constructor() {
     const key = process.env.ENCRYPTION_KEY;
-    if (!key) {
-      this.keyBuffer = Buffer.from(
-        'sBXZBcqwKPmzNv+ifnUFdgVkh01jgTqDgGALrBgMIRLmQbcwJtc6Vb4W+axZRe+w',
-        'base64',
-      ).subarray(0, 32);
-      console.warn('ENCRYPTION_KEY is not set; using an insecure development fallback key.');
+    if (key) {
+      console.log('[CryptoService] Using ENCRYPTION_KEY from environment');
+      this.keyBuffer = Buffer.from(key, 'hex');
+      if (this.keyBuffer.length !== 32) {
+        this.keyBuffer = Buffer.from(key, 'base64').subarray(0, 32);
+      }
+      if (this.keyBuffer.length !== 32) {
+        throw new Error('ENCRYPTION_KEY must decode to 32 bytes');
+      }
       return;
     }
-    this.keyBuffer = Buffer.from(key, 'hex');
-    if (this.keyBuffer.length !== 32) {
-      this.keyBuffer = Buffer.from(key, 'base64').subarray(0, 32);
-    }
-    if (this.keyBuffer.length !== 32) {
-      throw new Error('ENCRYPTION_KEY must decode to 32 bytes');
-    }
+    console.log('[CryptoService] ENCRYPTION_KEY not set, using insecure development fallback key');
+    this.keyBuffer = Buffer.from(
+      'sBXZBcqwKPmzNv+ifnUFdgVkh01jgTqDgGALrBgMIRLmQbcwJtc6Vb4W+axZRe+w',
+      'base64',
+    ).subarray(0, 32);
   }
 
   encrypt(plaintext: string): Promise<string> {

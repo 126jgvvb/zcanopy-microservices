@@ -32,11 +32,7 @@ import { CustomerWebController } from './customer-web.controller';
 import { ProxyService } from './proxy.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { SessionMiddleware } from './session.middleware';
-import { EncryptionService } from './encryption/encryption.service';
-import { CryptoService } from './encryption/crypto.service';
 import { SpacesService } from './spaces.service';
-import { EncryptionInterceptor } from './encryption/encryption.interceptor';
-import { EncryptionMiddleware } from './encryption/encryption.middleware';
 import { join } from 'path';
 
 @Module({
@@ -130,7 +126,7 @@ import { join } from 'path';
     ]),
   ],
   controllers: [AppController, AuthController, BrokerController, BrokerPublicController, BrokerSessionController, PropertyController, PaymentController, AdminController, CustomerController, ListingsController, SubscriptionsController, BookingsController, PaymentLegacyController, GateWayController, NotificationController, UsersController, PublicController, WebPublicController, WebAuthController, WebBrokerController, WebCustomerController, WebSessionController, UploadController, CustomerWebController],
-  providers: [AppService, EncryptionInterceptor, EncryptionMiddleware, ProxyService, JwtAuthGuard, EncryptionService, CryptoService, SpacesService],
+  providers: [AppService, ProxyService, JwtAuthGuard, SpacesService],
 })
 export class AppModule implements NestModule, OnModuleInit {
   private readonly logger = new Logger(AppModule.name);
