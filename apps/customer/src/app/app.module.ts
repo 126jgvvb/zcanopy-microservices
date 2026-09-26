@@ -22,7 +22,7 @@ import { join } from 'path';
     ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/customer/.env' }),
     HttpModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'zcanopy-secret-key-change-in-production',
+      secret: process.env.JWT_SECRET || 'venom@1234',
       signOptions: { expiresIn: '15m' },
     }),
     TypeOrmModule.forRootAsync({

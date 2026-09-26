@@ -27,10 +27,12 @@ async function bootstrap() {
     },
   });
 
+  const httpPort=305;
+
   await app.startAllMicroservices();
-  await app.listen(port);
+  await app.listen(httpPort);
   Logger.log(
-    `🚀 Payment service is running on: http://localhost:${port}/${globalPrefix} (gRPC on ${port})`,
+    `🚀 Payment service is running on: http://localhost:${httpPort}/${globalPrefix} (gRPC on ${port})`,
   );
 }
 
