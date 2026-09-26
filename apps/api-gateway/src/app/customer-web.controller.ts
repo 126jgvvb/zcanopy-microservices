@@ -40,6 +40,7 @@ export class CustomerWebController {
   }
 
   @Post('confirm-otp')
+  @Public()
   @ApiOperation({ summary: 'Confirm OTP from web dashboard' })
   async confirmOtp(@Body() body: any) {
     this.logger.log(`Web customer confirm OTP request for email=${body.email}`);
