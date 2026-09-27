@@ -800,7 +800,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       const brokerResponse = await lastValueFrom(
         this.brokerClient.getService('BrokerService').getBrokerById({ id: dto.brokerId }),
       );
-      const broker = brokerResponse.broker;
+      const broker = brokerResponse?.broker ?? null;
+      this.logger.log(`getBrokerDetails brokerId=${dto.brokerId} brokerKeys=${broker ? Object.keys(broker).join(',') : 'null'}`);
 
       if (!broker) {
         throw new NotFoundException(`Broker with id ${dto.brokerId} not found`);
@@ -896,7 +897,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       const brokerResponse = await lastValueFrom(
         this.brokerClient.getService('BrokerService').getBrokerById({ id: dto.brokerId }),
       );
-      const broker = brokerResponse.broker;
+      const broker = brokerResponse?.broker ?? null;
+      this.logger.log(`approveBrokerDocument brokerId=${dto.brokerId} brokerKeys=${broker ? Object.keys(broker).join(',') : 'null'}`);
 
       if (!broker) {
         throw new NotFoundException(`Broker with id ${dto.brokerId} not found`);
@@ -993,7 +995,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       const brokerResponse = await lastValueFrom(
         this.brokerClient.getService('BrokerService').getBrokerById({ id: dto.brokerId }),
       );
-      const broker = brokerResponse.broker;
+      const broker = brokerResponse?.broker ?? null;
+      this.logger.log(`getBrokerProperties brokerId=${dto.brokerId} brokerKeys=${broker ? Object.keys(broker).join(',') : 'null'}`);
 
       if (!broker) {
         throw new NotFoundException(`Broker with id ${dto.brokerId} not found`);

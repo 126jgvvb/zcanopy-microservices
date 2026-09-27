@@ -2725,20 +2725,17 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             throw err;
         }
     }
-
     async getBrokerById(dto: GetBrokerByIdDto) {
         try {
             const broker = await this.brokerRepo.findOne({ where: { id: dto.id } });
             if (!broker) {
                 this.logger.warn(`Broker not found by id: ${dto.id}`);
-                return {
-                    success: false,
-                    message: 'Broker not found',
-                    broker: null,
-                };
+                return { broker: null };
             }
+
             const { password: _, ...sanitized } = broker;
-            return { success: true, broker: sanitized };
+            this.logger.log(`getBrokerById id=${dto.id} keys=${Object.keys(sanitized).join(',')}`);
+            return { broker: sanitized };
         } catch (err) {
             this.logger.error(`Failed to get broker by id ${dto.id}:`, err);
             throw err;
