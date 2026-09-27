@@ -520,6 +520,7 @@ const commissions = await lastValueFrom(
         });
       }
 
+      if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecStatus === 'success')) {
       this.redisClient.emit('broker_property_payment', {
         brokerCode: dto.brokerCode,
         propertyId: dto.propertyId,
@@ -530,8 +531,9 @@ const commissions = await lastValueFrom(
         transactionCode,
         timestamp: new Date().toISOString(),
       });
+    }
 
-      if (dto.reasonForPayment === 'booking') {
+      if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecStatus === 'success')) {
         this.redisClient.emit('broker_booking_created', {
           brokerCode: dto.brokerCode,
           propertyId: dto.propertyId,
