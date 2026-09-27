@@ -137,6 +137,7 @@ message ToggleFavoriteRequest {
   string brokerCode = 5;
   string imageUrl = 6;
   double price = 7;
+   string customerId =8;
 }
 
 
