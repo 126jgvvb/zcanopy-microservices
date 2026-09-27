@@ -177,28 +177,32 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
 
       if (dto.type === 'admin') {
         user = await this.validateAdmin(dto.email, dto.password);
-        role = user.role || 'admin';
+        role = user?.role || 'admin';
       } else {
-        user = await this.validateBroker(dto.email, dto.password);
-        user=user.broker;
+        const brokerResult = await this.validateBroker(dto.email, dto.password);
+        const brokerEntity = brokerResult?.broker;
+        if (!brokerEntity) {
+          throw new BadRequestException(brokerResult?.message || 'Invalid broker credentials');
+        }
+        user = brokerEntity;
         role = 'broker';
       }
 
-      // `validateBroker` returns { success, broker }, so for broker logins the
-      // broker entity lives on `user.broker`; for admin logins `user` *is* the entity.
-      const brokerEntity = dto.type === 'broker' ? (user as any) : undefined;
+      if (!user?.id) {
+        throw new BadRequestException('Invalid login credentials');
+      }
 
       this.logger.log(`The user object props are:${JSON.stringify(user)}`);
 
       const payload: JwtPayload = {
-        sub: brokerEntity ? brokerEntity.id : user.id,
-        email: brokerEntity ? brokerEntity.email : user.email,
+        sub: user.id,
+        email: user.email,
         role,
         type: dto.type,
-        brokerCode: brokerEntity?.brokerCode,
+        brokerCode: user.brokerCode,
       };
 
-      this.logger.log(`The broker code is:${brokerEntity?.brokerCode}`);
+      this.logger.log(`The broker code is:${user.brokerCode}`);
       this.logger.log(`JWT payload before sign: ${JSON.stringify(payload)}`);
 
       const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
@@ -211,12 +215,12 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       return {
         accessToken,
         refreshToken,
-        id: brokerEntity ? brokerEntity.id : user.id,
-        email: brokerEntity ? brokerEntity.email : user.email,
-        username: brokerEntity ? brokerEntity.username : user.username,
-        role: brokerEntity?.brokerCode ? `${role},${brokerEntity.brokerCode}` : role,
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.brokerCode ? `${role},${user.brokerCode}` : role,
         type: dto.type,
-        brokerCode: brokerEntity?.brokerCode,
+        brokerCode: user.brokerCode,
       };
     } catch (err) {
       this.logger.error(`Login failed for ${dto.email}:`, err);
