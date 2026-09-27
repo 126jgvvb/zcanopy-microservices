@@ -66,7 +66,8 @@ export class CustomerGrpcController {
   @GrpcMethod('CustomerService', 'GetProfile')
   async getProfile(dto: GetProfileDto) {
     this.logger.log(`gRPC GetProfile for customer=${dto.customerId}`);
-    return this.customerService.getProfile(dto.customerId);
+    const profile = await this.customerService.getProfile(dto.customerId);
+    return { customer: profile };
   }
 
   @GrpcMethod('CustomerService', 'GetWalletBalance')

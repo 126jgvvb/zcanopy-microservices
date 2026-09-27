@@ -797,9 +797,14 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         };
       }
 
-      const broker = await lastValueFrom(
+      const brokerResponse = await lastValueFrom(
         this.brokerClient.getService('BrokerService').getBrokerById({ id: dto.brokerId }),
       );
+      const broker = brokerResponse.broker;
+
+      if (!broker) {
+        throw new NotFoundException(`Broker with id ${dto.brokerId} not found`);
+      }
 
       const transactions = await lastValueFrom(
         this.paymentClient.getService('PaymentService').getTransactions({ page: 1, limit: 100, brokerId: dto.brokerId }),
@@ -888,9 +893,14 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         throw new NotFoundException('Admin not found');
       }
 
-      const broker = await lastValueFrom(
+      const brokerResponse = await lastValueFrom(
         this.brokerClient.getService('BrokerService').getBrokerById({ id: dto.brokerId }),
       );
+      const broker = brokerResponse.broker;
+
+      if (!broker) {
+        throw new NotFoundException(`Broker with id ${dto.brokerId} not found`);
+      }
 
       if (!dto.namesMatched) {
         this.redisClient.emit('send_admin_message_email', {
@@ -980,15 +990,20 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
   async getBrokerProperties(dto: { brokerId: string; page: number; limit: number }) {
     try {
-      const brokerDetails = await lastValueFrom(
+      const brokerResponse = await lastValueFrom(
         this.brokerClient.getService('BrokerService').getBrokerById({ id: dto.brokerId }),
       );
+      const broker = brokerResponse.broker;
+
+      if (!broker) {
+        throw new NotFoundException(`Broker with id ${dto.brokerId} not found`);
+      }
 
       return await lastValueFrom(
         this.propertyClient.getService('PropertyService').getProperties({
           page: Number(dto.page) || 1,
           limit: Number(dto.limit) || 10,
-          brokerCode: brokerDetails.brokerCode,
+          brokerCode: broker.brokerCode,
         }),
       );
     } catch (err) {
