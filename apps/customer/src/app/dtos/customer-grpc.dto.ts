@@ -159,3 +159,7 @@ export interface GetAllCustomersDto {
   limit: number;
   isActive?: boolean;
 }
+
+export interface GetCustomerIdByEmailDto {
+  email: string;
+}

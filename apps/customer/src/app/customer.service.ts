@@ -324,6 +324,17 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async getCustomerIdByEmail(email: string): Promise<string | null> {
+    this.logger.log(`CustomerService.getCustomerIdByEmail called with email: ${email}`);
+    try {
+      const customer = await this.customerRepo.findOne({ where: { email } });
+      return customer?.id || null;
+    } catch (err) {
+      this.logger.error(`Failed to get customerId by email ${email}:`, err);
+      return null;
+    }
+  }
+
   async getWalletBalance(customerId: string): Promise<{ balance?: number; currency?: string; walletId?: string }> {
     try {
       const customer = await this.customerRepo.findOne({ where: { id: customerId } });

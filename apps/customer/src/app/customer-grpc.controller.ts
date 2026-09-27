@@ -25,6 +25,7 @@ import type {
   SimilarPropertiesQueryDto,
   SearchQueryDto,
   GetAllCustomersDto,
+  GetCustomerIdByEmailDto,
 } from './dtos/customer-grpc.dto';
 
 @Controller()
@@ -55,6 +56,13 @@ export class CustomerGrpcController {
   async confirmOtp(dto: ConfirmOtpDto) {
     this.logger.log(`gRPC ConfirmOtp for email=${dto.email}`);
     return this.customerService.confirmOtp(dto);
+  }
+
+  @GrpcMethod('CustomerService', 'GetCustomerIdByEmail')
+  async getCustomerIdByEmail(dto: GetCustomerIdByEmailDto) {
+    this.logger.log(`gRPC GetCustomerIdByEmail for email=${dto.email}`);
+    const customerId = await this.customerService.getCustomerIdByEmail(dto.email);
+    return { customerId };
   }
 
   @GrpcMethod('CustomerService', 'UpdatePhoneNumber')

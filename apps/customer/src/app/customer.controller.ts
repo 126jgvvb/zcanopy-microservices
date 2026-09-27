@@ -56,6 +56,14 @@ export class CustomerController {
     return this.customerService.confirmOtp(dto);
   }
 
+  @Post('customer-id-by-email')
+  @ApiOperation({ summary: 'Get customer ID by email (for token fallback)' })
+  async getCustomerIdByEmail(@Body() dto: { email: string }) {
+    this.logger.log(`Get customerId by email request for ${dto.email}`);
+    const customerId = await this.customerService.getCustomerIdByEmail(dto.email);
+    return { customerId };
+  }
+
   @Put('profile/phone')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update customer phone number' })
