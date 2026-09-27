@@ -303,7 +303,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
 
         return {
          success: isSuccess,
-         message: isSuccess ? 'Payment processed successfully' : 'Payment is being processed',
+         message: isSuccess ? 'Payment processed successfully' : 'payment failed',
          transactionId: saved.id,
          referenceNumber: saved.referenceNumber,
        };
@@ -392,7 +392,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
 
       return {
         success: isSuccess,
-        message: isSuccess ? 'Payment processed successfully' : 'Payment is being processed',
+        message: isSuccess ? 'Payment processed successfully' : 'payment failed',
         transactionId: saved.id,
         referenceNumber: saved.referenceNumber,
       };
@@ -492,7 +492,7 @@ const commissions = await lastValueFrom(
         amount: collectResult.data?.amount,
         platformCommission: platformCommissionAmount,
         createdAt: new Date(),
-        paymentStatus: isSuccess ? 'SUCCESS' : 'PENDING',
+        paymentStatus: isSuccess ? 'SUCCESS' : 'FAILED',  //PENDING
         reasonForPayment: dto.reasonForPayment,
         customerName: dto.customerName,
         customerEmail: dto.customerEmail,
@@ -546,7 +546,7 @@ const commissions = await lastValueFrom(
 
       return {
         success: isSuccess,
-        message: isSuccess ? 'Payment processed successfully' : 'Payment is being processed',
+        message: isSuccess ? 'Payment processed successfully' : 'payment failed',
         transactionId: saved.id,
         referenceNumber: saved.referenceNumber,
         transactionCode,
