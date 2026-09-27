@@ -1274,8 +1274,20 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         throw new BadRequestException('Payment did not return a transaction code');
       }
 
+      const isSuccess = paymentResult?.success === true;
       const bookingCode = this.generateBookingCode();
 
+      if (!isSuccess) {
+        // Payment failed - don't book the property, return failure
+        return {
+          success: false,
+          message: paymentResult?.message || 'payment failed',
+          bookingId: transactionCode,
+          bookingCode,
+        };
+      }
+
+      // Payment succeeded - create the booking
       const viewer = {
         customerId: dto.customerId,
         customerPhone: dto.customerPhone,
@@ -1286,7 +1298,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         date: dto.date,
         customerEmail: dto.customerEmail,
         reason: dto.reason,
-        status: paymentResult?.success ? 'booked' : 'pending_payment',
+        status: 'booked',
         bookingCode,
       };
 
@@ -1317,11 +1329,11 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         transactionCode,
         bookingCode,
         date: dto.date,
-        status: paymentResult?.success ? 'booked' : 'pending_payment',
+        status: 'booked',
       }));
 
       return {
-        success: paymentResult?.success || false,
+        success: true,
         message: paymentResult?.message || 'Booking created',
         bookingId: transactionCode,
         bookingCode,
