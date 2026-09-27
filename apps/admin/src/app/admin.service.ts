@@ -309,12 +309,16 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getCommissions() {
+  /*these are rates....we eat
+  100% on subscriptions,
+  20% on bookings
+  */
+ async getCommissions() {
     try {
       const dashboard = await this.getOrCreateDashboard();
       return {
         platformCommission: dashboard.platformCommission ?? 100,
-        bookingCommission: dashboard.bookingCommission ?? 15,
+        bookingCommission: dashboard.bookingCommission ?? 20,
         minimumWithdrawal: dashboard.minimumWithdrawal ?? 10000,
       };
     } catch (err) {
@@ -1029,15 +1033,52 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
   async getMonthlyIncome() {
     try {
-      const dashboard = await this.getOrCreateDashboard();
-      const entries = dashboard.monthlyIncome || [];
+      const result = await lastValueFrom(
+        this.paymentClient.getService('PaymentService').getTransactions({
+          page: 1,
+          limit: 1000,
+          brokerId: '',
+          reason: '',
+        }),
+      );
 
-      return {
-        entries: entries.map((entry: any) => ({
-          month: entry.month || entry.label || '',
-          income: entry.income || entry.value || 0,
-        })),
-      };
+      const transactions = result.transactions || [];
+
+      const successfulTransactions = transactions.filter((t: any) => {
+        const rawStatus = String(t.paymentStatus || '').toLowerCase();
+        const isSuccess =
+          rawStatus === 'success' ||
+          rawStatus === 'paid' ||
+          rawStatus === 'completed' ||
+          rawStatus === 'SUCCESS';
+        const reason = String(t.reasonForPayment || '').toLowerCase();
+        const isSubscription = reason.includes('subscription');
+        const isBooking = reason.includes('booking');
+        return isSuccess && (isSubscription || isBooking);
+      });
+
+      const monthlyMap = new Map<string, { income: number; label: string }>();
+
+      for (const t of successfulTransactions) {
+        const date = new Date(t.createdAt);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const label = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+        const existing = monthlyMap.get(monthKey) || { income: 0, label };
+        monthlyMap.set(monthKey, {
+          income: existing.income + Number(t.amount || 0),
+          label: existing.label || label,
+        });
+      }
+
+      const entries = Array.from(monthlyMap.entries())
+        .map(([, data]) => ({
+          month: data.label,
+          income: data.income,
+        }))
+        .sort((a, b) => a.month.localeCompare(b.month));
+
+      return { entries };
     } catch (err) {
       this.logger.error('Failed to get monthly income:', err);
       throw err;

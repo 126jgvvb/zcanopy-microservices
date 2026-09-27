@@ -469,8 +469,14 @@ const commissions = await lastValueFrom(
         const platformRate = Number(commissions?.platformCommission) || 0;
         platformCommissionAmount = Number((collectResult.data?.amount || 0) * (platformRate / 100));
         netAmount = Number((collectResult.data?.amount || 0) - platformCommissionAmount);
-      } else if (dto.reasonForPayment === 'booking') {
-        const bookingRate = Number(commissions?.bookingCommission) || 0;
+      } 
+      
+       /*these are rates....we eat
+  100% on subscriptions,
+  20% on bookings
+  */
+      else if (dto.reasonForPayment === 'booking') {
+        const bookingRate = Number(commissions?.bookingCommission) || 20;
         bookingCommissionAmount = Number((collectResult.data?.amount || 0) * (bookingRate / 100));
         netAmount = Number((collectResult.data?.amount || 0) - bookingCommissionAmount);
       }
