@@ -89,8 +89,8 @@ export class BrokerEntity{
  @Column({default: 'DELOS-BROKER-001'})
  brokerCode!:string;
 
- @Column({default: 'PROP'})
- subscriptionTier!:string;
+@Column({default: 'prop'})
+subscriptionTier!:string;
 
  @Column({default: 10})
  maxProperties!:number;

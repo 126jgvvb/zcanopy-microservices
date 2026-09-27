@@ -307,12 +307,17 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getProfile(customerId: string): Promise<CustomerProfileResponse> {
+    this.logger.log(`CustomerService.getProfile called with customerId: ${customerId}`);
     try {
       const customer = await this.customerRepo.findOne({ where: { id: customerId } });
+      this.logger.log(`CustomerService.getProfile - found customer: ${customer ? 'yes' : 'no'}`);
       if (!customer) {
+        this.logger.warn(`Customer not found for id: ${customerId}`);
         throw new NotFoundException('Customer not found');
       }
-      return this.mapCustomerToProfile(customer);
+      const result = this.mapCustomerToProfile(customer);
+      this.logger.log(`CustomerService.getProfile returning: ${JSON.stringify(result)}`);
+      return result;
     } catch (err) {
       this.logger.error(`Failed to get profile for customer ${customerId}:`, err);
       throw err;
@@ -772,6 +777,7 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private mapCustomerToProfile(customer: CustomerEntity): CustomerProfileResponse {
+    this.logger.log(`mapCustomerToProfile called with customer: ${customer.id}`);
     return {
       id: customer.id,
       email: customer.email,

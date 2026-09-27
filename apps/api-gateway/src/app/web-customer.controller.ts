@@ -181,6 +181,7 @@ export class WebCustomerController {
   @Get('profile')
   @ApiOperation({ summary: 'Get customer profile for web dashboard' })
   async getProfile(@Req() req: any) {
+    this.logger.log(`Web customer profile request - req.user: ${JSON.stringify(req.user)}`);
     const customerId = this.getCustomerId(req);
     this.logger.log(`Web customer profile request for user ${customerId}`);
     return this.proxyService.forwardToCustomer('GetProfile', { customerId });

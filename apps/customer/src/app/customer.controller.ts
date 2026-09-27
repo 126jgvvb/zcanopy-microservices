@@ -158,6 +158,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get customer profile' })
   async getProfile(@Req() req: any) {
+    this.logger.log(`CustomerController.getProfile - req.user: ${JSON.stringify(req.user)}`);
     const customerId = req.user?.customerId;
     this.logger.log(`Get profile request for customer=${customerId}`);
     return this.customerService.getProfile(customerId);

@@ -625,13 +625,60 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 skip: (page - 1) * limit,
                 take: limit,
             });
-        
-            return {
-                brokers,
-                total,
-                page,
-                limit
-            };
+
+            try {
+                const transactionsResult = await lastValueFrom(
+                    this.paymentClient.getService('PaymentService').getTransactions({
+                        page: 1,
+                        limit: 1000,
+                        brokerId: '',
+                        reason: '',
+                    }),
+                );
+
+                const brokerTiers = new Map<string, { tier: string; createdAt: Date }>();
+                for (const t of transactionsResult.transactions ?? []) {
+                    const reason = String(t.reasonForPayment || '');
+                    if (!reason.startsWith('Subscription upgrade to ')) continue;
+                    const rawStatus = String(t.paymentStatus || '').toUpperCase();
+                    if (rawStatus !== 'SUCCESS' && rawStatus !== 'PAID' && rawStatus !== 'COMPLETED') continue;
+
+                    const tier = reason.replace('Subscription upgrade to ', '').trim();
+                    if (!tier) continue;
+
+                    const brokerCode = String(t.propertyID || '').trim();
+                    if (!brokerCode) continue;
+
+                    const createdAt = t.createdAt ? new Date(t.createdAt) : new Date(0);
+                    const existing = brokerTiers.get(brokerCode);
+                    if (!existing || createdAt > existing.createdAt) {
+                        brokerTiers.set(brokerCode, { tier, createdAt });
+                    }
+                }
+
+                const enrichedBrokers = brokers.map((broker: any) => {
+                    const realTier = brokerTiers.get(broker.brokerCode)?.tier;
+                    if (realTier && realTier !== broker.subscriptionTier) {
+                        return { ...broker, subscriptionTier: realTier };
+                    }
+                    return broker;
+                });
+
+                return {
+                    brokers: enrichedBrokers,
+                    total,
+                    page,
+                    limit,
+                };
+            } catch (paymentErr) {
+                this.logger.warn(`Failed to enrich broker tiers from payments: ${(paymentErr as Error).message}`);
+                return {
+                    brokers,
+                    total,
+                    page,
+                    limit,
+                };
+            }
         } catch (err) {
             this.logger.error('Failed to get all brokers:', err);
             throw err;

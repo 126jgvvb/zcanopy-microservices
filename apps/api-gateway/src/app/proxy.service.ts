@@ -42,7 +42,15 @@ export class ProxyService {
   }
 
   async forwardToCustomer(method: string, data: any) {
-    return this.forwardGrpc(this.customerClient, 'CustomerService', method, data);
+    this.logger.log(`Proxy forwarding to CustomerService.${method} with data: ${JSON.stringify(data)}`);
+    try {
+      const result = await this.forwardGrpc(this.customerClient, 'CustomerService', method, data);
+      this.logger.log(`Proxy received from CustomerService.${method}: ${JSON.stringify(result)}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to forward to CustomerService.${method}: ${error}`);
+      throw new NotFoundException('Service unavailable');
+    }
   }
 
   private async forwardGrpc(
