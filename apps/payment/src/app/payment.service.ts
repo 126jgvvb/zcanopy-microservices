@@ -71,6 +71,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
     private readonly httpService: HttpService,
     @Inject('REDIS_CLIENT') private readonly redisClient: ClientProxy,
     @Inject('ADMIN_CLIENT') private readonly adminClient: ClientGrpc,
+    @Inject('BROKER_CLIENT') private readonly brokerClient: ClientGrpc,
     private readonly configService: ConfigService,
   ) {}
 
@@ -79,7 +80,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
     const redisPort = Number(this.configService.get<string>('REDIS_PORT') || '7000');
     const redisPassword = this.configService.get<string>('REDIS_PASSWORD') || undefined;
     const redisDb = Number(this.configService.get<string>('REDIS_DB') || '0');
-
+  
     this.logger.log(
       `Redis config -> host: ${redisHost}, port: ${redisPort}, db: ${redisDb}, password: ${redisPassword ? '*****' : '(none)'}`,
     );
@@ -164,6 +165,9 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
 
     await this.ensurePlatformCommissionWallet();
   }
+
+
+  private IOTEC_CHARGE_PERCENTAGE=Number(this.configService.get<string>('IOTEC_CHARGE_FEE') || 0.04);
 
   private async testRedisConnection(redis: Redis, label: string): Promise<void> {
     const redisHost = this.configService.get<string>('REDIS_HOST') || 'localhost';
@@ -432,6 +436,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
     customerPhone?: string;
     customerName?: string;
     customerEmail?: string;
+    brokerPhone?: string;
     platformCommission:number;
     bookingCommission:number;
     date?: string;
@@ -465,10 +470,16 @@ const commissions = await lastValueFrom(
         ),
       );
 
+      const iotecStatus = collectResult.data?.status || 'Pending';
+      const isSuccess = iotecStatus === 'Success' || collectResult.data?.code;
+
+      //4% of the iotec charge fee
+      const actual_Amount_After_Gateway_Deduction=collectResult.data?.amount-(collectResult.data?.amount*this.IOTEC_CHARGE_PERCENTAGE);
+
       if (dto.reasonForPayment !== 'booking') {
         const platformRate = Number(commissions?.platformCommission) || 0;
-        platformCommissionAmount = Number((collectResult.data?.amount || 0) * (platformRate / 100));
-        netAmount = Number((collectResult.data?.amount || 0) - platformCommissionAmount);
+        platformCommissionAmount = Number((actual_Amount_After_Gateway_Deduction || 0) * (platformRate / 100));
+        netAmount = Number((actual_Amount_After_Gateway_Deduction || 0) - platformCommissionAmount);
       } 
       
        /*these are rates....we eat
@@ -476,14 +487,15 @@ const commissions = await lastValueFrom(
   20% on bookings
   */
       else if (dto.reasonForPayment === 'booking') {
+        this.logger.log('The reason for payment is Booking. deducting booking commision');
+
         const bookingRate = Number(commissions?.bookingCommission) || 20;
-        bookingCommissionAmount = Number((collectResult.data?.amount || 0) * (bookingRate / 100));
-        netAmount = Number((collectResult.data?.amount || 0) - bookingCommissionAmount);
+        bookingCommissionAmount = Number((actual_Amount_After_Gateway_Deduction || 0) * (bookingRate / 100));
+        netAmount = Number((actual_Amount_After_Gateway_Deduction || 0) - bookingCommissionAmount);
+        platformCommissionAmount=bookingCommissionAmount;
       }
 
-      const iotecStatus = collectResult.data?.status || 'Pending';
-      const isSuccess = iotecStatus === 'Success' || collectResult.data?.code;
-
+    
       const transaction = this.transactionRepo.create({
         propertyID: dto.brokerCode,
         clientPhone: dto.customerPhone,
@@ -501,6 +513,8 @@ const commissions = await lastValueFrom(
 
       const saved = await this.transactionRepo.save(transaction);
       this.logger.log(`Processed property payment ${referenceNumber} for property ${dto.propertyId}, iotec status: ${iotecStatus}`);
+
+
 
       if (Number.isFinite(platformCommissionAmount) && platformCommissionAmount > 0) {
         this.logger.log(`Commission deducted: platform=${platformCommissionAmount}, booking=${bookingCommissionAmount}`);
@@ -520,7 +534,7 @@ const commissions = await lastValueFrom(
         });
       }
 
-      if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecStatus === 'success')) {
+if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecStatus === 'success')) {
       this.redisClient.emit('broker_property_payment', {
         brokerCode: dto.brokerCode,
         propertyId: dto.propertyId,
@@ -533,33 +547,48 @@ const commissions = await lastValueFrom(
       });
     }
 
-      if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecStatus === 'success')) {
-        this.redisClient.emit('broker_booking_created', {
-          brokerCode: dto.brokerCode,
-          propertyId: dto.propertyId,
-          propertyTitle: '',
-          customerName: dto.customerName,
-          customerPhone: dto.customerPhone,
-          amount: dto.amount,
-          transactionCode,
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      return {
-        success: isSuccess,
-        message: isSuccess ? 'Payment processed successfully' : 'payment failed',
-        transactionId: saved.id,
-        referenceNumber: saved.referenceNumber,
-        transactionCode,
-        netAmount,
-        platformCommission: platformCommissionAmount,
-        bookingCommission: bookingCommissionAmount,
-        customerPhone: dto.customerPhone,
+    if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecStatus === 'success')) {
+      this.redisClient.emit('broker_booking_created', {
+        brokerCode: dto.brokerCode,
+        propertyId: dto.propertyId,
+        propertyTitle: '',
         customerName: dto.customerName,
-        customerEmail: dto.customerEmail,
-        date: new Date().toISOString(),
-      };
+        customerPhone: dto.customerPhone,
+        amount: dto.amount,
+        transactionCode,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Fetch broker's phone number for successful bookings
+    let brokerPhone: string | undefined;
+    if (isSuccess && dto.reasonForPayment === 'booking') {
+      try {
+        const brokerService = this.brokerClient.getService<any>('BrokerService');
+        const brokerResult = await lastValueFrom(
+          brokerService.GetBrokerByCode({ brokerCode: dto.brokerCode }).pipe(timeout(5000))
+        );
+        brokerPhone = brokerResult?.broker?.phoneNumber || brokerResult?.phoneNumber;
+      } catch (err) {
+        this.logger.warn(`Failed to fetch broker phone for ${dto.brokerCode}: ${(err as Error).message}`);
+      }
+    }
+
+    return {
+      success: isSuccess,
+      message: isSuccess ? 'Payment processed successfully' : 'payment failed',
+      transactionId: saved.id,
+      referenceNumber: saved.referenceNumber,
+      transactionCode,
+      netAmount,
+      platformCommission: platformCommissionAmount,
+      bookingCommission: bookingCommissionAmount,
+      customerPhone: dto.customerPhone,
+      customerName: dto.customerName,
+      customerEmail: dto.customerEmail,
+      brokerPhone,
+      date: new Date().toISOString(),
+    };
     } catch (error) {
       this.logger.error(`Property payment failed for property ${dto.propertyId}: ${(error as Error).message}`);
 

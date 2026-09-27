@@ -69,6 +69,17 @@ import { join } from 'path';
           },
         }),
       },
+      {
+        name: 'BROKER_CLIENT',
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.BROKER_SERVICE_URL || 'localhost:3003',
+            package: 'broker.v1',
+            protoPath: join(process.cwd(), 'apps/broker/src/proto/broker.proto'),
+          },
+        }),
+      },
     ]),
   ],
   controllers: [AppController, PaymentController],
