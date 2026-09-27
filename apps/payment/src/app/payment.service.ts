@@ -512,7 +512,7 @@ const commissions = await lastValueFrom(
         });
       }
 
-      if (Number.isFinite(netAmount) && netAmount >= 0) {
+      if (Number.isFinite(netAmount) && netAmount >= 0 && isSuccess) {
         this.redisClient.emit('update_broker_wallet', {
           brokerCode: dto.brokerCode,
           amount: netAmount,
