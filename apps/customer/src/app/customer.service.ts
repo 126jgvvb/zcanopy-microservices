@@ -576,21 +576,31 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getAllCustomers(query: { page?: number; limit?: number; isActive?: boolean }): Promise<{ customers: any[]; total: number; page: number; limit: number }> {
+  async getAllCustomers(query: { page?: number; limit?: number; isActive?: boolean; search?: string }): Promise<{ customers: any[]; total: number; page: number; limit: number }> {
     try {
       const page = Number(query.page) || 1;
       const limit = Number(query.limit) || 20;
-      const where: any = {};
+      const search = (query.search || '').trim();
+
+      const qb = this.customerRepo.createQueryBuilder('customer');
+
       if (query.isActive !== undefined) {
-        where.isActive = query.isActive;
+        qb.andWhere('customer.isActive = :isActive', { isActive: query.isActive });
       }
 
-      const [customers, total] = await this.customerRepo.findAndCount({
-        where,
-        order: { createdAt: 'DESC' },
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+      if (search) {
+        const pattern = `%${search.replace(/[%_]/g, '\\$&')}%`;
+        qb.andWhere(
+          '(customer.firstName ILIKE :pattern OR customer.lastName ILIKE :pattern OR customer.email ILIKE :pattern OR customer.phoneNumber ILIKE :pattern)',
+          { pattern },
+        );
+      }
+
+      qb.orderBy('customer.createdAt', 'DESC')
+        .skip((page - 1) * limit)
+        .take(limit);
+
+      const [customers, total] = await qb.getManyAndCount();
 
       return {
         customers: customers.map(c => ({

@@ -1495,7 +1495,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getAllCustomers(dto: { page?: number; limit?: number; isActive?: boolean }) {
+  async getAllCustomers(dto: { page?: number; limit?: number; isActive?: boolean; search?: string }) {
     this.logger.log('Received getAllCustomers request');
     try {
       const result = await lastValueFrom(
@@ -1503,6 +1503,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
           page: Number(dto.page) || 1,
           limit: Number(dto.limit) || 20,
           isActive: dto.isActive,
+          search: dto.search || '',
         }).pipe(timeout(10000)),
       );
       return result;

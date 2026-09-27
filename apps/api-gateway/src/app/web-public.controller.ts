@@ -121,4 +121,11 @@ export class WebPublicController {
     this.logger.log('Web public brokers request');
     return this.proxyService.forwardToBroker('GetAllBrokers', {});
   }
+
+  @Get('locations')
+  @ApiOperation({ summary: 'Get all property locations for filter dropdown' })
+  async getLocations() {
+    this.logger.log('Web public locations request');
+    return this.proxyService.forwardToProperty('GetPropertyLocations', {});
+  }
 }
