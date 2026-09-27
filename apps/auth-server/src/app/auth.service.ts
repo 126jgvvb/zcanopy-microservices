@@ -181,6 +181,9 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       } else {
         const brokerResult = await this.validateBroker(dto.email, dto.password);
         const brokerEntity = brokerResult?.broker;
+
+        this.logger.log(JSON.stringify(brokerEntity));
+
         if (!brokerEntity) {
           throw new BadRequestException(brokerResult?.message || 'Invalid broker credentials');
         }
