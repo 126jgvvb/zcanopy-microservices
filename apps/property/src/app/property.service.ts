@@ -644,8 +644,13 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
   private computeBookingState(property: PropertyEntity): BookingState | null {
     const viewers = property.allowedViewers || [];
-    const isBooked = viewers.length > 0;
-    const latestBooking = viewers.reduce<AllowedViewer | null>((latest, viewer) => {
+    // Only consider viewers with successful transaction status (not pending)
+    const successfulViewers = viewers.filter(v => {
+      const status = (v.status || '').toLowerCase();
+      return status === 'success' || status === 'completed' || status === 'paid';
+    });
+    const isBooked = successfulViewers.length > 0;
+    const latestBooking = successfulViewers.reduce<AllowedViewer | null>((latest, viewer) => {
       if (!viewer || !viewer.date) return latest;
       if (!latest || new Date(viewer.date) > new Date(latest.date)) return viewer;
       return latest;
@@ -653,7 +658,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
     return {
       isBooked,
-      bookingCount: viewers.length,
+      bookingCount: successfulViewers.length,
       latestBookingDate: latestBooking?.date,
     };
   }

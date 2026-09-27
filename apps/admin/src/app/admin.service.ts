@@ -1072,11 +1072,13 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       }
 
       const entries = Array.from(monthlyMap.entries())
-        .map(([, data]) => ({
+        .map(([monthKey, data]) => ({
+          monthKey,
           month: data.label,
           income: data.income,
         }))
-        .sort((a, b) => a.month.localeCompare(b.month));
+        .sort((a, b) => a.monthKey.localeCompare(b.monthKey))
+        .map(({ month, income }) => ({ month, income }));
 
       return { entries };
     } catch (err) {
