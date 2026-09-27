@@ -801,7 +801,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         this.brokerClient.getService('BrokerService').getBrokerById({ id: dto.brokerId }),
       );
       const broker = brokerResponse?.broker ?? null;
-      this.logger.log(`getBrokerDetails brokerId=${dto.brokerId} brokerKeys=${broker ? Object.keys(broker).join(',') : 'null'}`);
+      this.logger.log(`getBrokerDetails brokerId=${dto.brokerId} brokerKeys=${broker ? Object.keys(broker).join(',') : 'null'} ninImages=${broker?.ninImages?.length ?? 0} idFrontUrl=${broker?.idFrontUrl ?? 'null'} idBackUrl=${broker?.idBackUrl ?? 'null'}`);
 
       if (!broker) {
         throw new NotFoundException(`Broker with id ${dto.brokerId} not found`);
@@ -813,14 +813,20 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
       const walletBalance = broker.walletBalance || 0;
 
-      await this.setCachedBroker(dto.brokerId, broker);
+      const normalizedBroker = {
+        ...broker,
+        idFrontUrl: broker.idFrontUrl || broker.ninImages?.[0] || null,
+        idBackUrl: broker.idBackUrl || broker.ninImages?.[1] || null,
+      };
+
+      await this.setCachedBroker(dto.brokerId, normalizedBroker);
 
       return {
-        broker,
+        broker: normalizedBroker,
         walletBalance,
         transactions: transactions.transactions || [],
-        messages: broker.messages || [],
-        bookings: broker.bookings || [],
+        messages: normalizedBroker.messages || [],
+        bookings: normalizedBroker.bookings || [],
       };
     } catch (err) {
       this.logger.error(`Failed to get broker details for ${dto.brokerId}:`, err);
@@ -835,12 +841,18 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         throw new NotFoundException('Broker details not found in cache');
       }
 
+      const normalizedBroker = {
+        ...cached,
+        idFrontUrl: cached.idFrontUrl || cached.ninImages?.[0] || null,
+        idBackUrl: cached.idBackUrl || cached.ninImages?.[1] || null,
+      };
+
       return {
-        broker: cached,
-        walletBalance: cached.walletBalance || 0,
+        broker: normalizedBroker,
+        walletBalance: normalizedBroker.walletBalance || 0,
         transactions: [],
-        messages: cached.messages || [],
-        bookings: cached.bookings || [],
+        messages: normalizedBroker.messages || [],
+        bookings: normalizedBroker.bookings || [],
       };
     } catch (err) {
       this.logger.error(`Failed to get broker details from cache for ${dto.brokerId}:`, err);
