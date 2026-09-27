@@ -2734,7 +2734,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             }
 
             const { password: _, ...sanitized } = broker;
-            this.logger.log(`getBrokerById id=${dto.id} keys=${Object.keys(sanitized).join(',')}`);
+            sanitized.ninImages = Array.isArray(sanitized.ninImages) ? sanitized.ninImages : [];
+            this.logger.log(`getBrokerById id=${dto.id} ninImages=${sanitized.ninImages.length}`);
             return { broker: sanitized };
         } catch (err) {
             this.logger.error(`Failed to get broker by id ${dto.id}:`, err);
