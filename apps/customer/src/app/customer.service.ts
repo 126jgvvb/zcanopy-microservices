@@ -602,7 +602,7 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
           isVerified: c.isVerified,
           authProvider: c.authProvider,
           isActive: c.isActive,
-          createdAt: c.createdAt,
+          createdAt: c.createdAt instanceof Date ? c.createdAt.getTime() : new Date(c.createdAt).getTime(),
         })),
         total,
         page,
@@ -786,7 +786,7 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
       phoneNumber: customer.phoneNumber || undefined,
       isVerified: customer.isVerified,
       authProvider: customer.authProvider,
-      createdAt: customer.createdAt,
+          createdAt: customer.createdAt instanceof Date ? customer.createdAt.getTime() : new Date(customer.createdAt).getTime(),
     };
   }
 

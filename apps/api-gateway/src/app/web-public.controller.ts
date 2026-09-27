@@ -114,4 +114,11 @@ export class WebPublicController {
       toDate: query.toDate,
     });
   }
+
+  @Get('brokers')
+  @ApiOperation({ summary: 'Get all brokers for filter dropdown' })
+  async getBrokers() {
+    this.logger.log('Web public brokers request');
+    return this.proxyService.forwardToBroker('GetAllBrokers', {});
+  }
 }
