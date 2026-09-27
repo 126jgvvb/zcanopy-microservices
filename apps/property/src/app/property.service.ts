@@ -364,7 +364,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getProperties(query: { page: number; limit: number; brokerCode?: string; location?: string; subCounty?: string; district?: string; sortBy?: string; sortOrder?: string; minAmount?: number; maxAmount?: number; fromDate?: string; toDate?: string; id?: string }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; updatedAt?: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; bookingState: BookingState | null }>; total: number }> {
+  async getProperties(query: { page: number; limit: number; brokerCode?: string; location?: string; propertyType?: string; subCounty?: string; district?: string; sortBy?: string; sortOrder?: string; minAmount?: number; maxAmount?: number; fromDate?: string; toDate?: string; id?: string }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; updatedAt?: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; price: number; brokerBookingFee: number; bookingState: BookingState | null }>; total: number }> {
     try {
       const page = Number(query.page) || 1;
       const limit = Number(query.limit) || 10;
@@ -386,6 +386,10 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
       if (query.district) {
         qb.andWhere('property.district ILIKE :district', { district: `%${query.district}%` });
+      }
+
+      if (query.propertyType) {
+        qb.andWhere('property.propertyType = :propertyType', { propertyType: query.propertyType });
       }
 
       if (query.fromDate) {
