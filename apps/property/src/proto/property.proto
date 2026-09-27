@@ -582,7 +582,7 @@ message GetAllCustomerSearchesResponse {
 }
 
 message ToggleFavoriteRequest {
-  string customerId = 1;
+  string sessionToken = 1;
   string propertyId = 2;
   string propertyTitle = 3;
   string propertyLocation = 4;
