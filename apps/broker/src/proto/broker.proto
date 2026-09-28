@@ -140,7 +140,9 @@ message ValidateBrokerRequest {
 }
 
 message ValidateBrokerResponse {
-  Broker broker = 1;
+  bool success = 1;
+  string message = 2;
+  Broker broker = 3;
 }
 
 message CreateBrokerRequest {

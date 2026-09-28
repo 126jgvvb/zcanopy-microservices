@@ -1217,10 +1217,10 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(`Received admin getWallet request: ${dto.walletId || 'default'}`);
       // Return platform commission from dashboard instead of external wallet
       const dashboard = await this.getOrCreateDashboard();
-      const platformCommission = Number(dashboard.platformCommission) || 0;
-      
+      const balance = Number(dashboard.currentCommission) || 0;
+
       return {
-        balance: platformCommission,
+        balance,
         currency: 'UGX',
         walletId: 'platform_commission',
         name: 'Platform Commission Wallet',
