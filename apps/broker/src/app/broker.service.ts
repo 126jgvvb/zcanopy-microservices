@@ -2893,14 +2893,14 @@ private getEmptyBroker(): any {
 
            // return { success: true, broker: plainBroker };
            return { 
-            success: true, 
-            message: 'Success', 
+            success: true,
+            message: 'Success',
             broker: plainBroker,
-            sessionToken: '', 
-            sessionId: '',    
-            deviceId: '',     
-            expiresAt: 0,     
-            ttlSeconds: 0     
+            sessionToken: '',
+            sessionId: '',
+            deviceId: '',
+            expiresAt: 0,
+            ttlSeconds: 0
         };
        
         } catch (err) {
