@@ -34,6 +34,7 @@ service AdminService {
   rpc SendMessage (SendMessageRequest) returns (SendMessageResponse);
   rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
   rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
+  rpc GetComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
 }
 
 message GetCommissionsRequest {}
@@ -524,4 +525,25 @@ message Booking {
   string status = 8;
   double amount = 9;
   string transactionCode = 10;
+}
+
+message GetAllCommentsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string propertyId = 3;
+}
+
+message Comment {
+  string id = 1;
+  string customerName = 2;
+  string customerPhone = 3;
+  string customerEmail = 4;
+  string comment = 5;
+  double rating = 6;
+  string createdAt = 7;
+}
+
+message GetAllCommentsResponse {
+  repeated Comment comments = 1;
+  int32 total = 2;
 }

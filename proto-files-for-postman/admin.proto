@@ -43,6 +43,7 @@ service AdminService {
   rpc DeleteInvoices (DeleteInvoicesRequest) returns (DeleteInvoicesResponse);
   rpc GetBrokerCommissions (GetBrokerCommissionsRequest) returns (GetBrokerCommissionsResponse);
   rpc ApproveAllPendingVerifications (ApproveAllPendingVerificationsRequest) returns (ApproveAllPendingVerificationsResponse);
+  rpc GetComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
 }
 
 message GetCommissionsRequest {}
@@ -687,4 +688,25 @@ message ApproveAllPendingVerificationsResponse {
   int32 successful = 3;
   int32 failed = 4;
   repeated ApproveVerificationResult results = 5;
+}
+
+message GetAllCommentsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string propertyId = 3;
+}
+
+message Comment {
+  string id = 1;
+  string customerName = 2;
+  string customerPhone = 3;
+  string customerEmail = 4;
+  string comment = 5;
+  double rating = 6;
+  string createdAt = 7;
+}
+
+message GetAllCommentsResponse {
+  repeated Comment comments = 1;
+  int32 total = 2;
 }

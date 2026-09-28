@@ -617,14 +617,13 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
         customers: customers.map(c => ({
           id: c.id,
           email: c.email,
-          firstName: c.firstName || undefined,
-          lastName: c.lastName || undefined,
-          phoneNumber: c.phoneNumber || undefined,
+          firstName: c.firstName || '',
+          lastName: c.lastName || '',
+          phoneNumber: c.phoneNumber || '',
           isVerified: c.isVerified,
           authProvider: c.authProvider,
           isActive: c.isActive,
-          createdAt: c.createdAt instanceof Date ? c.createdAt.toISOString() : new Date(c.createdAt).toISOString(),
-          updatedAt: c.updatedAt instanceof Date ? c.updatedAt.toISOString() : new Date(c.updatedAt).toISOString(),
+          createdAt: Math.floor(new Date(c.createdAt).getTime() / 1000), // Unix timestamp in seconds
         })),
         total,
         page,

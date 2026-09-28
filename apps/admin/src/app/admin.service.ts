@@ -782,6 +782,21 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async getComments(query: { page: number; limit: number; propertyId?: string }) {
+    try {
+      return await lastValueFrom(
+        this.propertyClient.getService('PropertyService').getAllComments({
+          page: Number(query.page) || 1,
+          limit: Number(query.limit) || 10,
+          propertyId: query.propertyId || '',
+        }),
+      );
+    } catch (err) {
+      this.logger.error('Failed to get comments:', err);
+      throw err;
+    }
+  }
+
   async getBrokerDetails(dto: { brokerId: string }) {
     try {
       const cached = await this.getCachedBroker(dto.brokerId);
@@ -1105,6 +1120,68 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async sendWithdrawalOtp(dto: { email: string; amount: number; walletType?: string }): Promise<{ success: boolean; message: string; expiresIn: number }> {
+    try {
+      this.logger.log(`Sending withdrawal OTP to ${dto.email} for amount ${dto.amount}`);
+      
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const ttlSeconds = 300; // 5 minutes
+      
+      // Store OTP in Redis with TTL
+      const redisKey = `admin:withdrawal:otp:${dto.email}`;
+      await this.redis.setex(redisKey, ttlSeconds, JSON.stringify({
+        otp,
+        amount: dto.amount,
+        walletType: dto.walletType || 'platform_commission',
+        createdAt: Date.now(),
+      }));
+      
+      // Send OTP via notification service
+      this.redisClient.emit('send_email_otp', {
+        email: dto.email,
+        otp,
+        purpose: 'admin-withdrawal',
+        username: 'Admin',
+        ttlSeconds,
+        amount: dto.amount,
+        walletType: dto.walletType || 'platform_commission',
+      });
+      
+      return { success: true, message: 'OTP sent to admin email', expiresIn: ttlSeconds };
+    } catch (err) {
+      this.logger.error(`Failed to send withdrawal OTP: ${(err as Error).message}`);
+      throw new BadRequestException('Failed to send OTP');
+    }
+  }
+
+  async verifyWithdrawalOtp(dto: { email: string; otp: string }): Promise<{ success: boolean; message: string; valid: boolean }> {
+    try {
+      this.logger.log(`Verifying withdrawal OTP for ${dto.email}`);
+      
+      const redisKey = `admin:withdrawal:otp:${dto.email}`;
+      const stored = await this.redis.get(redisKey);
+      
+      if (!stored) {
+        return { success: true, message: 'OTP expired or not found', valid: false };
+      }
+      
+      const data = JSON.parse(stored);
+      
+      if (data.otp !== dto.otp) {
+        return { success: true, message: 'Invalid OTP', valid: false };
+      }
+      
+      // Delete OTP after successful verification
+      await this.redis.del(redisKey);
+      
+      return { success: true, message: 'OTP verified successfully', valid: true };
+    } catch (err) {
+      this.logger.error(`Failed to verify withdrawal OTP: ${(err as Error).message}`);
+      throw new BadRequestException('Failed to verify OTP');
+    }
+  }
+
   async withdraw(dto: {
     amount: number;
     phoneNumber: string;
@@ -1138,13 +1215,16 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   async getWallet(dto: { walletId?: string }) {
     try {
       this.logger.log(`Received admin getWallet request: ${dto.walletId || 'default'}`);
-      const result = await lastValueFrom(
-        this.paymentClient.getService('PaymentService').getWallet({
-          walletType: 'platform_commission',
-          walletId: dto.walletId,
-        }),
-      );
-      return result;
+      // Return platform commission from dashboard instead of external wallet
+      const dashboard = await this.getOrCreateDashboard();
+      const platformCommission = Number(dashboard.platformCommission) || 0;
+      
+      return {
+        balance: platformCommission,
+        currency: 'UGX',
+        walletId: 'platform_commission',
+        name: 'Platform Commission Wallet',
+      };
     } catch (err) {
       this.logger.error('Failed to get wallet:', err);
       throw err;
@@ -1384,7 +1464,18 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         take: limit,
       });
 
-      return { notifications, total, page, limit };
+      const mapped = notifications.map((n) => ({
+        id: n.id,
+        title: n.subject,
+        content: n.body,
+        recipient: [n.recipientName, n.recipientEmail, n.recipientPhone].filter(Boolean).join(', '),
+        type: n.messageType,
+        channel: n.channel,
+        status: n.status,
+        createdAt: n.sentAt,
+      }));
+
+      return { notifications: mapped, total, page, limit };
     } catch (err) {
       this.logger.error('Failed to get notifications:', err);
       throw err;

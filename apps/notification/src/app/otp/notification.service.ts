@@ -21,6 +21,7 @@ import {
   propertyCreatedEmailHtml,
   propertyUpdatedEmailHtml,
   propertyDeletedEmailHtml,
+  adminWithdrawalOtpEmailHtml,
 } from './email-templates';
 
 export interface PaymentNotificationPayload {
@@ -184,6 +185,18 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       }
     });
 
+    this.subscriber.subscribe('send_email_otp', (err) => {
+      if (err) {
+        console.error('Failed to subscribe to send_email_otp', err);
+      }
+    });
+
+    this.subscriber.subscribe('send_admin_message_email', (err) => {
+      if (err) {
+        console.error('Failed to subscribe to send_admin_message_email', err);
+      }
+    });
+
     this.subscriber.on('message', async (channel, message) => {
       if (channel === 'get_notifications') {
         try {
@@ -252,6 +265,40 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
         } catch (error) {
           this.logger.error(`Failed to handle send_property_payment_invoice: ${(error as Error).message}`);
         }
+      } else if (channel === 'send_email_otp') {
+        try {
+          const raw = JSON.parse(message);
+          const data = raw.data || raw;
+          this.logger.log(`Sending email OTP to ${data.email} for purpose=${data.purpose}`);
+          
+          await this.sendEmailOtp({
+            email: data.email,
+            otp: data.otp,
+            purpose: data.purpose,
+            username: data.username,
+            ttlSeconds: data.ttlSeconds,
+            amount: data.amount,
+            walletType: data.walletType,
+          });
+        } catch (error) {
+          this.logger.error(`Failed to handle send_email_otp: ${(error as Error).message}`);
+        }
+      } else if (channel === 'send_admin_message_email') {
+        try {
+          const raw = JSON.parse(message);
+          const data = raw.data || raw;
+          this.logger.log(`Sending admin message email to ${data.recipientEmail} subject=${data.subject}`);
+          
+          await this.sendAdminMessage({
+            channel: 'email',
+            recipientEmail: data.recipientEmail,
+            recipientName: data.recipientName,
+            subject: data.subject,
+            body: data.body,
+          });
+        } catch (error) {
+          this.logger.error(`Failed to handle send_admin_message_email: ${(error as Error).message}`);
+        }
       }
     });
 
@@ -307,10 +354,19 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
         throw new Error('Cannot send email OTP: "email" is missing from payload');
       }
       console.log(`[OTP] Email OTP for ${payload.email}: ${payload.otp}`);
-      const subject = payload.purpose === 'password-reset' ? 'Reset your ZCanopy password' : 'Your verification code';
-      const body = payload.purpose === 'password-reset'
-        ? passwordResetEmailHtml({ otp: payload.otp, username: payload.username, ttlSeconds: payload.ttlSeconds, email: payload.email })
-        : otpEmailHtml({ otp: payload.otp, username: payload.username, ttlSeconds: payload.ttlSeconds, purpose: payload.purpose, email: payload.email });
+      let subject = 'Your verification code';
+      let body: string;
+      
+      if (payload.purpose === 'password-reset') {
+        subject = 'Reset your ZCanopy password';
+        body = passwordResetEmailHtml({ otp: payload.otp, username: payload.username, ttlSeconds: payload.ttlSeconds, email: payload.email });
+      } else if (payload.purpose === 'admin-withdrawal') {
+        subject = 'ZCanopy withdrawal verification';
+        body = adminWithdrawalOtpEmailHtml({ otp: payload.otp, username: payload.username, ttlSeconds: payload.ttlSeconds, amount: (payload as any).amount, walletType: (payload as any).walletType, email: payload.email });
+      } else {
+        body = otpEmailHtml({ otp: payload.otp, username: payload.username, ttlSeconds: payload.ttlSeconds, purpose: payload.purpose, email: payload.email });
+      }
+      
       const result = await this.dispatchEmail(payload.email, subject, body);
       await this.saveNotification({ type: 'otp', channel: 'email', title: subject, content: body, recipient: payload.email, result });
       return this.result('email', payload.email);

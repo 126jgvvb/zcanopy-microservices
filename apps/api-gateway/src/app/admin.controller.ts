@@ -453,6 +453,22 @@ export class AdminController {
     return this.proxyService.forwardToAdmin('Withdraw', body);
   }
 
+  @Post('withdraw/otp/send')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Send withdrawal OTP to admin email' })
+  async sendWithdrawalOtp(@Body() body: { email: string; amount: number; walletType?: string }) {
+    this.logger.log(`Send withdrawal OTP request for ${body.email}`);
+    return this.proxyService.forwardToAdmin('SendWithdrawalOtp', body);
+  }
+
+  @Post('withdraw/otp/verify')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Verify withdrawal OTP' })
+  async verifyWithdrawalOtp(@Body() body: { email: string; otp: string }) {
+    this.logger.log(`Verify withdrawal OTP request for ${body.email}`);
+    return this.proxyService.forwardToAdmin('VerifyWithdrawalOtp', body);
+  }
+
   @Get('invoices')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get broker subscription invoices' })

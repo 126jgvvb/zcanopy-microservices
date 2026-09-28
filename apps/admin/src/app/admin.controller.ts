@@ -98,6 +98,12 @@ export class AdminController {
     return this.adminService.getClientMessages(dto);
   }
 
+  @GrpcMethod('AdminService', 'GetComments')
+  async getComments(dto: any) {
+    this.logger.log('Received getComments request');
+    return this.adminService.getComments(dto);
+  }
+
   @GrpcMethod('AdminService', 'GetBrokerDetails')
   async getBrokerDetails(dto: any) {
     this.logger.log(`Received getBrokerDetails request for ${dto.brokerId}`);
@@ -198,6 +204,18 @@ export class AdminController {
   async withdraw(dto: any) {
     this.logger.log(`Received admin withdraw request: amount=${dto.amount}, phone=${dto.phoneNumber}`);
     return this.adminService.withdraw(dto);
+  }
+
+  @GrpcMethod('AdminService', 'SendWithdrawalOtp')
+  async sendWithdrawalOtp(dto: any) {
+    this.logger.log(`Received admin send withdrawal OTP request: email=${dto.email}, amount=${dto.amount}`);
+    return this.adminService.sendWithdrawalOtp(dto);
+  }
+
+  @GrpcMethod('AdminService', 'VerifyWithdrawalOtp')
+  async verifyWithdrawalOtp(dto: any) {
+    this.logger.log(`Received admin verify withdrawal OTP request: email=${dto.email}`);
+    return this.adminService.verifyWithdrawalOtp(dto);
   }
 
   @GrpcMethod('AdminService', 'GetWallet')

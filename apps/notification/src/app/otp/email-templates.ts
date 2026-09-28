@@ -278,3 +278,29 @@ export function propertyDeletedEmailHtml(payload: { username?: string; email: st
 
   return baseTemplate('Property removed', body);
 }
+
+export function adminWithdrawalOtpEmailHtml(payload: { otp: string; username?: string; ttlSeconds?: number; amount?: number; walletType?: string; email?: string }): string {
+  const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
+  const amountText = payload.amount ? `UGX ${Number(payload.amount).toLocaleString()}` : 'the requested amount';
+  const walletLabel = payload.walletType === 'platform_commission' ? 'Platform Commission Wallet' : 'Admin Wallet';
+  const expiryText = payload.ttlSeconds ? `This code expires in ${Math.round(payload.ttlSeconds / 60)} minute(s).` : 'This code is time-limited.';
+
+  const body = `
+    <div class="title">Withdrawal verification</div>
+    <div class="text">${title} A withdrawal of <span class="label">${amountText}</span> was requested from the <span class="label">${walletLabel}</span>.</div>
+    <div class="text">To authorize this transaction, please use the verification code below:</div>
+    <div class="otp-box">
+      <div class="otp-code">${payload.otp}</div>
+      <div class="otp-label">Withdrawal code</div>
+    </div>
+    <div class="text">${expiryText}</div>
+    <div class="info-box">
+      <div><span class="label">Amount:</span> ${amountText}</div>
+      <div><span class="label">Wallet:</span> ${walletLabel}</div>
+      <div><span class="label">Requested at:</span> ${new Date().toLocaleString()}</div>
+    </div>
+    <div class="text">If you did not request this withdrawal, please <strong>do not share this code</strong> and contact support immediately.</div>
+  `;
+
+  return baseTemplate('ZCanopy withdrawal verification', body);
+}

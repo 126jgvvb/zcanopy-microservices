@@ -1242,7 +1242,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-async createCustomerBooking(dto: { customerId: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; reason?: string; status?: string }): Promise<{ success: boolean; message: string; bookingId?: string; bookingCode?: string }> {
+async createCustomerBooking(dto: { customerId: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; reason?: string; status?: string }): Promise<{ success: boolean; message: string; bookingId?: string; bookingCode?: string; brokerPhone?:string }> {
     try {
       // No session validation needed - customerId comes from JWT
 
@@ -1337,6 +1337,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         message: paymentResult?.message || 'Booking created',
         bookingId: transactionCode,
         bookingCode,
+        brokerPhone: paymentResult?.brokerPhone,
       };
     } catch (err) {
       this.logger.error(`Failed to create booking for property ${dto.propertyId}:`, err);

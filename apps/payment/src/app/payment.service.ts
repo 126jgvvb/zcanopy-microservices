@@ -266,6 +266,9 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
 
         const iotecStatus = collectResult.data?.status || 'Pending';
         const isSuccess = iotecStatus === 'Success' || collectResult.data?.code;
+       
+      //4% of the iotec charge fee
+      const actual_Amount_After_Gateway_Deduction=collectResult.data?.amount-(collectResult.data?.amount*this.IOTEC_CHARGE_PERCENTAGE);
 
         const commissions = await firstValueFrom(
           this.adminClient.getService('AdminService').GetCommissions({}).pipe(
@@ -278,16 +281,22 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
         }
 
          const commissionRate = Number(commissions?.platformCommission) || 100;
-         const platformCommissionAmount = Number((collectResult.data?.amount || 0) * (commissionRate / 100));
+         const platformCommissionAmount = Number((actual_Amount_After_Gateway_Deduction || 0) * (commissionRate / 100));
 
          if (!Number.isFinite(platformCommissionAmount) || platformCommissionAmount < 0) {
            this.logger.warn(`[subscription-payment] Invalid platformCommissionAmount=${platformCommissionAmount}, skipping emit`);
-         } else {
+         } 
+         else {
+          if(isSuccess){
            this.redisClient.emit('update_platform_commission', {
              amount: platformCommissionAmount,
              brokerId: dto.brokerId,
              externalId,
            });
+          }
+          else{
+            this.logger.log('Payment seems to have failed.');
+          }
          }
 
         const transaction = this.transactionRepo.create({
@@ -298,7 +307,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
           amount: collectResult.data?.amount || dto.amount,
           platformCommission: platformCommissionAmount,
           createdAt: new Date(),
-          paymentStatus: isSuccess ? 'SUCCESS' : 'PENDING',
+          paymentStatus: isSuccess ? 'SUCCESS' : 'FAILED',
           reasonForPayment: `Subscription upgrade to ${dto.tier}`,
         });
 

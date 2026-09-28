@@ -38,6 +38,7 @@ service AdminService {
   rpc GetAllCustomers (GetAllCustomersRequest) returns (GetAllCustomersResponse);
   rpc GetPropertyComments (GetPropertyCommentsRequest) returns (GetPropertyCommentsResponse);
   rpc GetAllCustomerFavorites (GetAllCustomerFavoritesRequest) returns (GetAllCustomerFavoritesResponse);
+  rpc GetComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
  
 }
 

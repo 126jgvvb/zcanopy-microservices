@@ -98,6 +98,16 @@ export class WebBrokerController {
     });
   }
 
+  @Put('properties/:id/availability')
+  @ApiOperation({ summary: 'Update property availability from web dashboard' })
+  async updatePropertyAvailability(@Req() req: any, @Param('id') id: string, @Body() body: { isAvailable: boolean }) {
+    this.logger.log(`Web broker update property availability ${id} for ${this.getBrokerCode(req)}`);
+    return this.proxyService.forwardToProperty('UpdateProperty', {
+      id,
+      isAvailable: body.isAvailable,
+    });
+  }
+
   @Delete('properties/:id')
   @ApiOperation({ summary: 'Delete property from web dashboard' })
   async deleteProperty(@Req() req: any, @Param('id') id: string) {
