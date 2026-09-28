@@ -2892,10 +2892,22 @@ private getEmptyBroker(): any {
             this.logger.log(`the returned object is: ${JSON.stringify(plainBroker)}`);
 
            // return { success: true, broker: plainBroker };
-           return { 
+         /*  return { 
             success: true,
             message: 'Success',
             broker: plainBroker,
+            sessionToken: '',
+            sessionId: '',
+            deviceId: '',
+            expiresAt: 0,
+            ttlSeconds: 0
+        };
+        */
+
+        return { 
+            success: true,
+            message: 'Success',
+            broker: {},
             sessionToken: '',
             sessionId: '',
             deviceId: '',
