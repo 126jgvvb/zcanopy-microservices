@@ -2776,7 +2776,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 };
             }
             if (!this.comparePassword(broker.password, dto.password)) {
-                this.logger.log('The password is not matching what is stored');
+                this.logger.log(`The password: ${dto.password} is not matching what is stored`);
 
                 return {
                     success: false,
