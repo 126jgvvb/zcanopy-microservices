@@ -78,7 +78,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         ){}
 
 
-        private toPlainBroker(broker: any): any {
+        /*private toPlainBroker(broker: any): any {
             if (!broker) return broker;
             const sanitized = { ...broker };
             if (sanitized.ninImages !== undefined && !Array.isArray(sanitized.ninImages)) {
@@ -91,7 +91,69 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 }
             }
             return sanitized;
-        }
+        }*/
+
+            private toPlainBroker(broker: any): any {
+    if (!broker) {
+        // Return an object populated with default values matching the proto structure
+        return this.getEmptyBroker();
+    }
+
+    // Helper to safely format dates to ISO strings, ensuring no invalid values are passed
+    const formatStrDate = (date: any): string => {
+        if (date instanceof Date) return date.toISOString();
+        if (typeof date === 'string' && date.trim() !== '') return date;
+        return ''; // Protobuf string defaults to an empty string
+    };
+
+    return {
+        id: broker.id || '',
+        username: broker.username || '',
+        email: broker.email || '',
+        phoneNumber: broker.phoneNumber || '',
+        brokerCode: broker.brokerCode || '',
+        subscriptionTier: broker.subscriptionTier || '',
+        
+        // Booleans must strictly be true or false (never undefined or null)
+        isVerified: !!broker.isVerified,
+        isEmailVerified: !!broker.isEmailVerified,
+        isPhoneVerified: !!broker.isPhoneVerified,
+        isActive: !!broker.isActive,
+        isDeleted: !!broker.isDeleted,
+
+        location: broker.location || '',
+        title: broker.title || '',
+        brokerImage: broker.brokerImage || '',
+        googleId: broker.googleId || '',
+        deviceId: broker.deviceId || '',
+        brokerBrandName: broker.brokerBrandName || '',
+
+        // Numbers must evaluate to a valid float/integer primitive
+        walletBalance: typeof broker.walletBalance === 'number' ? broker.walletBalance : 0.0,
+
+        // Handled dates explicitly matching your 'string' definition in the proto
+        lastLogin: formatStrDate(broker.lastLogin),
+        createdAt: formatStrDate(broker.createdAt),
+        updatedAt: formatStrDate(broker.updatedAt),
+        subscriptionExpiresAt: formatStrDate(broker.subscriptionExpiresAt),
+
+        // Arrays must always resolve to a flat array structure
+        ninImages: Array.isArray(broker.ninImages) ? broker.ninImages : [],
+    };
+}
+
+// Fallback helper to prevent client crashes when returning empty data payloads
+private getEmptyBroker(): any {
+    return {
+        id: '', username: '', email: '', phoneNumber: '', brokerCode: '', subscriptionTier: '',
+        isVerified: false, isEmailVerified: false, isPhoneVerified: false, isActive: false, isDeleted: false,
+        location: '', title: '', brokerImage: '', googleId: '', deviceId: '', brokerBrandName: '',
+        walletBalance: 0.0,
+        lastLogin: '', createdAt: '', updatedAt: '', subscriptionExpiresAt: '',
+        ninImages: []
+    };
+}
+
 
         async onModuleInit() {
             this.subscriber = new Redis({
@@ -2784,7 +2846,12 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 return {
                     success: false,
                     message: 'Email and password are required',
-                    broker: null,
+                    broker: {}, // Clear object instead of null
+                    sessionToken: '',
+                    sessionId: '',
+                    deviceId: '',
+                    expiresAt: 0,
+                    ttlSeconds: 0
                 };
             }
 
@@ -2794,16 +2861,26 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 return {
                     success: false,
                     message: 'Broker not found',
-                    broker: null,
+                    broker: {}, 
+                    sessionToken: '',
+                    sessionId: '',
+                    deviceId: '',
+                    expiresAt: 0,
+                    ttlSeconds: 0
                 };
             }
             if (!this.comparePassword(broker.password, dto.password)) {
                 this.logger.log(`The password: ${dto.password} is not matching what is stored`);
 
-                return {
+                return  {
                     success: false,
                     message: 'Invalid password',
-                    broker: null,
+                    broker: {},
+                    sessionToken: '',
+                    sessionId: '',
+                    deviceId: '',
+                    expiresAt: 0,
+                    ttlSeconds: 0
                 };
             }
 
@@ -2814,7 +2891,18 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             const plainBroker = this.toPlainBroker(sanitized);
             this.logger.log(`the returned object is: ${JSON.stringify(plainBroker)}`);
 
-            return { success: true, broker: plainBroker };
+           // return { success: true, broker: plainBroker };
+           return { 
+            success: true, 
+            message: 'Success', 
+            broker: plainBroker,
+            sessionToken: '', 
+            sessionId: '',    
+            deviceId: '',     
+            expiresAt: 0,     
+            ttlSeconds: 0     
+        };
+       
         } catch (err) {
             this.logger.error('Failed to validate broker:', err);
             throw err;

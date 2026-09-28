@@ -30,6 +30,11 @@ export class SessionMiddleware implements NestMiddleware {
       return next();
     }
 
+    // Check public paths FIRST - skip session validation entirely
+    if (PUBLIC_WEB_PATHS.some((p) => path === p || path.startsWith(p + '/'))) {
+      return next();
+    }
+
     let sessionId = (req.headers['x-session-id'] || req.headers['X-Session-Id']) as string | undefined;
 
     if (!sessionId && req.body) {
@@ -70,10 +75,6 @@ export class SessionMiddleware implements NestMiddleware {
           }
         } catch {}
       }
-    }
-
-    if (PUBLIC_WEB_PATHS.some((p) => path === p || path.startsWith(p + '/'))) {
-      return next();
     }
 
     if (!sessionId) {
