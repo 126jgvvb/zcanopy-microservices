@@ -78,6 +78,21 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         ){}
 
 
+        private toPlainBroker(broker: any): any {
+            if (!broker) return broker;
+            const sanitized = { ...broker };
+            if (sanitized.ninImages !== undefined && !Array.isArray(sanitized.ninImages)) {
+                sanitized.ninImages = Array.isArray(sanitized.ninImages) ? sanitized.ninImages : [];
+            }
+            const dateFields = ['createdAt', 'updatedAt', 'lastLogin', 'subscriptionExpiresAt', 'deletedAt'];
+            for (const field of dateFields) {
+                if (sanitized[field] instanceof Date) {
+                    sanitized[field] = sanitized[field].toISOString();
+                }
+            }
+            return sanitized;
+        }
+
         async onModuleInit() {
             this.subscriber = new Redis({
                 host: process.env.REDIS_HOST || 'localhost',
@@ -659,9 +674,9 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 const enrichedBrokers = brokers.map((broker: any) => {
                     const realTier = brokerTiers.get(broker.brokerCode)?.tier;
                     if (realTier && realTier !== broker.subscriptionTier) {
-                        return { ...broker, subscriptionTier: realTier };
+                        return this.toPlainBroker({ ...broker, subscriptionTier: realTier });
                     }
-                    return broker;
+                    return this.toPlainBroker(broker);
                 });
 
                 return {
@@ -673,7 +688,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             } catch (paymentErr) {
                 this.logger.warn(`Failed to enrich broker tiers from payments: ${(paymentErr as Error).message}`);
                 return {
-                    brokers,
+                    brokers: brokers.map((b: any) => this.toPlainBroker(b)),
                     total,
                     page,
                     limit,
@@ -777,7 +792,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 brokerId: newBroker.id,
             });
 
-            return newBroker;
+            return this.toPlainBroker(newBroker);
         } catch (err) {
             this.logger.error(`Failed to create broker:`, err);
             throw err;
@@ -806,6 +821,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 throw new NotFoundException(`Broker with id ${brokerId} not found after update`);
             }
             const limits = this.getSubscriptionLimits(updatedBroker.subscriptionTier);
+            const plainBroker = this.toPlainBroker(updatedBroker);
 
             try {
                 await lastValueFrom(
@@ -826,7 +842,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 this.logger.error(`Failed to notify property service for broker ${brokerId}:`, err);
             }
 
-            return updatedBroker;
+            return plainBroker;
         } catch (err) {
             this.logger.error(`Failed to mark broker verified ${brokerId}:`, err);
             throw err;
@@ -1546,7 +1562,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 ninImages: [dto.IDFront, dto.IDBack],
                 updatedAt: new Date(),
             });
-            return await this.brokerRepo.findOne({ where: { id: dto.id } });
+            const updated = await this.brokerRepo.findOne({ where: { id: dto.id } });
+            return this.toPlainBroker(updated);
         } catch (err) {
             this.logger.error(`Failed to update broker ${dto.id}:`, err);
             throw err;
@@ -1581,7 +1598,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             }
 
             const { password: _, ...sanitized } = updated;
-            return { success: true, ...sanitized };
+            const plainBroker = this.toPlainBroker(sanitized);
+            return { success: true, ...plainBroker };
         } catch (err) {
             this.logger.error(`Failed to update broker settings ${dto.brokerCode}:`, err);
             throw err;
@@ -1677,7 +1695,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             });
         
             return {
-                brokers,
+                brokers: brokers.map((b: any) => this.toPlainBroker(b)),
                 total,
                 page,
                 limit
@@ -1695,7 +1713,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 order: { createdAt: 'DESC' },
                 take: limit,
             });
-            return { brokers };
+            return { brokers: brokers.map((b: any) => this.toPlainBroker(b)) };
         } catch (err) {
             this.logger.error('Failed to get recent signups:', err);
             throw err;
@@ -1719,7 +1737,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 updatedAt: new Date(),
             });
 
-            return await this.brokerRepo.findOne({ where: { id: dto.id } });
+            const updated = await this.brokerRepo.findOne({ where: { id: dto.id } });
+            return this.toPlainBroker(updated);
         } catch (err) {
             this.logger.error(`Failed to edit broker tier ${dto.id}:`, err);
             throw err;
@@ -1807,9 +1826,9 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 isEmailVerified: broker.isEmailVerified,
                 isPhoneVerified: broker.isPhoneVerified,
                 location: broker.location,
-                lastLogin: broker.lastLogin,
-                createdAt: broker.createdAt,
-                updatedAt: broker.updatedAt,
+                lastLogin: broker.lastLogin instanceof Date ? broker.lastLogin.toISOString() : broker.lastLogin,
+                createdAt: broker.createdAt instanceof Date ? broker.createdAt.toISOString() : broker.createdAt,
+                updatedAt: broker.updatedAt instanceof Date ? broker.updatedAt.toISOString() : broker.updatedAt,
                 isActive: broker.isActive,
                 isDeleted: broker.isDeleted,
                 walletBalance: broker.walletBalance || 0,
@@ -2227,6 +2246,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             await this.invalidateBrokerCache(brokerCode);
 
             const { password: _, ...sanitized } = broker;
+            const plainBroker = this.toPlainBroker(sanitized);
 
             const ttl = 7 * 24 * 60 * 60;
             const sessionId = randomUUID();
@@ -2257,7 +2277,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             return {
                 success: true,
                 message: 'Login successful',
-                broker: sanitized,
+                broker: plainBroker,
                 sessionToken,
                 sessionId,
                 deviceId: deviceId || broker.deviceId,
@@ -2391,7 +2411,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
 
             await this.setBrokerCache(dto.brokerCode, broker);
             const { password: _, ...sanitized } = broker;
-            return { success: true, broker: sanitized };
+            const plainBroker = this.toPlainBroker(sanitized);
+            return { success: true, broker: plainBroker };
         } catch (err) {
             this.logger.error(`Failed to get broker by code ${dto.brokerCode}:`, err);
             throw err;
@@ -2413,7 +2434,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 .orWhere('LOWER(broker.brokerBrandName) LIKE :searchTerm', { searchTerm })
                 .getMany();
 
-            const sanitized = brokers.map(({ password: _, ...rest }) => rest);
+            const sanitized = brokers.map(({ password: _, ...rest }) => this.toPlainBroker(rest));
             return { brokers: sanitized };
         } catch (err) {
             this.logger.error('Failed to search brokers:', err);
@@ -2711,6 +2732,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                 };
             }
             const { password: _pw, ...sanitized } = updated;
+            const plainBroker = this.toPlainBroker(sanitized);
 
             const ttl = 7 * 24 * 60 * 60;
             const sessionId = randomUUID();
@@ -2741,7 +2763,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             return {
                 success: true,
                 message: 'Broker account setup successful',
-                broker: sanitized,
+                broker: plainBroker,
                 sessionToken,
                 sessionId,
                 deviceId,
@@ -2789,10 +2811,10 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             this.logger.log('The broker passes the checkpoints successfully');
 
             const { password: _, ...sanitized } = broker;
+            const plainBroker = this.toPlainBroker(sanitized);
+            this.logger.log(`the returned object is: ${JSON.stringify(plainBroker)}`);
 
-            this.logger.log(`the returned object is: ${sanitized}`);
-
-            return { success: true, broker: sanitized };
+            return { success: true, broker: plainBroker };
         } catch (err) {
             this.logger.error('Failed to validate broker:', err);
             throw err;
@@ -2807,11 +2829,12 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             }
 
             const { password: _, ...sanitized } = broker;
-            sanitized.ninImages = Array.isArray(sanitized.ninImages) ? sanitized.ninImages : [];
-            this.logger.log(`getBrokerById id=${dto.id} ninImages=${sanitized.ninImages.length}`);
-            sanitized.subscriptionTier=sanitized.subscriptionTier+","+sanitized.ninImages;
-          
-            return { broker: sanitized };
+            const plainBroker = this.toPlainBroker(sanitized);
+            plainBroker.ninImages = Array.isArray(plainBroker.ninImages) ? plainBroker.ninImages : [];
+            plainBroker.subscriptionTier = plainBroker.subscriptionTier + "," + plainBroker.ninImages;
+            this.logger.log(`getBrokerById id=${dto.id} ninImages=${plainBroker.ninImages.length}`);
+
+            return { broker: plainBroker };
         } catch (err) {
             this.logger.error(`Failed to get broker by id ${dto.id}:`, err);
             throw err;
