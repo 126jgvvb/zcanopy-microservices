@@ -1182,6 +1182,70 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async sendForgotPasswordOtp(dto: { email: string }) {
+    try {
+      this.logger.log(`Send forgot password OTP request for ${dto.email}`);
+      const admin = await this.adminRepo.findOne({ where: { email: dto.email } });
+      if (!admin) {
+        return { success: true, message: 'If an account exists with this email, a reset code has been sent.' };
+      }
+
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const ttlSeconds = 300;
+      const redisKey = `admin:forgot-password:otp:${dto.email}`;
+      await this.redis.setex(redisKey, ttlSeconds, JSON.stringify({ otp, email: dto.email }));
+
+      this.redisClient.emit('send_email_otp', {
+        email: dto.email,
+        otp,
+        purpose: 'password-reset',
+        username: admin.username,
+        ttlSeconds,
+      });
+
+      return { success: true, message: 'If an account exists with this email, a reset code has been sent.', expiresIn: ttlSeconds };
+    } catch (err) {
+      this.logger.error(`Failed to send forgot password OTP: ${(err as Error).message}`);
+      throw new BadRequestException('Failed to send OTP');
+    }
+  }
+
+  async verifyForgotPasswordOtp(dto: { email: string; otp: string }) {
+    try {
+      this.logger.log(`Verify forgot password OTP for ${dto.email}`);
+      const redisKey = `admin:forgot-password:otp:${dto.email}`;
+      const stored = await this.redis.get(redisKey);
+      if (!stored) {
+        return { success: false, message: 'OTP expired or not found', valid: false };
+      }
+      const data = JSON.parse(stored);
+      if (data.otp !== dto.otp) {
+        return { success: false, message: 'Invalid OTP', valid: false };
+      }
+      await this.redis.del(redisKey);
+      return { success: true, message: 'OTP verified successfully', valid: true };
+    } catch (err) {
+      this.logger.error(`Failed to verify forgot password OTP: ${(err as Error).message}`);
+      throw new BadRequestException('Failed to verify OTP');
+    }
+  }
+
+  async resetAdminPassword(dto: { email: string; password: string }) {
+    try {
+      this.logger.log(`Reset admin password for ${dto.email}`);
+      const admin = await this.adminRepo.findOne({ where: { email: dto.email } });
+      if (!admin) {
+        throw new NotFoundException('Admin not found');
+      }
+      admin.password = dto.password;
+      await this.adminRepo.save(admin);
+      return { success: true, message: 'Password reset successfully' };
+    } catch (err) {
+      this.logger.error(`Failed to reset admin password: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
   async withdraw(dto: {
     amount: number;
     phoneNumber: string;

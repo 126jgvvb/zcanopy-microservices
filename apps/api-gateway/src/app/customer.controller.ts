@@ -32,6 +32,27 @@ export class CustomerController {
     });
   }
 
+  @Post('forgot-password/otp/send')
+  @ApiOperation({ summary: 'Send forgot password OTP to customer email' })
+  async sendForgotPasswordOtp(@Body() body: { email: string }) {
+    this.logger.log(`Send customer forgot password OTP for ${body.email}`);
+    return this.proxyService.forwardToCustomer('ForgotPassword', body);
+  }
+
+  @Post('forgot-password/otp/verify')
+  @ApiOperation({ summary: 'Verify customer forgot password OTP' })
+  async verifyForgotPasswordOtp(@Body() body: { email: string; otp: string }) {
+    this.logger.log(`Verify customer forgot password OTP for ${body.email}`);
+    return this.proxyService.forwardToCustomer('VerifyForgotPasswordOtp', body);
+  }
+
+  @Post('forgot-password/reset')
+  @ApiOperation({ summary: 'Reset customer password after OTP verification' })
+  async resetCustomerPassword(@Body() body: { email: string; password: string }) {
+    this.logger.log(`Reset customer password for ${body.email}`);
+    return this.proxyService.forwardToCustomer('ResetCustomerPassword', body);
+  }
+
   @Get('properties') //confirmed
   @ApiOperation({ summary: 'Get nearby properties for customer' })
   async getCustomerProperties(@Query() query: any, @Req() req: any) {

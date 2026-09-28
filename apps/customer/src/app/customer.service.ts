@@ -213,6 +213,75 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async forgotPassword(dto: { email: string }): Promise<{ success: boolean; message: string }> {
+    try {
+      this.logger.log(`Customer forgot password request for ${dto.email}`);
+      const customer = await this.customerRepo.findOne({ where: { email: dto.email } });
+      if (!customer) {
+        return { success: true, message: 'If an account exists with this email, a reset code has been sent.' };
+      }
+
+      const otpCode = this.generateOtp();
+      const otp = this.otpRepo.create({ customerId: customer.id, otpCode, channel: 'email', isUsed: false, isVerified: false });
+      await this.otpRepo.save(otp);
+
+      await this.notificationClient.emit('send_email_otp', {
+        otp: otpCode,
+        email: dto.email,
+        ttlSeconds: 300,
+        purpose: 'password-reset',
+      });
+
+      return { success: true, message: 'If an account exists with this email, a reset code has been sent.' };
+    } catch (err) {
+      this.logger.error(`Failed to process customer forgot password for ${dto.email}:`, err);
+      throw new BadRequestException('Failed to send OTP');
+    }
+  }
+
+  async verifyForgotPasswordOtp(dto: { email: string; otp: string }): Promise<{ success: boolean; message: string; valid: boolean }> {
+    try {
+      this.logger.log(`Verify customer forgot password OTP for ${dto.email}`);
+      const customer = await this.customerRepo.findOne({ where: { email: dto.email } });
+      if (!customer) {
+        return { success: false, message: 'Customer not found', valid: false };
+      }
+
+      const otp = await this.otpRepo.findOne({ where: { customerId: customer.id, otpCode: dto.otp, channel: 'email', isUsed: false }, order: { createdAt: 'DESC' } });
+      if (!otp) {
+        return { success: false, message: 'Invalid or expired OTP', valid: false };
+      }
+
+      const ttlSeconds = 300;
+      const createdAt = new Date(otp.createdAt).getTime();
+      if (Date.now() - createdAt > ttlSeconds * 1000) {
+        return { success: false, message: 'OTP expired', valid: false };
+      }
+
+      await this.otpRepo.update(otp.id, { isUsed: true });
+      return { success: true, message: 'OTP verified successfully', valid: true };
+    } catch (err) {
+      this.logger.error(`Failed to verify customer forgot password OTP for ${dto.email}:`, err);
+      throw new BadRequestException('Failed to verify OTP');
+    }
+  }
+
+  async resetCustomerPassword(dto: { email: string; password: string }): Promise<{ success: boolean; message: string }> {
+    try {
+      this.logger.log(`Reset customer password for ${dto.email}`);
+      const customer = await this.customerRepo.findOne({ where: { email: dto.email } });
+      if (!customer) {
+        throw new NotFoundException('Customer not found');
+      }
+      customer.passwordHash = this.hashPassword(dto.password);
+      await this.customerRepo.save(customer);
+      return { success: true, message: 'Password reset successfully' };
+    } catch (err) {
+      this.logger.error(`Failed to reset customer password for ${dto.email}:`, err);
+      throw err;
+    }
+  }
+
   async loginCustomerGoogle(dto: { googleId: string; email?: string; firstName?: string; lastName?: string }): Promise<{ success: boolean; message: string; customer?: CustomerProfileResponse; session?: CustomerSessionResponse }> {
     try {
       let customer = await this.customerRepo.findOne({ where: { googleId: dto.googleId } });

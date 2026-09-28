@@ -49,6 +49,27 @@ export class CustomerController {
     return this.customerService.loginCustomerGoogle(dto);
   }
 
+  @Post('forgot-password/otp/send')
+  @ApiOperation({ summary: 'Send forgot password OTP to customer email' })
+  async sendForgotPasswordOtp(@Body() dto: { email: string }) {
+    this.logger.log(`Send forgot password OTP for ${dto.email}`);
+    return this.customerService.forgotPassword(dto);
+  }
+
+  @Post('forgot-password/otp/verify')
+  @ApiOperation({ summary: 'Verify forgot password OTP' })
+  async verifyForgotPasswordOtp(@Body() dto: { email: string; otp: string }) {
+    this.logger.log(`Verify forgot password OTP for ${dto.email}`);
+    return this.customerService.verifyForgotPasswordOtp(dto);
+  }
+
+  @Post('forgot-password/reset')
+  @ApiOperation({ summary: 'Reset customer password after OTP verification' })
+  async resetCustomerPassword(@Body() dto: { email: string; password: string }) {
+    this.logger.log(`Reset customer password for ${dto.email}`);
+    return this.customerService.resetCustomerPassword(dto);
+  }
+
   @Post('confirm-otp')
   @ApiOperation({ summary: 'Confirm OTP sent to email' })
   async confirmOtp(@Body() dto: ConfirmOtpDto) {

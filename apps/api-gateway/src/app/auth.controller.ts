@@ -156,11 +156,21 @@ export class UsersController {
   @ApiOperation({ summary: 'Request password reset OTP' })
   async requestResetPasswordOtp(@Body() body: any) {
     this.logger.log(`Request reset password OTP for ${body.email}`);
-    return this.proxyService.forwardToBroker('ResendOtp', {
-      email: body.email,
-      channel: 'email',
-      purpose: 'password-reset',
-    });
+    return this.proxyService.forwardToBroker('ForgotPassword', body);
+  }
+
+  @Post('request-reset-password-otp/verify')
+  @ApiOperation({ summary: 'Verify password reset OTP' })
+  async verifyResetPasswordOtp(@Body() body: any) {
+    this.logger.log(`Verify reset password OTP for ${body.email}`);
+    return this.proxyService.forwardToBroker('VerifyForgotPasswordOtp', body);
+  }
+
+  @Post('request-reset-password-otp/reset')
+  @ApiOperation({ summary: 'Reset password after OTP verification' })
+  async resetPassword(@Body() body: any) {
+    this.logger.log(`Reset password for ${body.email}`);
+    return this.proxyService.forwardToBroker('ResetBrokerPassword', body);
   }
 
   @Post('request-account-deletion-otp')

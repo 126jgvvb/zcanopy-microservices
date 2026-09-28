@@ -2,6 +2,7 @@ import { Controller, Logger, Get, Post, Put, Delete, Body, Query, Param, UseGuar
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ProxyService } from './proxy.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { Public } from './public.decorator';
 
 @ApiTags('web-customer')
 @Controller('web/customer')
@@ -33,6 +34,7 @@ export class WebCustomerController {
 
   @Get('broker/:brokerCode/properties')
   @ApiOperation({ summary: 'Get broker properties for customer web dashboard' })
+  @Public()
   async getBrokerProperties(@Query() query: any, @Param('brokerCode') brokerCode: string, @Req() req: any) {
     const customerId = await this.getCustomerId(req);
     this.logger.log(`Web customer broker properties request for ${brokerCode} customerId=${customerId}`);
@@ -69,12 +71,14 @@ export class WebCustomerController {
 
   @Post('search/record')
   @ApiOperation({ summary: 'Record customer search from web dashboard' })
+  @Public()
   async recordSearch(@Body() body: any, @Req() req: any) {
     const customerId = await this.getCustomerId(req);
-    this.logger.log(`Web customer record search request for customer ${customerId}`);
+    const sessionId = req.headers['x-session-id'] || req.headers['X-Session-Id'];
+    this.logger.log(`Web customer record search request for customer ${customerId || 'anonymous'}, session=${sessionId || 'none'}`);
     return this.proxyService.forwardToProperty('RecordCustomerSearch', {
       ...body,
-      customerId,
+      customerId: customerId || '',
     });
   }
 

@@ -218,6 +218,24 @@ export class AdminController {
     return this.adminService.verifyWithdrawalOtp(dto);
   }
 
+  @GrpcMethod('AdminService', 'SendForgotPasswordOtp')
+  async sendForgotPasswordOtp(dto: any) {
+    this.logger.log(`Received admin forgot password OTP request: email=${dto.email}`);
+    return this.adminService.sendForgotPasswordOtp(dto);
+  }
+
+  @GrpcMethod('AdminService', 'VerifyForgotPasswordOtp')
+  async verifyForgotPasswordOtp(dto: any) {
+    this.logger.log(`Received admin verify forgot password OTP request: email=${dto.email}`);
+    return this.adminService.verifyForgotPasswordOtp(dto);
+  }
+
+  @GrpcMethod('AdminService', 'ResetAdminPassword')
+  async resetAdminPassword(dto: any) {
+    this.logger.log(`Received admin reset password request: email=${dto.email}`);
+    return this.adminService.resetAdminPassword(dto);
+  }
+
   @GrpcMethod('AdminService', 'GetWallet')
   async getWallet(dto: any) {
     this.logger.log(`Received admin getWallet request: ${dto.walletId || 'default'}`);

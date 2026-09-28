@@ -2113,6 +2113,70 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         return stored === hashedInput || stored === input;
     }
 
+    async forgotPassword(dto: { email: string }) {
+        try {
+            this.logger.log(`Broker forgot password request for ${dto.email}`);
+            const broker = await this.brokerRepo.findOne({ where: { email: dto.email } });
+            if (!broker) {
+                return { success: true, message: 'If an account exists with this email, a reset code has been sent.' };
+            }
+
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const ttlSeconds = 300;
+            const redisKey = `broker:forgot-password:otp:${dto.email}`;
+            await this.redis.setex(redisKey, ttlSeconds, JSON.stringify({ otp, email: dto.email, brokerId: broker.id }));
+
+            this.redisClient.emit('send_email_otp', {
+                otp,
+                email: dto.email,
+                username: broker.username,
+                ttlSeconds,
+                purpose: 'password-reset',
+            });
+
+            return { success: true, message: 'If an account exists with this email, a reset code has been sent.', expiresIn: ttlSeconds };
+        } catch (err) {
+            this.logger.error('Failed to process broker forgot password:', err);
+            throw new BadRequestException('Failed to send OTP');
+        }
+    }
+
+    async verifyForgotPasswordOtp(dto: { email: string; otp: string }) {
+        try {
+            this.logger.log(`Verify broker forgot password OTP for ${dto.email}`);
+            const redisKey = `broker:forgot-password:otp:${dto.email}`;
+            const stored = await this.redis.get(redisKey);
+            if (!stored) {
+                return { success: false, message: 'OTP expired or not found', valid: false };
+            }
+            const data = JSON.parse(stored);
+            if (data.otp !== dto.otp) {
+                return { success: false, message: 'Invalid OTP', valid: false };
+            }
+            await this.redis.del(redisKey);
+            return { success: true, message: 'OTP verified successfully', valid: true };
+        } catch (err) {
+            this.logger.error('Failed to verify broker forgot password OTP:', err);
+            throw new BadRequestException('Failed to verify OTP');
+        }
+    }
+
+    async resetBrokerPassword(dto: { email: string; password: string }) {
+        try {
+            this.logger.log(`Reset broker password for ${dto.email}`);
+            const broker = await this.brokerRepo.findOne({ where: { email: dto.email } });
+            if (!broker) {
+                throw new NotFoundException('Broker not found');
+            }
+            broker.password = this.hashPassword(dto.password);
+            await this.brokerRepo.save(broker);
+            return { success: true, message: 'Password reset successfully' };
+        } catch (err) {
+            this.logger.error('Failed to reset broker password:', err);
+            throw err;
+        }
+    }
+
     async loginBroker(dto: LoginBrokerDto) {
         try {
             const { brokerCode, password, deviceId, googleId } = dto;
@@ -2718,7 +2782,14 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
                     broker: null,
                 };
             }
+
+
+            this.logger.log('The broker passes the checkpoints successfully');
+
             const { password: _, ...sanitized } = broker;
+
+            this.logger.log(`the returned object is: ${sanitized}`);
+
             return { success: true, broker: sanitized };
         } catch (err) {
             this.logger.error('Failed to validate broker:', err);

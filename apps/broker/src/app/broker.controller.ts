@@ -34,6 +34,24 @@ export class BrokerController {
     return this.brokerService.verifyBrokerOtp(dto);
   }
 
+  @GrpcMethod('BrokerService','ForgotPassword')
+  async forgotPassword(dto: { email: string }) {
+    this.logger.log(`ForgotPassword called for ${dto.email}`);
+    return this.brokerService.forgotPassword(dto);
+  }
+
+  @GrpcMethod('BrokerService','VerifyForgotPasswordOtp')
+  async verifyForgotPasswordOtp(dto: { email: string; otp: string }) {
+    this.logger.log(`VerifyForgotPasswordOtp called for ${dto.email}`);
+    return this.brokerService.verifyForgotPasswordOtp(dto);
+  }
+
+  @GrpcMethod('BrokerService','ResetBrokerPassword')
+  async resetBrokerPassword(dto: { email: string; password: string }) {
+    this.logger.log(`ResetBrokerPassword called for ${dto.email}`);
+    return this.brokerService.resetBrokerPassword(dto);
+  }
+
   @GrpcMethod('BrokerService','GetAllBrokers')
   async getAllBrokers(dto: { page: number; limit: number }) {
     this.logger.log(`GetAllBrokers called page=${dto.page} limit=${dto.limit}`);

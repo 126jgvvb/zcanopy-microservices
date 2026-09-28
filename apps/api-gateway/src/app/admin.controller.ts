@@ -469,6 +469,27 @@ export class AdminController {
     return this.proxyService.forwardToAdmin('VerifyWithdrawalOtp', body);
   }
 
+  @Post('forgot-password/otp/send')
+  @ApiOperation({ summary: 'Send forgot password OTP to admin email' })
+  async sendForgotPasswordOtp(@Body() body: { email: string }) {
+    this.logger.log(`Send admin forgot password OTP request for ${body.email}`);
+    return this.proxyService.forwardToAdmin('SendForgotPasswordOtp', body);
+  }
+
+  @Post('forgot-password/otp/verify')
+  @ApiOperation({ summary: 'Verify forgot password OTP' })
+  async verifyForgotPasswordOtp(@Body() body: { email: string; otp: string }) {
+    this.logger.log(`Verify admin forgot password OTP request for ${body.email}`);
+    return this.proxyService.forwardToAdmin('VerifyForgotPasswordOtp', body);
+  }
+
+  @Post('forgot-password/reset')
+  @ApiOperation({ summary: 'Reset admin password after OTP verification' })
+  async resetAdminPassword(@Body() body: { email: string; password: string }) {
+    this.logger.log(`Reset admin password request for ${body.email}`);
+    return this.proxyService.forwardToAdmin('ResetAdminPassword', body);
+  }
+
   @Get('invoices')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get broker subscription invoices' })
