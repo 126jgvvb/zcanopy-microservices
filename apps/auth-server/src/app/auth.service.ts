@@ -184,12 +184,11 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         role = user?.role || 'admin';
       } else {
         const brokerResult = await this.validateBroker(dto.email, dto.password);
-        const brokerCode=brokerResult?.sessionToken;
 
         this.logger.log('getting broker from the dashboard call...');
 
         const dashboard = await lastValueFrom(
-          this.brokerServiceRpc.getBrokerDashboard({ brokerId: brokerCode }),
+          this.brokerServiceRpc.getBrokerDashboard({ brokerId: brokerResult?.broker?.id }),
         );
 
         this.logger.log(`Broker obtained: ${dashboard?.broker}`);

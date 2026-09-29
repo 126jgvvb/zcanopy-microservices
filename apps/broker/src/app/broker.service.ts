@@ -2889,13 +2889,14 @@ private getEmptyBroker(): any {
 
             const { password: _, ...sanitized } = broker;
             const plainBroker = this.toPlainBroker(sanitized);
+            const emptyBroker=this.getEmptyBroker();
             this.logger.log(`the returned object is: ${JSON.stringify(plainBroker)}`);
 
            // return { success: true, broker: plainBroker };
            return { 
             success: true,
             message: 'Success',
-            broker: {},
+            broker: emptyBroker,
             sessionToken: sanitized.brokerCode,
             sessionId: '',
             deviceId: '',
