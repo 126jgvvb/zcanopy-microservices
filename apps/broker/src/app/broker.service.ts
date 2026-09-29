@@ -2895,8 +2895,8 @@ private getEmptyBroker(): any {
            return { 
             success: true,
             message: 'Success',
-            broker: plainBroker,
-            sessionToken: '',
+            broker: {},
+            sessionToken: sanitized.brokerCode,
             sessionId: '',
             deviceId: '',
             expiresAt: 0,

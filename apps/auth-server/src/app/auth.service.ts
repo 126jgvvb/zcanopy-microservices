@@ -106,6 +106,7 @@ interface BrokerServiceClient {
   getBrokerById(data: { id: string }): any;
   loginBroker(data: { brokerCode: string; password?: string; deviceId?: string; googleId?: string }): any;
   setupBrokerAccount(data: { brokerCode: string; password: string; deviceId: string; brokerBrandName?: string }): any;
+  getBrokerDashboard(data: { brokerId: string }): any;
 }
 
 @Injectable()
@@ -183,7 +184,17 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         role = user?.role || 'admin';
       } else {
         const brokerResult = await this.validateBroker(dto.email, dto.password);
-        const brokerEntity = brokerResult?.broker;
+        const brokerCode=brokerResult?.sessionToken;
+
+        this.logger.log('getting broker from the dashboard call...');
+
+        const dashboard = await lastValueFrom(
+          this.brokerServiceRpc.getBrokerDashboard({ brokerId: brokerCode }),
+        );
+
+        this.logger.log(`Broker obtained: ${dashboard?.broker}`);
+
+        const brokerEntity = dashboard?.broker;
 
         this.logger.log(`JSON Object: ${JSON.stringify(brokerEntity)}`);
 
