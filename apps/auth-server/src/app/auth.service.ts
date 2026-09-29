@@ -164,7 +164,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         this.brokerServiceRpc.validateBroker({ email, password }),
       );
 
-      this.logger.log(`the returned object-1:${broker}`);
+      this.logger.log(`the returned object-1:${JSON.stringify(broker)}`);
 
       return broker;
     } catch (err) {
