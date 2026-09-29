@@ -20,7 +20,8 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') || 3003;
 
    //gRDC config
-   const brokerProtoPath = join(__dirname, './proto/broker.proto');
+  // const brokerProtoPath = join(__dirname, './proto/broker.proto');
+  const brokerProtoPath =  join(process.cwd(), 'libs/proto-schema/src/proto/broker.proto');
    const resolvedProtoPath = resolve(brokerProtoPath);
    if (!existsSync(resolvedProtoPath)) {
      throw new Error(`Broker proto file not found at: ${resolvedProtoPath}`);

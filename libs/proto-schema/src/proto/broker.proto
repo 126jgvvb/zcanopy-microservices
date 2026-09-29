@@ -431,13 +431,6 @@ message GetBrokerByCodeResponse {
   Broker broker = 1;
 }
 
-/*
-message GetSubscriptionDetailsResponse {
-  string subscriptionTier = 1;
-  string subscriptionExpiresAt = 2;
-  bool isActive = 3;
-}*/
-
 message GetAvailableTiersRequest {}
 
 message GetAvailableTiersResponse {
@@ -643,12 +636,3 @@ message ProcessPropertyPaymentResponse {
   string date = 7;
 }
 
-message VerifyOtpRequest {
-  string email = 1;
-  string otp = 2;
-}
-
-message VerifyOtpResponse {
-  bool success = 1;
-  string message = 2;
-}

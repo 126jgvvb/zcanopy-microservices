@@ -33,8 +33,9 @@ import * as crypto from 'crypto';
           options: {
             url: process.env.BROKER_SERVICE_URL || 'localhost:3003',
             package: 'broker.v1',
-            protoPath: join(process.cwd(), 'apps/broker/src/proto/broker.proto'),
-          },
+         //   protoPath: join(process.cwd(), 'apps/broker/src/proto/broker.proto'),
+         protoPath: join(process.cwd(), 'libs/proto-schema/src/proto/broker.proto'),
+        },
         }),
       },
     ]),
