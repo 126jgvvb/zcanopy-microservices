@@ -185,6 +185,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       } else {
         const brokerResult = await this.validateBroker(dto.email, dto.password);
 
+        /*
         this.logger.log('getting broker from the dashboard call...');
 
         const dashboard = await lastValueFrom(
@@ -194,6 +195,9 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         this.logger.log(`Broker obtained: ${dashboard?.broker}`);
 
         const brokerEntity = dashboard?.broker;
+        */
+
+        const brokerEntity = brokerResult?.broker;
 
         this.logger.log(`JSON Object: ${JSON.stringify(brokerEntity)}`);
 
