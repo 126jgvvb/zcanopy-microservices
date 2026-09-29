@@ -163,6 +163,9 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       const broker = await lastValueFrom(
         this.brokerServiceRpc.validateBroker({ email, password }),
       );
+
+      this.logger.log(`the returned object-1:${broker}`);
+
       return broker;
     } catch (err) {
       this.logger.error(`Failed to validate broker ${email}:`, err);
@@ -182,7 +185,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
         const brokerResult = await this.validateBroker(dto.email, dto.password);
         const brokerEntity = brokerResult?.broker;
 
-        this.logger.log(JSON.stringify(brokerEntity));
+        this.logger.log(`JSON Object: ${JSON.stringify(brokerEntity)}`);
 
         if (!brokerEntity) {
           throw new BadRequestException(brokerResult?.message || 'Invalid broker credentials');
