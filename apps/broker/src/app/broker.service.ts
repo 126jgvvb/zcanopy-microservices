@@ -2892,7 +2892,7 @@ private getEmptyBroker(): any {
             this.logger.log(`the returned object is: ${JSON.stringify(plainBroker)}`);
 
            // return { success: true, broker: plainBroker };
-         /*  return { 
+           return { 
             success: true,
             message: 'Success',
             broker: plainBroker,
@@ -2902,8 +2902,9 @@ private getEmptyBroker(): any {
             expiresAt: 0,
             ttlSeconds: 0
         };
-        */
+        
 
+        /*
         return { 
             success: true,
             message: 'Success',
@@ -2932,7 +2933,7 @@ private getEmptyBroker(): any {
             deviceId: '',
             expiresAt: 0,
             ttlSeconds: 0
-        };
+        };*/
        
         } catch (err) {
             this.logger.error('Failed to validate broker:', err);
