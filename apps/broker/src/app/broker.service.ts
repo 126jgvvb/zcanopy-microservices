@@ -129,7 +129,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         brokerBrandName: broker.brokerBrandName || '',
 
         // Numbers must evaluate to a valid float/integer primitive
-        walletBalance: typeof broker.walletBalance === 'number' ? broker.walletBalance : 0.0,
+        walletBalance: typeof broker.walletBalance === 'number' ? broker.walletBalance : Number(broker.walletBalance ) || 0.0,
 
         // Handled dates explicitly matching your 'string' definition in the proto
         lastLogin: formatStrDate(broker.lastLogin),
@@ -138,7 +138,7 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
         subscriptionExpiresAt: formatStrDate(broker.subscriptionExpiresAt),
 
         // Arrays must always resolve to a flat array structure
-        ninImages: Array.isArray(broker.ninImages) ? broker.ninImages : [],
+        ninImages: Array.isArray(broker.ninImages) ? broker.ninImages.map((img:any)=>String(img)) : [],
     };
 }
 
