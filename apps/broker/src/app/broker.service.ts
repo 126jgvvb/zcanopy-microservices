@@ -2913,7 +2913,7 @@ private getEmptyBroker(): any {
                 email:"",
                 phoneNumber:"",
                 brokerCode: "",
-                subscriptionTier: 6,
+                subscriptionTier: "",
                 isVerified:false,
                 isEmailVerified :true,
                 isPhoneVerified:true,
@@ -2922,7 +2922,7 @@ private getEmptyBroker(): any {
                 createdAt: "",
                 updatedAt:"",
                 isActive:true,
-                isDeleted:0,
+                isDeleted:false,
                 walletBalance: 0.0,
                 subscriptionExpiresAt:"",
                 brokerBrandName:""
