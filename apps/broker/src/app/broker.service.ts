@@ -2921,7 +2921,7 @@ private getEmptyBroker(): any {
                 lastLogin :"",
                 createdAt: "",
                 updatedAt:"",
-                isActive:true;
+                isActive:true,
                 isDeleted:0,
                 walletBalance: 0.0,
                 subscriptionExpiresAt:"",
