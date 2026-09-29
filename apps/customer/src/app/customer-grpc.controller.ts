@@ -26,6 +26,9 @@ import type {
   SearchQueryDto,
   GetAllCustomersDto,
   GetCustomerIdByEmailDto,
+  ForgotPasswordDto,
+  VerifyForgotPasswordOtpDto,
+  ResetCustomerPasswordDto,
 } from './dtos/customer-grpc.dto';
 
 @Controller()
@@ -178,5 +181,23 @@ export class CustomerGrpcController {
   async getAllCustomers(dto: GetAllCustomersDto) {
     this.logger.log(`gRPC GetAllCustomers request`);
     return this.customerService.getAllCustomers(dto);
+  }
+
+  @GrpcMethod('CustomerService', 'ForgotPassword')
+  async forgotPassword(dto: ForgotPasswordDto) {
+    this.logger.log(`gRPC ForgotPassword for email=${dto.email}`);
+    return this.customerService.forgotPassword(dto);
+  }
+
+  @GrpcMethod('CustomerService', 'VerifyForgotPasswordOtp')
+  async verifyForgotPasswordOtp(dto: VerifyForgotPasswordOtpDto) {
+    this.logger.log(`gRPC VerifyForgotPasswordOtp for email=${dto.email}`);
+    return this.customerService.verifyForgotPasswordOtp(dto);
+  }
+
+  @GrpcMethod('CustomerService', 'ResetCustomerPassword')
+  async resetCustomerPassword(dto: ResetCustomerPasswordDto) {
+    this.logger.log(`gRPC ResetCustomerPassword for email=${dto.email}`);
+    return this.customerService.resetCustomerPassword(dto);
   }
 }

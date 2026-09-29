@@ -163,3 +163,17 @@ export interface GetAllCustomersDto {
 export interface GetCustomerIdByEmailDto {
   email: string;
 }
+
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface VerifyForgotPasswordOtpDto {
+  email: string;
+  otp: string;
+}
+
+export interface ResetCustomerPasswordDto {
+  email: string;
+  password: string;
+}
