@@ -2907,7 +2907,26 @@ private getEmptyBroker(): any {
         return { 
             success: true,
             message: 'Success',
-            broker: {},
+            broker: {
+                id :"id",
+                username:"",
+                email:"",
+                phoneNumber:"",
+                brokerCode: "",
+                subscriptionTier: 6,
+                isVerified:false,
+                isEmailVerified :true,
+                isPhoneVerified:true,
+                location:"",
+                lastLogin :"",
+                createdAt: "",
+                updatedAt:"",
+                isActive:true;
+                isDeleted:0,
+                walletBalance: 0.0,
+                subscriptionExpiresAt:"",
+                brokerBrandName:""
+            },
             sessionToken: '',
             sessionId: '',
             deviceId: '',
