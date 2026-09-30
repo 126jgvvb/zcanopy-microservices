@@ -2074,22 +2074,31 @@ private getEmptyBroker(): any {
 
     async getWallet(dto: { walletId?: string }) {
       try {
-        const brokerCode = dto.walletId;
-        this.logger.log(`getWallet called with walletId=${brokerCode}`);
-        if (!brokerCode) {
+        const walletId = dto.walletId?.trim();
+        this.logger.log(`getWallet called with walletId=${walletId}`);
+        if (!walletId) {
           throw new BadRequestException('Wallet ID / broker code is required');
         }
 
-        const broker = await this.brokerRepo.findOne({ where: { brokerCode } });
-        this.logger.log(`getWallet broker lookup result for ${brokerCode}: ${broker ? `found id=${broker.id}, username=${broker.username}, walletBalance=${broker.walletBalance}` : 'not found'}`);
+        let broker = await this.brokerRepo.findOne({ where: { username: walletId } });
+        let matchedBy: 'username' | 'brokerCode' = 'username';
+
         if (!broker) {
-          throw new NotFoundException(`Broker not found for code ${brokerCode}`);
+          broker = await this.brokerRepo.findOne({ where: { brokerCode: walletId } });
+          matchedBy = 'brokerCode';
+        }
+
+        this.logger.log(
+          `getWallet broker lookup result for ${walletId}: ${broker ? `found id=${broker.id}, username=${broker.username}, brokerCode=${broker.brokerCode}, walletBalance=${broker.walletBalance} (matched by ${matchedBy})` : 'not found'}`,
+        );
+        if (!broker) {
+          throw new NotFoundException(`Broker not found for name or code ${walletId}`);
         }
 
         return {
           balance: broker.walletBalance || 0,
           currency: 'UGX',
-          walletId: brokerCode,
+          walletId: broker.brokerCode,
           name: broker.username,
         };
       } catch (err) {
