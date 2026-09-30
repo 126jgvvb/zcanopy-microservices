@@ -5,6 +5,7 @@ package auth.v1;
 service AuthService {
   rpc Login (LoginRequest) returns (LoginResponse);
   rpc LoginBroker (LoginBrokerRequest) returns (LoginBrokerResponse);
+  rpc LoginBrokerGoogle (LoginBrokerRequest) returns (LoginBrokerResponse);
   rpc RefreshToken (RefreshTokenRequest) returns (LoginResponse);
   rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
   rpc IssueCustomerSession (IssueCustomerSessionRequest) returns (IssueCustomerSessionResponse);

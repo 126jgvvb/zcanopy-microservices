@@ -1517,7 +1517,7 @@ private getEmptyBroker(): any {
             case 'fibrous':
                 return 25000;
             case 'buttress':
-                return 50000;
+                return 500;
             case 'prop':
             default:
                 return 0;
@@ -2282,11 +2282,13 @@ private getEmptyBroker(): any {
         try {
             const { brokerCode, password, deviceId, googleId } = dto;
 
-            if (!brokerCode) {
-                throw new BadRequestException('brokerCode is required');
+            if (!brokerCode && !googleId) {
+                throw new BadRequestException('Either brokerCode or googleId is required');
             }
 
-            const broker = await this.findBrokerByNameOrCode(brokerCode);
+            const broker = brokerCode
+                ? await this.findBrokerByNameOrCode(brokerCode)
+                : await this.brokerRepo.findOne({ where: { googleId } });
             if (!broker) {
                 throw new NotFoundException('Broker not found');
             }
@@ -2325,7 +2327,7 @@ private getEmptyBroker(): any {
                 }
             }
 
-            await this.invalidateBrokerCache(brokerCode);
+            await this.invalidateBrokerCache(broker.brokerCode);
 
             const { password: _, ...sanitized } = broker;
             const plainBroker = this.toPlainBroker(sanitized);
