@@ -47,7 +47,6 @@ service AdminService {
   rpc DeleteInvoices (DeleteInvoicesRequest) returns (DeleteInvoicesResponse);
   rpc GetBrokerCommissions (GetBrokerCommissionsRequest) returns (GetBrokerCommissionsResponse);
   rpc ApproveAllPendingVerifications (ApproveAllPendingVerificationsRequest) returns (ApproveAllPendingVerificationsResponse);
-  rpc GetAllCustomers (GetAllCustomersRequest) returns (GetAllCustomersResponse);
   rpc GetComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
   rpc GetTiers (GetTiersRequest) returns (GetTiersResponse);
   rpc UpdateTierPrice (UpdateTierPriceRequest) returns (UpdateTierPriceResponse);
