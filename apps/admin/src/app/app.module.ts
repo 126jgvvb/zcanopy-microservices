@@ -11,6 +11,7 @@ import { AdminEntity } from '../entity/admin.entity';
 import { InvitationCodeEntity } from '../entity/invitation-code.entity';
 import { LogEntity } from '../entity/log.entity';
 import { AdminMessageEntity } from '../entity/admin-message.entity';
+import { TierPriceEntity } from '../entity/tier-price.entity';
 import { join } from 'path';
 import Redis from 'ioredis';
 
@@ -26,12 +27,12 @@ import Redis from 'ioredis';
         username: config.get<string>('DB_USERNAME') || 'postgres',
         password: config.get<string>('DB_PASSWORD') || 'password',
         database: config.get<string>('DB_DATABASE') || 'admin_db',
-        entities: [DashaordEntity, AdminEntity, InvitationCodeEntity, LogEntity, AdminMessageEntity],
+        entities: [DashaordEntity, AdminEntity, InvitationCodeEntity, LogEntity, AdminMessageEntity, TierPriceEntity],
         synchronize: config.get<string>('DB_SYNCHRONIZE') !== 'false',
         logging: config.get<string>('DB_LOGGING') === 'true',
       }),
     }),
-    TypeOrmModule.forFeature([DashaordEntity, AdminEntity, InvitationCodeEntity, LogEntity, AdminMessageEntity]),
+    TypeOrmModule.forFeature([DashaordEntity, AdminEntity, InvitationCodeEntity, LogEntity, AdminMessageEntity, TierPriceEntity]),
     ClientsModule.registerAsync([
       {
         name: 'REDIS_CLIENT',

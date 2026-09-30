@@ -490,6 +490,26 @@ export class AdminController {
     return this.proxyService.forwardToAdmin('ResetAdminPassword', body);
   }
 
+  @Get('tiers')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get subscription tier prices' })
+  async getTiers() {
+    this.logger.log('Get tiers request');
+    return this.proxyService.forwardToAdmin('GetTiers', {});
+  }
+
+  @Put('tiers/:tier')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update a subscription tier price' })
+  async updateTierPrice(@Param('tier') tier: string, @Body() body: any, @Req() req: any) {
+    const adminId = req.user?.sub || req.user?.id;
+    this.logger.log(`Update tier price request for ${tier} by admin ${adminId}`);
+    return this.proxyService.forwardToAdmin('UpdateTierPrice', {
+      tier,
+      price: Number(body.price),
+    });
+  }
+
   @Get('invoices')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get broker subscription invoices' })

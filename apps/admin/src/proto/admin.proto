@@ -47,7 +47,10 @@ service AdminService {
   rpc DeleteInvoices (DeleteInvoicesRequest) returns (DeleteInvoicesResponse);
   rpc GetBrokerCommissions (GetBrokerCommissionsRequest) returns (GetBrokerCommissionsResponse);
   rpc ApproveAllPendingVerifications (ApproveAllPendingVerificationsRequest) returns (ApproveAllPendingVerificationsResponse);
+  rpc GetAllCustomers (GetAllCustomersRequest) returns (GetAllCustomersResponse);
   rpc GetComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
+  rpc GetTiers (GetTiersRequest) returns (GetTiersResponse);
+  rpc UpdateTierPrice (UpdateTierPriceRequest) returns (UpdateTierPriceResponse);
 }
 
 message GetCommissionsRequest {}
@@ -787,4 +790,25 @@ message Comment {
 message GetAllCommentsResponse {
   repeated Comment comments = 1;
   int32 total = 2;
+}
+
+message GetTiersRequest {}
+
+message TierPrice {
+  string tier = 1;
+  int32 price = 2;
+}
+
+message GetTiersResponse {
+  repeated TierPrice tiers = 1;
+}
+
+message UpdateTierPriceRequest {
+  string tier = 1;
+  int32 price = 2;
+}
+
+message UpdateTierPriceResponse {
+  bool success = 1;
+  string message = 2;
 }

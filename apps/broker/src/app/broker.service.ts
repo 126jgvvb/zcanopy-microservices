@@ -926,7 +926,7 @@ private getEmptyBroker(): any {
 
         const phoneNumber = dto.phoneNumber || broker.phoneNumber;
         const tierLimits = this.getSubscriptionLimits(dto.tier);
-        const amount = this.getTierPrice(dto.tier);
+        const amount = await this.getTierPrice(dto.tier);
 
         try {
             //initiating payment to the payment microservice
@@ -1041,11 +1041,12 @@ private getEmptyBroker(): any {
 
     async getAvailableTiers(_: GetAvailableTiersDto) {
         try {
+            const tierPrices = await this.getTierPrices();
             const tiers = [
                 {
                     tier: 'prop',
                     name: 'Prop',
-                    price: 0,
+                    price: tierPrices.prop ?? 0,
                     currency: 'UGX',
                     expiryDays: 0,
                     advantages: [
@@ -1059,7 +1060,7 @@ private getEmptyBroker(): any {
                 {
                     tier: 'buttress',
                     name: 'Buttress',
-                    price: this.getTierPrice('buttress'),
+                    price: tierPrices.buttress ?? 50000,
                     currency: 'UGX',
                     expiryDays: 30,
                     advantages: [
@@ -1074,7 +1075,7 @@ private getEmptyBroker(): any {
                 {
                     tier: 'fibrous',
                     name: 'Fibrous',
-                    price: this.getTierPrice('fibrous'),
+                    price: tierPrices.fibrous ?? 25000,
                     currency: 'UGX',
                     expiryDays: 30,
                     advantages: [
@@ -1512,16 +1513,43 @@ private getEmptyBroker(): any {
         }
     }
 
-    private getTierPrice(tier: string): number {
-        switch (tier) {
-            case 'fibrous':
-                return 25000;
-            case 'buttress':
-                return 500;
-            case 'prop':
-            default:
-                return 0;
+    private async getTierPrices(): Promise<Record<string, number>> {
+      try {
+        const tiers = await lastValueFrom(
+          this._adminClient.getService('AdminService').GetTiers({}),
+        );
+        const map: Record<string, number> = {};
+        for (const item of tiers as any[]) {
+          map[item.tier] = item.price ?? 0;
         }
+        return map;
+      } catch (err) {
+        this.logger.warn(`Failed to fetch tier prices: ${(err as Error).message}`);
+        return { fibrous: 25000, buttress: 50000, prop: 0 };
+      }
+    }
+
+    private tierPriceCache = new Map<string, { price: number; expiresAt: number }>();
+
+    private async getTierPrice(tier: string): Promise<number> {
+      const cached = this.tierPriceCache.get(tier);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.price;
+      }
+
+      try {
+        const tiers = await lastValueFrom(
+          this._adminClient.getService('AdminService').GetTiers({}),
+        );
+        const found = (tiers as any[])?.find((item) => item.tier === tier);
+        const price = found?.price ?? 0;
+        this.tierPriceCache.set(tier, { price, expiresAt: Date.now() + 60_000 });
+        return price;
+      } catch (err) {
+        this.logger.warn(`Failed to fetch tier price for ${tier}: ${(err as Error).message}`);
+        const fallback: Record<string, number> = { fibrous: 25000, buttress: 50000, prop: 0 };
+        return fallback[tier] ?? 0;
+      }
     }
 
     private generatePaymentProofCode(): string {

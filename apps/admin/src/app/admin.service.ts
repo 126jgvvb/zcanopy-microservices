@@ -7,6 +7,7 @@ import { DashaordEntity, SystemMessage } from '../entity/dashboard.entity';
 import { InvitationCodeEntity } from '../entity/invitation-code.entity';
 import { LogEntity } from '../entity/log.entity';
 import { AdminMessageEntity } from '../entity/admin-message.entity';
+import { TierPriceEntity } from '../entity/tier-price.entity';
 import { lastValueFrom, timeout } from 'rxjs';
 import Redis from 'ioredis';
 
@@ -52,6 +53,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     private readonly logRepo: Repository<LogEntity>,
     @InjectRepository(AdminMessageEntity)
     private readonly adminMessageRepo: Repository<AdminMessageEntity>,
+    @InjectRepository(TierPriceEntity)
+    private readonly tierPriceRepo: Repository<TierPriceEntity>,
     @Inject('REDIS_CLIENT') private readonly redisClient: ClientProxy,
     @Inject('BROKER_CLIENT') private readonly brokerClient: ClientGrpc,
     @Inject('PROPERTY_CLIENT') private readonly propertyClient: ClientGrpc,
@@ -1781,6 +1784,42 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       }
     } catch {
       // ignore cache set errors
+    }
+  }
+
+  async getTiers() {
+    try {
+      const tiers = await this.tierPriceRepo.find();
+      if (tiers.length === 0) {
+        const defaults = [
+          { tier: 'fibrous', price: 25000 },
+          { tier: 'buttress', price: 50000 },
+          { tier: 'prop', price: 0 },
+        ];
+        await this.tierPriceRepo.save(defaults);
+        return defaults;
+      }
+      return tiers.map((t) => ({ tier: t.tier, price: t.price }));
+    } catch (err) {
+      this.logger.error(`Failed to get tiers: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async updateTierPrice(tier: string, price: number) {
+    try {
+      const record = await this.tierPriceRepo.findOne({ where: { tier } });
+      if (!record) {
+        const created = this.tierPriceRepo.create({ tier, price });
+        await this.tierPriceRepo.save(created);
+        return { success: true, tier, price };
+      }
+      record.price = price;
+      await this.tierPriceRepo.save(record);
+      return { success: true, tier, price };
+    } catch (err) {
+      this.logger.error(`Failed to update tier ${tier}: ${(err as Error).message}`);
+      throw err;
     }
   }
 }

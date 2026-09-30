@@ -295,4 +295,16 @@ export class AdminController {
     this.logger.log('Received getAllCustomers request');
     return this.adminService.getAllCustomers(dto);
   }
+
+  @GrpcMethod('AdminService', 'GetTiers')
+  async getTiers() {
+    this.logger.log('Received getTiers request');
+    return this.adminService.getTiers();
+  }
+
+  @GrpcMethod('AdminService', 'UpdateTierPrice')
+  async updateTierPrice(dto: { tier: string; price: number }) {
+    this.logger.log(`Received updateTierPrice request for ${dto.tier}`);
+    return this.adminService.updateTierPrice(dto.tier, dto.price);
+  }
 }
