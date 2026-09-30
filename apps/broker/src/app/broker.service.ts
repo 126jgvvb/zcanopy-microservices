@@ -1098,7 +1098,7 @@ private getEmptyBroker(): any {
 
     async submitBrokerFeedback(dto: SubmitBrokerFeedbackDto) {
         try {
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 this.logger.warn(`Broker not found for feedback: brokerCode=${dto.brokerCode}`);
                 return {
@@ -1142,7 +1142,7 @@ private getEmptyBroker(): any {
 
     async submitVerificationDocuments(dto: { brokerCode: string; idFrontUrl: string; idBackUrl: string }) {
         try {
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 this.logger.warn(`Broker not found for verification: brokerCode=${dto.brokerCode}`);
                 return {
@@ -1474,7 +1474,7 @@ private getEmptyBroker(): any {
 
     async saveBrokerFcmToken(dto: { brokerCode: string; fcmToken: string; deviceId?: string }) {
         try {
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 this.logger.warn(`Broker not found for FCM token: brokerCode=${dto.brokerCode}`);
                 return {
@@ -1634,7 +1634,7 @@ private getEmptyBroker(): any {
 
     async updateBrokerSettings(dto: UpdateBrokerSettingsDto) {
         try {
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 this.logger.warn(`Broker not found for settings update: brokerCode=${dto.brokerCode}`);
                 return {
@@ -2006,9 +2006,9 @@ private getEmptyBroker(): any {
           throw new BadRequestException('brokerCode is required for withdrawal');
         }
 
-        const broker = await this.brokerRepo.findOne({ where: { brokerCode } });
+        const broker = await this.findBrokerByNameOrCode(brokerCode);
         if (!broker) {
-          throw new NotFoundException(`Broker not found for code ${brokerCode}`);
+          throw new NotFoundException(`Broker not found for name or code ${brokerCode}`);
         }
 
         if (!broker.isVerified) {
@@ -2072,6 +2072,27 @@ private getEmptyBroker(): any {
       }
     }
 
+    private async findBrokerByNameOrCode(identifier: string): Promise<BrokerEntity | null> {
+        const value = identifier?.trim();
+        if (!value) {
+            return null;
+        }
+
+        let broker = await this.brokerRepo.findOne({ where: { username: value } });
+        let matchedBy: 'username' | 'brokerCode' = 'username';
+
+        if (!broker) {
+            broker = await this.brokerRepo.findOne({ where: { brokerCode: value } });
+            matchedBy = 'brokerCode';
+        }
+
+        this.logger.log(
+            `findBrokerByNameOrCode lookup for ${value}: ${broker ? `found id=${broker.id}, username=${broker.username}, brokerCode=${broker.brokerCode} (matched by ${matchedBy})` : 'not found'}`,
+        );
+
+        return broker || null;
+    }
+
     async getWallet(dto: { walletId?: string }) {
       try {
         const walletId = dto.walletId?.trim();
@@ -2080,17 +2101,7 @@ private getEmptyBroker(): any {
           throw new BadRequestException('Wallet ID / broker code is required');
         }
 
-        let broker = await this.brokerRepo.findOne({ where: { username: walletId } });
-        let matchedBy: 'username' | 'brokerCode' = 'username';
-
-        if (!broker) {
-          broker = await this.brokerRepo.findOne({ where: { brokerCode: walletId } });
-          matchedBy = 'brokerCode';
-        }
-
-        this.logger.log(
-          `getWallet broker lookup result for ${walletId}: ${broker ? `found id=${broker.id}, username=${broker.username}, brokerCode=${broker.brokerCode}, walletBalance=${broker.walletBalance} (matched by ${matchedBy})` : 'not found'}`,
-        );
+        const broker = await this.findBrokerByNameOrCode(walletId);
         if (!broker) {
           throw new NotFoundException(`Broker not found for name or code ${walletId}`);
         }
@@ -2112,9 +2123,9 @@ private getEmptyBroker(): any {
             const page = Number(dto.page) || 1;
             const limit = Number(dto.limit) || 10;
 
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
-                throw new NotFoundException(`Broker not found for code ${dto.brokerCode}`);
+                throw new NotFoundException(`Broker not found for name or code ${dto.brokerCode}`);
             }
 
             const [transactions, total] = await this.payoutsRepo.findAndCount({
@@ -2275,7 +2286,7 @@ private getEmptyBroker(): any {
                 throw new BadRequestException('brokerCode is required');
             }
 
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(brokerCode);
             if (!broker) {
                 throw new NotFoundException('Broker not found');
             }
@@ -2367,7 +2378,7 @@ private getEmptyBroker(): any {
                 throw new BadRequestException('brokerCode and deviceId are required');
             }
 
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 throw new NotFoundException('Broker not found');
             }
@@ -2470,9 +2481,9 @@ private getEmptyBroker(): any {
                 return { success: true, broker: cached };
             }
 
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
-                this.logger.warn(`Broker not found by code: ${dto.brokerCode}`);
+                this.logger.warn(`Broker not found by name or code: ${dto.brokerCode}`);
                 return {
                     success: false,
                     message: 'Broker not found',
@@ -2515,7 +2526,7 @@ private getEmptyBroker(): any {
 
     async deleteBrokerAccount(dto: { brokerCode: string }) {
         try {
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 this.logger.warn(`Broker not found for deleteBrokerAccount: brokerCode=${dto.brokerCode}`);
                 return {
@@ -2589,7 +2600,7 @@ private getEmptyBroker(): any {
 
     async logoutBroker(dto: LogoutBrokerDto) {
         try {
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 this.logger.warn(`Broker not found for logout: brokerCode=${dto.brokerCode}`);
                 return {
@@ -2634,7 +2645,7 @@ private getEmptyBroker(): any {
                 };
             }
 
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 this.logger.warn(`Broker not found for unsubscribe OTP: brokerCode=${dto.brokerCode}`);
                 return {
@@ -2677,7 +2688,7 @@ private getEmptyBroker(): any {
 
     async unsubscribeBroker(dto: UnsubscribeBrokerDto) {
         try {
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 throw new NotFoundException(`Broker with code ${dto.brokerCode} not found`);
             }
@@ -2761,12 +2772,12 @@ private getEmptyBroker(): any {
                 };
             }
 
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(brokerCode);
             if (!broker) {
                 this.logger.warn(`Broker not found for setup: brokerCode=${brokerCode}`);
                 return {
                     success: false,
-                    message: `Broker with code ${brokerCode} not found`,
+                    message: `Broker with code or name ${brokerCode} not found`,
                 };
             }
 
@@ -2980,7 +2991,7 @@ private getEmptyBroker(): any {
                 };
             }
 
-            const broker = await this.brokerRepo.findOne({ where: { brokerCode: dto.brokerCode } });
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 this.logger.warn(`Broker not found for subscription details: brokerCode=${dto.brokerCode}`);
                 return {

@@ -33,6 +33,7 @@ export class CustomerWebController {
   }
 
   @Post('login/google')
+  @Public()
   @ApiOperation({ summary: 'Login customer with Google from web dashboard' })
   async loginGoogle(@Body() body: any) {
     this.logger.log(`Web customer Google login request for googleId=${body.googleId}`);
