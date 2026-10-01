@@ -58,6 +58,17 @@ import { join } from 'path';
         }),
       },
       {
+        name: 'CUSTOMER_CLIENT',
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.CUSTOMER_SERVICE_URL || 'localhost:3007',
+            package: 'customer.v1',
+            protoPath: join(process.cwd(), 'apps/customer/src/proto/customer.proto'),
+          },
+        }),
+      },
+      {
         name: 'BROKER_CLIENT',
         useFactory: () => ({
           transport: Transport.GRPC,

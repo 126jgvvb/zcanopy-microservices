@@ -144,10 +144,10 @@ export class CustomerWebController {
   async getTransactions(@Req() req: any, @Query() query: any) {
     const customerId = this.getCustomerId(req);
     this.logger.log(`Web customer transactions request for user=${customerId}`);
-    return this.proxyService.forwardToPayment('GetTransactions', {
+    return this.proxyService.forwardToCustomer('GetTransactions', {
+      customerId,
       page: Number(query.page) || 1,
       limit: Math.min(Number(query.limit) || 10, 50),
-      brokerId: customerId,
     });
   }
 
@@ -157,10 +157,10 @@ export class CustomerWebController {
   async getInvoices(@Req() req: any, @Query() query: any) {
     const customerId = this.getCustomerId(req);
     this.logger.log(`Web customer invoices request for user=${customerId}`);
-    return this.proxyService.forwardToPayment('GetTransactions', {
+    return this.proxyService.forwardToCustomer('GetTransactions', {
+      customerId,
       page: Number(query.page) || 1,
       limit: Math.min(Number(query.limit) || 10, 50),
-      brokerId: customerId,
     });
   }
 

@@ -26,6 +26,7 @@ export interface ProcessPropertyPaymentDto {
   customerPhone: string;
   customerEmail: string;
   customerName: string;
+  customerId?: string;
   amount: number;
   reasonForPayment: string;
   propertyId: string;
@@ -518,6 +519,7 @@ const commissions = await lastValueFrom(
         customerName: dto.customerName,
         customerEmail: dto.customerEmail,
         transactionCode,
+        customerId: dto.customerId || '',
       });
 
       const saved = await this.transactionRepo.save(transaction);
@@ -614,6 +616,7 @@ if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecSta
         customerName: dto.customerName,
         customerEmail: dto.customerEmail,
         transactionCode,
+        customerId: dto.customerId || '',
       });
 
       await this.transactionRepo.save(failedTransaction);
@@ -795,7 +798,7 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
     }
   }
 
-   async getTransactions(query: { page: number; limit: number; brokerId?: string; reason?: string }): Promise<{
+   async getTransactions(query: { page: number; limit: number; brokerId?: string; customerId?: string; reason?: string }): Promise<{
     transactions: any[];
     total: number;
   }> {
@@ -806,6 +809,9 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
 
       if (query.brokerId) {
         where.propertyID = query.brokerId;
+      }
+      if (query.customerId) {
+        where.customerId = query.customerId;
       }
       if (query.reason) {
         where.reasonForPayment = query.reason;

@@ -424,6 +424,7 @@ message PropertyLocation {
   string location = 3;
   string postgisSpatialField = 4;
   string brokerCode = 5;
+  string propertyType = 6;
 }
 
 message Booking {

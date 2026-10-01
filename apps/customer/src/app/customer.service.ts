@@ -450,23 +450,25 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
   async getInvoices(customerId: string, page = 1, limit = 10): Promise<{ invoices: any[]; total: number }> {
     try {
       const paymentService = this.paymentClient.getService<any>('PaymentService');
-      const result = await lastValueFrom(paymentService.GetTransactions({ page, limit, brokerId: customerId }).pipe(timeout(5000))) as any;
+      const result = await lastValueFrom(paymentService.GetTransactions({ page, limit, customerId }).pipe(timeout(5000))) as any;
       return { invoices: result.transactions || [], total: result.total || 0 };
     } catch (err) {
-      this.logger.error(`Failed to get invoices for customer ${customerId}:`, err);
+      this.logger.error(`Failed to get invoices for customer ${customerId}: ${(err as Error).message}`);
       return { invoices: [], total: 0 };
     }
+  }
   }
 
   async getTransactions(customerId: string, page = 1, limit = 10): Promise<{ transactions: any[]; total: number }> {
     try {
       const paymentService = this.paymentClient.getService<any>('PaymentService');
-      const result = await lastValueFrom(paymentService.GetTransactions({ page, limit, brokerId: customerId }).pipe(timeout(5000))) as any;
+      const result = await lastValueFrom(paymentService.GetTransactions({ page, limit, customerId }).pipe(timeout(5000))) as any;
       return { transactions: result.transactions || [], total: result.total || 0 };
     } catch (err) {
-      this.logger.error(`Failed to get transactions for customer ${customerId}:`, err);
+      this.logger.error(`Failed to get transactions for customer ${customerId}: ${(err as Error).message}`);
       return { transactions: [], total: 0 };
     }
+  }
   }
 
   async getMessages(customerId: string, page = 1, limit = 10): Promise<{ messages: any[]; total: number }> {
@@ -507,6 +509,23 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       this.logger.error(`Failed to get notifications for customer ${customerId}:`, err);
       return { notifications: [], total: 0, unreadCount: 0 };
+    }
+  }
+
+  async createNotification(dto: { customerId: string; title: string; body: string; type?: string; dataJson?: string }): Promise<{ success: boolean; message: string }> {
+    try {
+      const notification = this.notificationRepo.create({
+        customerId: dto.customerId,
+        title: dto.title,
+        body: dto.body,
+        type: dto.type || 'general',
+        dataJson: dto.dataJson,
+      });
+      await this.notificationRepo.save(notification);
+      return { success: true, message: 'Notification created' };
+    } catch (err) {
+      this.logger.error(`Failed to create notification for customer ${dto.customerId}:`, err);
+      throw err;
     }
   }
 
@@ -692,7 +711,7 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
           isVerified: c.isVerified,
           authProvider: c.authProvider,
           isActive: c.isActive,
-          createdAt: Math.floor(new Date(c.createdAt).getTime() / 1000), // Unix timestamp in seconds
+          createdAt: Math.floor(new Date(c.createdAt).getTime()), // Unix timestamp in milliseconds
         })),
         total,
         page,

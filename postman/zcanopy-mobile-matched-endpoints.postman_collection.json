@@ -1,0 +1,1823 @@
+{
+  "info": {
+    "name": "ZCanopy Mobile - Matched Non-Web Endpoints",
+    "description": "NON-WEB (/mobile) endpoints of the ZCanopy API Gateway that have a corresponding WEB endpoint used by zcanopy-storefront and/or zcanopy-dashboard.\n\nHOW THIS WAS BUILT\n- Web endpoint inventory extracted from: zcanopy-storefront (src/lib/api.ts, src/app/**) and zcanopy-dashboard (lib/api.ts).\n- Route inventory extracted from: zcanopy-microservices/apps/api-gateway/src/app/*.controller.ts (global prefix: 'api').\n- Included: only non-web routes that match a web endpoint semantically (same downstream gRPC method).\n- EXCLUDED: non-web routes with no web counterpart (e.g. /admin/*, /brokers/fcm-token, /listings/get-item-details, /payment/get_payment_status, /payment/access-token).\n- Each request description states the web endpoint(s) it replaces.\n\nAUTH NOTES\n- JWT bearer routes: send Authorization: Bearer {{token}} (collection level).\n- Session-scoped routes: send x-session-id: {{sessionToken}} or pass sessionToken in the body/query as documented per request.\n- Gateway guard only reads the 'Authorization: Bearer' header (apps/api-gateway/src/app/jwt-auth.guard.ts).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000/api" },
+    { "key": "token", "value": "" },
+    { "key": "sessionToken", "value": "" },
+    { "key": "customerId", "value": "3f1b6c2a-7d4e-4a1b-9c3e-000000000001" },
+    { "key": "brokerCode", "value": "BRK-WEB-1" },
+    { "key": "brokerId", "value": "b7c9d0e1-2a3b-4c5d-8e9f-000000000002" },
+    { "key": "propertyId", "value": "9a8b7c6d-5e4f-3a2b-1c0d-000000000003" },
+    { "key": "bookingId", "value": "4d5e6f7a-8b9c-0d1e-2f3a-000000000004" },
+    { "key": "transactionCode", "value": "TXN-000123" },
+    { "key": "bookingCode", "value": "482913" },
+    { "key": "notificationId", "value": "notif-0001" },
+    { "key": "email", "value": "broker@zcanopy.dev" },
+    { "key": "customerEmail", "value": "customer@zcanopy.dev" },
+    { "key": "phoneNumber", "value": "+256700000000" },
+    { "key": "otp", "value": "123456" },
+    { "key": "googleId", "value": "google-oauth2-subject-id" },
+    { "key": "deviceId", "value": "web-dashboard" },
+    { "key": "tier", "value": "gold" },
+    { "key": "provider", "value": "MTN" }
+  ],
+  "item": [
+    {
+      "name": "01 Auth & Session",
+      "description": "Login, token refresh, password reset, anonymous/validated sessions and user-record routes that replace the web /web/auth/* and /web/session/* endpoints.",
+      "item": [
+        {
+          "name": "Broker Login (by broker code)",
+          "request": {
+            "description": "Matches web endpoint: POST /web/auth/broker/login and POST /web/auth/broker/email-login (zcanopy-dashboard).\nForwards AuthService 'Login' with type forced to 'broker'.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"{{brokerCode}}\",\n  \"password\": \"Password123!\",\n  \"email\": \"{{email}}\",\n  \"deviceId\": \"{{deviceId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/broker/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "broker", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Login (type forced to admin)",
+          "request": {
+            "description": "Matches web endpoint: POST /web/auth/login (zcanopy-dashboard).\nWARNING: AuthController.login() overrides any incoming type with type:'admin'.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"Password123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Broker Google Login",
+          "request": {
+            "description": "Matches web endpoint: POST /web/auth/broker/google (zcanopy-dashboard).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"googleId\": \"{{googleId}}\",\n  \"deviceId\": \"{{deviceId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/broker/google",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "broker", "google"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Broker Account Setup",
+          "request": {
+            "description": "Matches web endpoint: POST /web/auth/broker/setup (zcanopy-dashboard).\nNote: when brokerBrandName is present the gateway appends it to deviceId as 'deviceId,brokerBrandName'.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"{{brokerCode}}\",\n  \"password\": \"Password123!\",\n  \"deviceId\": \"{{deviceId}}\",\n  \"brokerBrandName\": \"Blue Peak Realty\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/broker/setup",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "broker", "setup"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "description": "Matches web endpoint: POST /web/auth/refresh.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{token}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Broker Forgot Password - Send OTP",
+          "request": {
+            "description": "Matches web endpoint: POST /auth/forgot-password/otp/send (zcanopy-dashboard).\nForwards BrokerService 'ForgotPassword'.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password/otp/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password", "otp", "send"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Broker Forgot Password - Verify OTP",
+          "request": {
+            "description": "Matches web endpoint: POST /auth/forgot-password/otp/verify (zcanopy-dashboard).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"{{otp}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password/otp/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password", "otp", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Broker Forgot Password - Reset",
+          "request": {
+            "description": "Matches web endpoint: POST /auth/forgot-password/reset (zcanopy-dashboard).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"NewPassword123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password/reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "forgot-password", "reset"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Issue Anonymous Customer Session",
+          "request": {
+            "description": "Matches storefront endpoint: POST /customer/session (called directly by zcanopy-storefront src/lib/api.ts ensureAnonymousSession()).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"{{deviceId}}\",\n  \"ttlSeconds\": 604800\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/session",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "session"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validate Broker Session",
+          "request": {
+            "description": "Matches web endpoint: POST /web/session/validate (zcanopy-storefront).\nThe web route reads the x-session-id header; this non-web route takes the token in the body as sessionID or sessionToken. Same downstream AuthService 'ValidateBrokerSession'.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionID\": \"{{sessionToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate-way/validate-session",
+              "host": ["{{baseUrl}}"],
+              "path": ["gate-way", "validate-session"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Check Session Id Validity",
+          "request": {
+            "description": "Matches web endpoint: POST /web/session/validate (zcanopy-storefront). Duplicate non-web alias of /gate-way/validate-session.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionID\": \"{{sessionToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate-way/check-session-id-validity",
+              "host": ["{{baseUrl}}"],
+              "path": ["gate-way", "check-session-id-validity"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout Customer Session",
+          "request": {
+            "description": "Matches web endpoint: POST /web/customer/logout (zcanopy-storefront customer.logout wrapper).\nForwards AuthService 'RevokeCustomerSession' with sessionToken = userID.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{sessionToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/logout-user",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "logout-user"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save User Info (update broker profile)",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/profile (zcanopy-dashboard).\nThe web route resolves broker.id first and sends it as userId; send the broker record id here.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{brokerId}}\",\n  \"username\": \"Blue Peak Realty\",\n  \"email\": \"{{email}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"location\": \"Kampala, Uganda\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/save-user-info",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "save-user-info"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Field (change password)",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/change-password (zcanopy-dashboard).\nThe web route verifies the OTP server-side then calls this same route. For mobile, first call 'Get Change Password OTP' in folder 12, then update the field here.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{brokerId}}\",\n  \"fields\": {\n    \"password\": \"NewPassword123!\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/update-user-field",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "update-user-field"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Request Account Deletion OTP",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/account/delete/request-otp (zcanopy-dashboard).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{brokerCode}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/request-account-deletion-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "request-account-deletion-otp"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Account Deletion Code",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/account/delete/request-otp (zcanopy-dashboard). Duplicate non-web alias; accepts userId, userID or email.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{brokerCode}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/get-account-deletion-code",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "get-account-deletion-code"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Subscription Details",
+          "request": {
+            "description": "Matches web endpoint: GET /web/broker/subscription (zcanopy-dashboard).",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/get-subscription-details?brokerCode={{brokerCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "get-subscription-details"],
+              "query": [
+                { "key": "brokerCode", "value": "{{brokerCode}}", "description": "Broker unique code" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 Customer",
+      "description": "Non-web customer routes replacing the web /web/customer/* endpoints (zcanopy-storefront) and /web/public/* browse endpoints.\nRoutes reading a session use the x-session-id header; routes deriving the customer from a JWT are JWT-guarded.",
+      "item": [
+        {
+          "name": "Customer Forgot Password - Send OTP",
+          "request": {
+            "description": "Matches storefront endpoint: POST /customer/forgot-password/otp/send (called directly by zcanopy-storefront).\nForwards CustomerService 'ForgotPassword'. Same body as the dashboard's broker variant in folder 01.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/forgot-password/otp/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "forgot-password", "otp", "send"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Forgot Password - Verify OTP",
+          "request": {
+            "description": "Matches storefront endpoint: POST /customer/forgot-password/otp/verify (called directly by zcanopy-storefront).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"otp\": \"{{otp}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/forgot-password/otp/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "forgot-password", "otp", "verify"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Forgot Password - Reset",
+          "request": {
+            "description": "Matches storefront endpoint: POST /customer/forgot-password/reset (called directly by zcanopy-storefront).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{customerEmail}}\",\n  \"password\": \"NewPassword123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/forgot-password/reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "forgot-password", "reset"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Properties (nearby / all / explorer)",
+          "request": {
+            "description": "Matches web endpoints: GET /web/customer/explorer, GET /web/customer/video-tours, GET /web/customer/all-properties, GET /web/public/explorer.\nSame downstream PropertyService 'GetCustomerProperties'. NOTE: this non-web route only accepts page, limit, lat, lng, radiusKm and propertyType - it does NOT accept brokerCode, brokerBrandName, minPrice, maxPrice, subCounty, district, fromDate or toDate like the web explorer does. Use /listings/search (folder 04) for those filters.",
+            "method": "GET",
+            "header": [{ "key": "x-session-id", "value": "{{sessionToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/customer/properties?page=1&limit=12&lat=0.3476&lng=32.5825&radiusKm=25&propertyType=Apartment",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "properties"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "12", "description": "Defaults to 12" },
+                { "key": "lat", "value": "0.3476", "description": "Kampala latitude" },
+                { "key": "lng", "value": "32.5825", "description": "Kampala longitude" },
+                { "key": "radiusKm", "value": "25" },
+                { "key": "propertyType", "value": "Apartment", "description": "Apartment | House | Commercial | Land" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Property Details For Customer",
+          "request": {
+            "description": "Matches web endpoint: GET /web/customer/properties?propertyId=... (zcanopy-storefront customer.getPropertyDetails).",
+            "method": "GET",
+            "header": [{ "key": "x-session-id", "value": "{{sessionToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/customer/properties/details?propertyId={{propertyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "properties", "details"],
+              "query": [
+                { "key": "propertyId", "value": "{{propertyId}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Broker Properties For Customer",
+          "request": {
+            "description": "Matches web endpoint: GET /web/customer/broker/{brokerCode}/properties (zcanopy-storefront brokerPropertiesByCode).",
+            "method": "GET",
+            "header": [{ "key": "x-session-id", "value": "{{sessionToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/customer/broker-properties?brokerCode={{brokerCode}}&page=1&limit=12",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "broker-properties"],
+              "query": [
+                { "key": "brokerCode", "value": "{{brokerCode}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "12" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Properties",
+          "request": {
+            "description": "Matches web endpoints: GET /web/public/search?q=... and GET /web/public/explorer (zcanopy-storefront).\nSame downstream PropertyService 'SearchProperties'. Accepts both 'q' (as the web route sends) and 'query'.",
+            "method": "GET",
+            "header": [{ "key": "x-session-id", "value": "{{sessionToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/customer/search?q=apartment&page=1&limit=12&location=Kampala&radius=10&propertyType=Apartment&subCounty=KampalaCentral&district=Kampala&minPrice=100000000&maxPrice=900000000&lat=0.3476&lng=32.5825&radiusKm=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "search"],
+              "query": [
+                { "key": "q", "value": "apartment", "description": "Free-text query" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "12" },
+                { "key": "location", "value": "Kampala" },
+                { "key": "radius", "value": "10" },
+                { "key": "propertyType", "value": "Apartment" },
+                { "key": "subCounty", "value": "KampalaCentral" },
+                { "key": "district", "value": "Kampala" },
+                { "key": "minPrice", "value": "100000000" },
+                { "key": "maxPrice", "value": "900000000" },
+                { "key": "lat", "value": "0.3476" },
+                { "key": "lng", "value": "32.5825" },
+                { "key": "radiusKm", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Record Customer Search",
+          "request": {
+            "description": "Matches web endpoint: POST /web/customer/search/record (zcanopy-storefront recordSearch).\nThe gateway resolves customerId from the JWT; send sessionToken for anonymous search logging.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"apartment\",\n  \"location\": \"Kampala\",\n  \"radius\": 10,\n  \"propertyType\": \"Apartment\",\n  \"filters\": {\n    \"bedrooms\": 3\n  },\n  \"resultPropertyIds\": [\"{{propertyId}}\"],\n  \"resultCount\": 1,\n  \"minPrice\": 100000000,\n  \"maxPrice\": 900000000,\n  \"subCounty\": \"KampalaCentral\",\n  \"district\": \"Kampala\",\n  \"sessionToken\": \"{{sessionToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/search/record",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "search", "record"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Searches (JWT)",
+          "request": {
+            "description": "Matches web endpoint: GET /web/customer/searches?page=&limit= (zcanopy-storefront getCustomerSearches). limit is capped at 50.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customer/searches?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "searches"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10", "description": "Capped at 50" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Customer Searches (session token)",
+          "request": {
+            "description": "Matches web endpoint: GET /web/customer/searches?page=&limit= (zcanopy-storefront). Use this variant when the client authenticates with a session token instead of a JWT.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionToken\": \"{{sessionToken}}\",\n  \"page\": 1,\n  \"limit\": 10\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/searches/retrieve",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "searches", "retrieve"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Customer Favorite",
+          "request": {
+            "description": "Matches web endpoint: POST /web/customer/favorites/toggle (zcanopy-storefront toggleFavorite).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{propertyId}}\",\n  \"propertyTitle\": \"3 Bedroom Apartment in Kololo\",\n  \"propertyLocation\": \"Kololo, Kampala\",\n  \"brokerCode\": \"{{brokerCode}}\",\n  \"imageUrl\": \"https://zcanopy-properties-media.fra1.digitaloceanspaces.com/properties/img-1.jpg\",\n  \"price\": 450000000\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/favorites/toggle",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "favorites", "toggle"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Favorites",
+          "request": {
+            "description": "Matches web endpoint: GET /web/customer/favorites?page=&limit= (zcanopy-storefront getCustomerFavorites). limit is capped at 50.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customer/favorites?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "favorites"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10", "description": "Capped at 50" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Property Comment",
+          "request": {
+            "description": "Matches web endpoint: POST /web/customer/comments (zcanopy-storefront addComment).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{propertyId}}\",\n  \"customerName\": \"Jane Doe\",\n  \"customerPhone\": \"{{phoneNumber}}\",\n  \"customerEmail\": \"{{customerEmail}}\",\n  \"comment\": \"Great property, well maintained.\",\n  \"rating\": 5\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "comments"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Property Comments",
+          "request": {
+            "description": "Matches web endpoint: GET /web/customer/properties/{propertyId}/comments?page=&limit= (zcanopy-storefront getPropertyComments). Public - no auth.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customer/properties/{{propertyId}}/comments?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "properties", "{{propertyId}}", "comments"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Customer Booking",
+          "request": {
+            "description": "Matches web endpoints: POST /web/customer/bookings (zcanopy-storefront createBooking, zcanopy-dashboard createBooking).\nJWT-guarded; customerId is taken from the token.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{propertyId}}\",\n  \"customerName\": \"Jane Doe\",\n  \"customerPhone\": \"{{phoneNumber}}\",\n  \"customerEmail\": \"{{customerEmail}}\",\n  \"date\": \"2026-10-05T09:30:00.000Z\",\n  \"amount\": 50000,\n  \"reason\": \"property_access\",\n  \"status\": \"pending\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "bookings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Bookings",
+          "request": {
+            "description": "Matches web endpoint: GET /web/customer/bookings?page=&limit= (zcanopy-storefront getBookings).",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customer/bookings?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "bookings"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Booking by Transaction Code",
+          "request": {
+            "description": "Matches web endpoint: POST /web/customer/bookings/retrieve (zcanopy-storefront find-booking page).\nThe gateway maps 'code' -> transactionCode and 'phoneNumber' -> customerPhone.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{transactionCode}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/bookings/retrieve",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "bookings", "retrieve"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Booking by 6-Digit Code",
+          "request": {
+            "description": "Matches web endpoints: POST /web/customer/bookings/retrieve-by-code (zcanopy-storefront find-booking and bookings/retrieve pages).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingCode\": \"{{bookingCode}}\",\n  \"customerPhone\": \"{{phoneNumber}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/bookings/retrieve-by-code",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "bookings", "retrieve-by-code"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Booking by Transaction Code (path param)",
+          "request": {
+            "description": "Matches web endpoint: POST /web/customer/bookings/retrieve (zcanopy-storefront). Path-param variant of the same lookup.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customer/bookings/code/{{transactionCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "bookings", "code", "{{transactionCode}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Bookings by Phone (reinstall recovery)",
+          "request": {
+            "description": "Matches web endpoint: GET /web/customer/bookings?page=&limit= (zcanopy-storefront). Use this to restore bookings after a reinstall; customerId is taken from the JWT.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/customer/bookings/phone?customerPhone={{phoneNumber}}&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "bookings", "phone"],
+              "query": [
+                { "key": "customerPhone", "value": "{{phoneNumber}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Initiate Property Access Payment",
+          "request": {
+            "description": "Matches web endpoints: POST /web/customer/transactions/initiate (zcanopy-storefront) and POST /web/customer/properties/access-payment.\nSame downstream PropertyService 'CreateCustomerBooking'. The gateway renames phoneNumber -> customerPhone and email -> customerEmail.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"propertyId\": \"{{propertyId}}\",\n  \"customerName\": \"Jane Doe\",\n  \"customerPhone\": \"{{phoneNumber}}\",\n  \"customerEmail\": \"{{customerEmail}}\",\n  \"amount\": 50000,\n  \"reason\": \"property_access\",\n  \"status\": \"pending\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/properties/access-payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "properties", "access-payment"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve Payment by Code",
+          "request": {
+            "description": "Matches web endpoint: GET /web/customer/invoices?page=&limit= (zcanopy-storefront getInvoices).\nSame downstream PaymentService 'GetTransactions'.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{transactionCode}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customer/payments/retrieve",
+              "host": ["{{baseUrl}}"],
+              "path": ["customer", "payments", "retrieve"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 Properties",
+      "description": "Non-web property CRUD replacing the web /web/broker/properties/* (zcanopy-dashboard) and /web/public/properties* (zcanopy-storefront) endpoints. The whole controller is JWT-guarded.",
+      "item": [
+        {
+          "name": "Get All Properties",
+          "request": {
+            "description": "Matches web endpoints: GET /web/public/properties (zcanopy-dashboard), GET /web/broker/properties (zcanopy-dashboard), GET /web/broker/properties?id=...\nThe non-web route forwards the whole query object unfiltered to PropertyService 'GetProperties'.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/properties?page=1&limit=12&brokerCode={{brokerCode}}&location=Kampala&propertyType=Apartment&sortBy=createdAt&sortOrder=DESC&minAmount=100000000&maxAmount=900000000&propertyId={{propertyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "12" },
+                { "key": "brokerCode", "value": "{{brokerCode}}", "description": "Filter to one broker" },
+                { "key": "location", "value": "Kampala" },
+                { "key": "propertyType", "value": "Apartment" },
+                { "key": "sortBy", "value": "createdAt" },
+                { "key": "sortOrder", "value": "DESC" },
+                { "key": "minAmount", "value": "100000000" },
+                { "key": "maxAmount", "value": "900000000" },
+                { "key": "propertyId", "value": "{{propertyId}}", "description": "Fetch a single property" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Property",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/properties (zcanopy-dashboard createProperty).\nUnlike the web route, which overwrites brokersUniqueCode from the JWT, the non-web route requires brokersUniqueCode in the body.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"3 Bedroom Apartment in Kololo\",\n  \"description\": \"Spacious 3 bedroom apartment with lake view, fibre internet and 24h security.\",\n  \"propertyType\": \"Apartment\",\n  \"location\": \"Kololo, Kampala\",\n  \"price\": 450000000,\n  \"brokerBookingFee\": 50000,\n  \"brokersUniqueCode\": \"{{brokerCode}}\",\n  \"imageUrl\": [\n    \"https://zcanopy-properties-media.fra1.digitaloceanspaces.com/properties/img-1.jpg\"\n  ],\n  \"videoUrl\": [\n    \"https://zcanopy-properties-media.fra1.digitaloceanspaces.com/properties/video-1.mp4\"\n  ],\n  \"lat\": 0.3022,\n  \"lng\": 32.5570\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/properties",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Property (explicit route)",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/properties (zcanopy-dashboard). Explicit alias of POST /properties.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"3 Bedroom Apartment in Kololo\",\n  \"description\": \"Spacious 3 bedroom apartment with lake view.\",\n  \"propertyType\": \"Apartment\",\n  \"location\": \"Kololo, Kampala\",\n  \"price\": 450000000,\n  \"brokerBookingFee\": 50000,\n  \"brokersUniqueCode\": \"{{brokerCode}}\",\n  \"imageUrl\": [],\n  \"videoUrl\": [],\n  \"lat\": 0.3022,\n  \"lng\": 32.5570\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/properties/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "create"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Property",
+          "request": {
+            "description": "Matches web endpoint: PUT /web/broker/properties/{id} (zcanopy-dashboard updateProperty).",
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"3 Bedroom Apartment in Kololo (renovated)\",\n  \"description\": \"Recently renovated, lake view, fibre internet.\",\n  \"propertyType\": \"Apartment\",\n  \"location\": \"Kololo, Kampala\",\n  \"price\": 470000000,\n  \"brokerBookingFee\": 50000,\n  \"isAvailable\": true,\n  \"imageUrl\": [\n    \"https://zcanopy-properties-media.fra1.digitaloceanspaces.com/properties/img-1.jpg\"\n  ],\n  \"videoUrl\": []\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/properties/{{propertyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "{{propertyId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Property Availability",
+          "request": {
+            "description": "Matches web endpoint: PUT /web/broker/properties/{id}/availability (zcanopy-dashboard brokerUpdatePropertyAvailability).\nDedicated non-web route added alongside the web one. Forwards the same PropertyService 'UpdateProperty' gRPC method with only the id and isAvailable fields, mirroring web-broker.controller.ts updatePropertyAvailability.",
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"isAvailable\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/properties/{{propertyId}}/availability",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "{{propertyId}}", "availability"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Property (POST route)",
+          "request": {
+            "description": "Matches web endpoint: PUT /web/broker/properties/{id} (zcanopy-dashboard). POST alias used by the mobile app.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"3 Bedroom Apartment in Kololo\",\n  \"description\": \"Recently renovated.\",\n  \"propertyType\": \"Apartment\",\n  \"location\": \"Kololo, Kampala\",\n  \"price\": 470000000,\n  \"isAvailable\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/properties/{{propertyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "{{propertyId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Property (explicit POST route)",
+          "request": {
+            "description": "Matches web endpoint: PUT /web/broker/properties/{id} (zcanopy-dashboard). Explicit alias of POST /properties/{id}.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"3 Bedroom Apartment in Kololo\",\n  \"description\": \"Recently renovated.\",\n  \"propertyType\": \"Apartment\",\n  \"location\": \"Kololo, Kampala\",\n  \"price\": 470000000,\n  \"isAvailable\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/properties/{{propertyId}}/update",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "{{propertyId}}", "update"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Property",
+          "request": {
+            "description": "Matches web endpoint: DELETE /web/broker/properties/{id} (zcanopy-dashboard).",
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/properties/{{propertyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "{{propertyId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Property (POST route)",
+          "request": {
+            "description": "Matches web endpoint: DELETE /web/broker/properties/{id} (zcanopy-dashboard). POST alias used by the mobile app.",
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/properties/{{propertyId}}/delete",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "{{propertyId}}", "delete"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete All Properties For Broker",
+          "request": {
+            "description": "Matches web endpoint: DELETE /web/broker/properties/{id} (zcanopy-dashboard). Bulk variant - deletes every property owned by the broker code.",
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/properties/broker/{{brokerCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "broker", "{{brokerCode}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Property Locations",
+          "request": {
+            "description": "Matches web endpoint: GET /web/public/locations (zcanopy-storefront getLocations).",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/properties/locations",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "locations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resolve Location Name",
+          "request": {
+            "description": "Matches web endpoint: GET /web/public/locations and the storefront's Google-Places location capture (same downstream PropertyService 'ResolveLocationName').\nNOTE: this route reads the longitude from the 'long' query key, not 'lng'.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/properties/resolve-location-name?lat=0.3476&long=32.5825",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "resolve-location-name"],
+              "query": [
+                { "key": "lat", "value": "0.3476" },
+                { "key": "long", "value": "32.5825", "description": "Longitude - note the key is 'long'" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Broker Bookings",
+          "request": {
+            "description": "Matches web endpoint: GET /web/broker/bookings (zcanopy-dashboard brokerBookings).",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/properties/bookings/{{brokerCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["properties", "bookings", "{{brokerCode}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 Listings (public browse & search)",
+      "description": "Unguarded non-web listing routes that replace the web /web/public/* explorer, search and property-info endpoints.",
+      "item": [
+        {
+          "name": "Search Properties",
+          "request": {
+            "description": "Matches web endpoints: GET /web/public/search?q=... (zcanopy-storefront) and GET /web/public/explorer.\nThis is the closest non-web equivalent to the web explorer: it accepts the full filter set (subCounty, district, minPrice, maxPrice, lat, lng, radiusKm) that /customer/properties drops.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/listings/search?query=apartment&location=Kampala&radius=10&propertyType=Apartment&subCounty=KampalaCentral&district=Kampala&minPrice=100000000&maxPrice=900000000&page=1&limit=12&lat=0.3476&lng=32.5825&radiusKm=10&sessionToken={{sessionToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "search"],
+              "query": [
+                { "key": "query", "value": "apartment", "description": "Free-text query ('q' is also accepted)" },
+                { "key": "location", "value": "Kampala" },
+                { "key": "radius", "value": "10" },
+                { "key": "propertyType", "value": "Apartment" },
+                { "key": "subCounty", "value": "KampalaCentral" },
+                { "key": "district", "value": "Kampala" },
+                { "key": "minPrice", "value": "100000000" },
+                { "key": "maxPrice", "value": "900000000" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "12" },
+                { "key": "lat", "value": "0.3476" },
+                { "key": "lng", "value": "32.5825" },
+                { "key": "radiusKm", "value": "10" },
+                { "key": "sessionToken", "value": "{{sessionToken}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Properties For Broker (homescreen)",
+          "request": {
+            "description": "Matches web endpoint: GET /web/broker/properties (zcanopy-dashboard brokerProperties). Public; 'user_id' is the broker code.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/listings/get_properties?user_id={{brokerCode}}&page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "get_properties"],
+              "query": [
+                { "key": "user_id", "value": "{{brokerCode}}", "description": "Broker unique code (required)" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Property By Id",
+          "request": {
+            "description": "Matches web endpoints: GET /web/public/property-info?id=&brokerCode= (zcanopy-storefront propertyDetails) and GET /web/broker/properties/{id} (zcanopy-dashboard).\nBoth 'id' and 'brokerCode' are required; returns { success, property }.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/listings/get_property_by_id?id={{propertyId}}&brokerCode={{brokerCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "get_property_by_id"],
+              "query": [
+                { "key": "id", "value": "{{propertyId}}", "description": "Property id (required)" },
+                { "key": "brokerCode", "value": "{{brokerCode}}", "description": "Broker unique code (required)" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Properties (legacy)",
+          "request": {
+            "description": "Matches web endpoints: GET /web/public/properties and GET /web/broker/properties. Legacy pass-through of the whole query to PropertyService 'GetProperties'.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/listings/get-user-properties?brokerCode={{brokerCode}}&page=1&limit=12&location=Kampala&propertyType=Apartment",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "get-user-properties"],
+              "query": [
+                { "key": "brokerCode", "value": "{{brokerCode}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "12" },
+                { "key": "location", "value": "Kampala" },
+                { "key": "propertyType", "value": "Apartment" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Find Nearby Properties",
+          "request": {
+            "description": "Matches web endpoints: GET /web/customer/video-tours, GET /web/customer/all-properties, GET /web/public/explorer (zcanopy-storefront) - geo-radius variants.\nNOTE: the gateway maps a 'long' query key onto 'lng' before forwarding.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/listings/nearby?lat=0.3476&long=32.5825&radiusKm=25&propertyType=Apartment&sessionToken={{sessionToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["listings", "nearby"],
+              "query": [
+                { "key": "lat", "value": "0.3476" },
+                { "key": "long", "value": "32.5825", "description": "Longitude - 'lng' is also accepted" },
+                { "key": "radiusKm", "value": "25" },
+                { "key": "propertyType", "value": "Apartment" },
+                { "key": "sessionToken", "value": "{{sessionToken}}" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 Brokers (JWT bearer)",
+      "description": "Non-web broker routes replacing the web /web/broker/* endpoints (zcanopy-dashboard) and /web/public/brokers (zcanopy-storefront). The whole controller is JWT-guarded and derives brokerCode from the token where noted.",
+      "item": [
+        {
+          "name": "Get All Brokers",
+          "request": {
+            "description": "Matches web endpoint: GET /web/public/brokers?limit=200 (zcanopy-storefront getBrokers filter dropdown).",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/brokers?page=1&limit=200",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "200", "description": "BrokerService defaults to 10, which truncates the dropdown" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Brokers",
+          "request": {
+            "description": "Matches web endpoint: GET /web/public/brokers (zcanopy-storefront). Search variant by title or username.\n\nKNOWN GATEWAY ROUTE BUG: BrokerController declares @Get(':id') (line 34) BEFORE @Get('search') (line 116), so NestJS matches '/brokers/search' as getBrokerById with id='search' and the 'q' query is ignored. Until the route order is fixed, use 'Get All Brokers' above or GET /users/get-user-by-email?email=... to look up a broker.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/brokers/search?q=Blue%20Peak",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "search"],
+              "query": [
+                { "key": "q", "value": "Blue Peak" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Authenticated Broker Profile",
+          "request": {
+            "description": "Matches web endpoint: GET /web/broker/profile (zcanopy-dashboard brokerProfile).",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/brokers/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Authenticated Broker",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/profile (zcanopy-dashboard updateProfile). brokerCode is taken from the token; this is the direct alternative to POST /users/save-user-info in folder 01.",
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Blue Peak Realty\",\n  \"email\": \"{{email}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"location\": \"Kampala, Uganda\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brokers/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Authenticated Broker Dashboard",
+          "request": {
+            "description": "Matches web endpoint: GET /web/broker/dashboard (zcanopy-dashboard).\nThe web route composes broker + properties + bookings + wallet; this route returns the broker service's own dashboard aggregate.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/brokers/dashboard/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "dashboard", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Subscribe Authenticated Broker To Tier",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/subscribe (zcanopy-dashboard brokerSubscribe). brokerCode comes from the token.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"{{tier}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brokers/me/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "me", "subscribe"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Subscribe Broker By Id To Tier",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/subscribe (zcanopy-dashboard). Explicit broker-id variant; the broker id is sent as brokerId downstream.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tier\": \"{{tier}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brokers/{{brokerId}}/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "{{brokerId}}", "subscribe"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Broker Feedback (help)",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/help (zcanopy-dashboard brokerHelp).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"{{brokerCode}}\",\n  \"email\": \"{{email}}\",\n  \"phone\": \"{{phoneNumber}}\",\n  \"content\": \"[Account] Cannot upload property images: my subscription has expired.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brokers/feedback/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "feedback", "submit"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Withdraw Broker Wallet",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/withdraw (zcanopy-dashboard brokerWithdraw). brokerCode comes from the token.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 150000,\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"provider\": \"{{provider}}\",\n  \"payeeName\": \"Blue Peak Realty\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brokers/withdraw",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "withdraw"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 Broker Public Auth",
+      "description": "Unguarded non-web broker registration and OTP routes. These paths are already non-web and are called directly by zcanopy-storefront and zcanopy-dashboard.",
+      "item": [
+        {
+          "name": "Register Broker",
+          "request": {
+            "description": "Matches endpoints already called by both web clients: POST /broker/register (zcanopy-storefront registerBroker, zcanopy-dashboard webApi.registerBroker).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Blue Peak Realty\",\n  \"email\": \"{{email}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"googleId\": \"{{googleId}}\",\n  \"idFrontUrl\": \"https://zcanopy-properties-media.fra1.digitaloceanspaces.com/broker-docs/id-front.jpg\",\n  \"idBackUrl\": \"https://zcanopy-properties-media.fra1.digitaloceanspaces.com/broker-docs/id-back.jpg\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/broker/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["broker", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send Broker OTP",
+          "request": {
+            "description": "Matches endpoints already called by both web clients: POST /broker/otp/send.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/broker/otp/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["broker", "otp", "send"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Broker OTP",
+          "request": {
+            "description": "Matches endpoints already called by both web clients: POST /broker/otp/verify.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"emailCode\": \"{{otp}}\",\n  \"phoneCode\": \"{{otp}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/broker/otp/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["broker", "otp", "verify"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "07 Broker Session",
+      "description": "Session-scoped non-web broker routes replacing the web /web/broker/logout and /web/broker/account/delete endpoints. These live outside the JWT guard because the mobile broker app authenticates with a session token.",
+      "item": [
+        {
+          "name": "Broker Logout",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/logout (zcanopy-dashboard brokerLogout).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"{{brokerCode}}\",\n  \"sessionId\": \"{{sessionToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brokers/logout-user",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "logout-user"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Request Account Deletion OTP",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/account/delete/request-otp (zcanopy-dashboard).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"{{brokerCode}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brokers/unsubscribe-user/request-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "unsubscribe-user", "request-otp"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unsubscribe (Delete) Broker Account",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/account/delete (zcanopy-dashboard brokerDeleteAccount).",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"{{brokerCode}}\",\n  \"password\": \"Password123!\",\n  \"googleId\": \"{{googleId}}\",\n  \"sessionId\": \"{{sessionToken}}\",\n  \"emailOtp\": \"{{otp}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/brokers/unsubscribe-user",
+              "host": ["{{baseUrl}}"],
+              "path": ["brokers", "unsubscribe-user"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "08 Notifications",
+      "description": "Non-web notification routes replacing the web /web/broker/notifications endpoints (zcanopy-dashboard). Session-scoped; the notification service derives the owning brokerCode server-side.",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "description": "Matches web endpoint: GET /web/broker/notifications (zcanopy-dashboard brokerNotifications).\nThe web route sends brokerCode + page/limit/type/read; this route also accepts sessionToken.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/get_notifications?sessionToken={{sessionToken}}&brokerCode={{brokerCode}}&page=1&limit=20&type=booking&read=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "get_notifications"],
+              "query": [
+                { "key": "sessionToken", "value": "{{sessionToken}}" },
+                { "key": "brokerCode", "value": "{{brokerCode}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "status", "value": "unread" },
+                { "key": "type", "value": "booking", "description": "booking | payment | property | system" },
+                { "key": "channel", "value": "in_app" },
+                { "key": "read", "value": "false", "description": "'true' or 'false'" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notifications As Read",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/notifications/mark-read (zcanopy-dashboard). Pass { all: true } to mark everything, { id } for one, or { ids } for many.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionToken\": \"{{sessionToken}}\",\n  \"brokerCode\": \"{{brokerCode}}\",\n  \"id\": \"{{notificationId}}\",\n  \"ids\": [\"{{notificationId}}\"],\n  \"all\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notifications/mark_as_read",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "mark_as_read"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "09 Subscriptions",
+      "description": "Non-web subscription routes replacing the web /web/broker/subscription* endpoints (zcanopy-dashboard).",
+      "item": [
+        {
+          "name": "Get Subscription Packages",
+          "request": {
+            "description": "Matches web endpoint: GET /web/broker/subscription/packages (zcanopy-dashboard subscriptionPackages).\nAlso reachable as POST /subscriptions/cancel's sibling route; the dashboard's own brokerCancelSubscription wrapper already targets /subscriptions/cancel.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/get_packages",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "get_packages"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Subscription (Unsubscribe Broker)",
+          "request": {
+            "description": "Matches web endpoints: POST /subscriptions/cancel (zcanopy-dashboard webApi.brokerCancelSubscription) and POST /web/broker/account/delete (zcanopy-dashboard). Same downstream BrokerService 'UnsubscribeBroker'.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerCode\": \"{{brokerCode}}\",\n  \"password\": \"Password123!\",\n  \"emailOtp\": \"{{otp}}\",\n  \"sessionId\": \"{{sessionToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscriptions/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriptions", "cancel"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "10 Payments",
+      "description": "Non-web payment routes replacing the web /web/customer/transactions and /web/customer/invoices endpoints (zcanopy-storefront).",
+      "item": [
+        {
+          "name": "Get Transactions (JWT)",
+          "request": {
+            "description": "Matches web endpoints: GET /web/customer/transactions?page=&limit= and GET /web/customer/invoices?page=&limit= (zcanopy-storefront).\nBoth web routes forward the same PaymentService 'GetTransactions' call, so a mobile client can use either shape here.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payments/transactions?page=1&limit=10&brokerId={{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "transactions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "brokerId", "value": "{{customerId}}", "description": "The web customer routes pass the customerId in this field" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transaction Records (legacy)",
+          "request": {
+            "description": "Matches web endpoints: GET /web/customer/transactions and GET /web/customer/invoices (zcanopy-storefront). Unguarded legacy variant; 'user_id' is the customer/broker id.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/payment/get_transaction_records?user_id={{customerId}}&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "get_transaction_records"],
+              "query": [
+                { "key": "user_id", "value": "{{customerId}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Initiate Payment",
+          "request": {
+            "description": "Matches web endpoint: POST /web/customer/transactions/initiate (zcanopy-storefront customer.initiateTransaction).\nMobile variant forwards PaymentService 'ProcessCustomerPayment' with phoneNumber, amount and userId.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"amount\": 50000,\n  \"userId\": \"{{customerId}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payment/initiate_payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "initiate_payment"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "11 Bookings",
+      "description": "Non-web booking-listing routes replacing the web /web/broker/bookings and /web/customer/bookings endpoints.",
+      "item": [
+        {
+          "name": "Get Broker Bookings (legacy)",
+          "request": {
+            "description": "Matches web endpoint: GET /web/broker/bookings (zcanopy-dashboard brokerBookings). Unguarded legacy variant; 'user_id' is the broker code.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/get_bookings?user_id={{brokerCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "get_bookings"],
+              "query": [
+                { "key": "user_id", "value": "{{brokerCode}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Bookings By Session Token",
+          "request": {
+            "description": "Matches web endpoint: GET /web/customer/bookings?page=&limit= (zcanopy-storefront). Session-token variant, fixed at page 1 / limit 50.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bookings?sessionToken={{sessionToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings"],
+              "query": [
+                { "key": "sessionToken", "value": "{{sessionToken}}" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "12 Gate-way (legacy mobile)",
+      "description": "Legacy non-web /gate-way routes used by the mobile apps, replacing the web endpoints listed per request.",
+      "item": [
+        {
+          "name": "Get Change Password OTP",
+          "request": {
+            "description": "Matches web endpoints: POST /web/broker/change-password/request-otp (zcanopy-dashboard).\nSend 'email' for an email OTP or 'phoneNumber' for an SMS OTP.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate-way/get-change-passsword-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["gate-way", "get-change-passsword-otp"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Decline Booking Request",
+          "request": {
+            "description": "Matches web endpoint: PUT /web/broker/bookings/{id}/status with status 'Rejected' (zcanopy-dashboard).\nPARTIAL MATCH: there is no non-web route for the general Approved/Rejected status update - only the decline path exists. The web route forwards UpdateBookingStatus; this one forwards DeclineBooking with the transaction code.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookingId\": \"{{transactionCode}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate-way/decline-booking-request",
+              "host": ["{{baseUrl}}"],
+              "path": ["gate-way", "decline-booking-request"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User Account",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/account/delete (zcanopy-dashboard).\nHard-delete variant (BrokerService 'DeleteBrokerAccount'); use /brokers/unsubscribe-user for the OTP-confirmed soft delete.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userID\": \"{{brokerCode}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate-way/delete-user-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["gate-way", "delete-user-account"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Initiate Payment (broker subscription)",
+          "request": {
+            "description": "Matches web endpoint: POST /web/broker/subscribe (zcanopy-dashboard).\nLegacy variant; the tier is read from 'package' or 'tier' and the broker from 'userId', 'userID' or 'brokerId'.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"package\": \"{{tier}}\",\n  \"userId\": \"{{brokerCode}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/gate-way/initiate-payment",
+              "host": ["{{baseUrl}}"],
+              "path": ["gate-way", "initiate-payment"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current Location",
+          "request": {
+            "description": "Matches web endpoint: GET /web/public/locations and the storefront's location capture.\nSame downstream PropertyService 'ResolveLocationName'. NOTE: reads the longitude from the 'long' query key.",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/gate-way/get-current-location?lat=0.3476&long=32.5825",
+              "host": ["{{baseUrl}}"],
+              "path": ["gate-way", "get-current-location"],
+              "query": [
+                { "key": "lat", "value": "0.3476" },
+                { "key": "long", "value": "32.5825", "description": "Longitude - note the key is 'long'" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Notifications (legacy)",
+          "request": {
+            "description": "Matches web endpoint: GET /web/broker/notifications (zcanopy-dashboard). Legacy pass-through; prefer /notifications/get_notifications (folder 08), which maps fields explicitly.",
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/gate-way/get-notifications?sessionToken={{sessionToken}}&brokerCode={{brokerCode}}&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["gate-way", "get-notifications"],
+              "query": [
+                { "key": "sessionToken", "value": "{{sessionToken}}" },
+                { "key": "brokerCode", "value": "{{brokerCode}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "13 Public",
+      "description": "Unguarded non-web public routes.",
+      "item": [
+        {
+          "name": "Get Featured Properties",
+          "request": {
+            "description": "Matches web endpoints: GET /web/public/properties/featured (zcanopy-dashboard webApi.featuredProperties) and GET /web/public/property-info (zcanopy-storefront propertyDetails fallback).",
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/public/properties/featured?limit=6",
+              "host": ["{{baseUrl}}"],
+              "path": ["public", "properties", "featured"],
+              "query": [
+                { "key": "limit", "value": "6", "description": "Defaults to 6" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "14 Upload",
+      "description": "Non-web DigitalOcean Spaces upload routes. Already non-web and called directly by both web clients.",
+      "item": [
+        {
+          "name": "Get Presigned Upload URL",
+          "request": {
+            "description": "Matches endpoints already called by both web clients: POST /upload/presign (zcanopy-storefront getUploadPresignedUrl, zcanopy-dashboard getUploadPresignedUrl).\nReturns uploadUrl / key / publicUrl. PUT the raw file bytes to uploadUrl with Content-Type: <contentType>, then store publicUrl.",
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filename\": \"property-front.jpg\",\n  \"contentType\": \"image/jpeg\",\n  \"folder\": \"properties\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/upload/presign",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "presign"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload File Via Proxy",
+          "request": {
+            "description": "Matches endpoints already called by both web clients: POST /upload/proxy?folder=... (zcanopy-storefront uploadToSpacesViaProxy, zcanopy-dashboard uploadToSpacesViaProxy).\nUse this multipart fallback when the direct Spaces PUT is blocked by CORS. Returns { key, publicUrl }.",
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "The binary to upload"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/upload/proxy?folder=properties",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "proxy"],
+              "query": [
+                {
+                  "key": "folder",
+                  "value": "properties",
+                  "description": "properties | verification | broker-docs"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

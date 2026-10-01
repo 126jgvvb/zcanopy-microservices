@@ -1194,6 +1194,7 @@ private getEmptyBroker(): any {
         customerPhone: string;
         customerEmail: string;
         customerName: string;
+        customerId?: string;
         amount: number;
         reasonForPayment: string;
         propertyId: string;
@@ -1215,6 +1216,7 @@ private getEmptyBroker(): any {
                     customerPhone: dto.customerPhone,
                     customerEmail: dto.customerEmail,
                     customerName: dto.customerName,
+                    customerId: dto.customerId,
                     amount: dto.amount,
                     reasonForPayment: dto.reasonForPayment,
                     propertyId: dto.propertyId,

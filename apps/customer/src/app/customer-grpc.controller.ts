@@ -29,6 +29,7 @@ import type {
   ForgotPasswordDto,
   VerifyForgotPasswordOtpDto,
   ResetCustomerPasswordDto,
+  CreateNotificationDto,
 } from './dtos/customer-grpc.dto';
 
 @Controller()
@@ -199,5 +200,11 @@ export class CustomerGrpcController {
   async resetCustomerPassword(dto: ResetCustomerPasswordDto) {
     this.logger.log(`gRPC ResetCustomerPassword for email=${dto.email}`);
     return this.customerService.resetCustomerPassword(dto);
+  }
+
+  @GrpcMethod('CustomerService', 'CreateNotification')
+  async createNotification(dto: CreateNotificationDto) {
+    this.logger.log(`gRPC CreateNotification for customer=${dto.customerId}`);
+    return this.customerService.createNotification(dto);
   }
 }

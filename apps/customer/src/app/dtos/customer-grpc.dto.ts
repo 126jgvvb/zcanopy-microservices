@@ -175,5 +175,13 @@ export interface VerifyForgotPasswordOtpDto {
 
 export interface ResetCustomerPasswordDto {
   email: string;
-  password: string;
+  newPassword: string;
+}
+
+export interface CreateNotificationDto {
+  customerId: string;
+  title: string;
+  body: string;
+  type?: string;
+  dataJson?: string;
 }

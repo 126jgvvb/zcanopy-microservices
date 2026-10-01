@@ -43,10 +43,11 @@ message ProcessPropertyPaymentRequest {
   string customerPhone = 1;
   string customerEmail = 2;
   string customerName = 3;
-  double amount = 4;
-  string reasonForPayment = 5;
-  string propertyId = 6;
-  string brokerCode = 7;
+  string customerId = 4;
+  double amount = 5;
+  string reasonForPayment = 6;
+  string propertyId = 7;
+  string brokerCode = 8;
 }
 
 message ProcessPropertyPaymentResponse {
@@ -66,7 +67,8 @@ message GetTransactionsRequest {
   int32 page = 1;
   int32 limit = 2;
   string brokerId = 3;
-  string reason = 4;
+  string customerId = 4;
+  string reason = 5;
 }
 
 message GetTransactionsResponse {
@@ -89,6 +91,7 @@ message WithdrawRequest {
   string bankIdentificationCode = 12;
   string bankTransferType = 13;
   string sendAt = 14;
+  string brokerCode = 15;
 }
 
 message WithdrawResponse {

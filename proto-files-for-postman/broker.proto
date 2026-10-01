@@ -40,48 +40,15 @@ service BrokerService{
   rpc SaveUserInfo (SaveUserInfoRequest) returns (SaveUserInfoResponse);
   rpc UpdateUserField (UpdateUserFieldRequest) returns (UpdateUserFieldResponse);
   rpc DeleteBrokerAccount (DeleteBrokerAccountRequest) returns (DeleteBrokerAccountResponse);
-  rpc VerifyOtp (VerifyOtpRequest) returns (VerifyOtpResponse);
   rpc GetSubscriptionDetails (GetSubscriptionDetailsRequest) returns (GetSubscriptionDetailsResponse);
+  rpc RegisterBroker (RegisterBrokerRequest) returns (RegisterBrokerResponse);
   rpc SendBrokerOtp (SendBrokerOtpRequest) returns (SendBrokerOtpResponse);
-}
-
-
-
-
-
-message SendBrokerOtpRequest {
-  string email = 1;
-  string phoneNumber = 2;
-}
-
-message SendBrokerOtpResponse {
-  bool success = 1;
-  string message = 2;
-  int32 expiresInSeconds = 3;
-}
-
-message VerifyOtpRequest {
-  string email = 1;
-  string otp = 2;
-}
-
-message VerifyOtpResponse {
-  bool success = 1;
-  string message = 2;
-}
-
-
-message GetSubscriptionDetailsRequest {
-  string brokerCode = 1;
-}
-
-message GetSubscriptionDetailsResponse {
-  bool success = 1;
-  string message = 2;
-  string brokerCode = 3;
-  string subscriptionTier = 4;
-  string subscriptionExpiresAt = 5;
-  SubscriptionLimits limits = 6;
+  rpc VerifyBrokerOtp (VerifyBrokerOtpRequest) returns (VerifyBrokerOtpResponse);
+  rpc VerifyOtp (VerifyOtpRequest) returns (VerifyOtpResponse);
+  rpc ForgotPassword (ForgotPasswordRequest) returns (ForgotPasswordResponse);
+  rpc VerifyForgotPasswordOtp (VerifyForgotPasswordOtpRequest) returns (VerifyForgotPasswordOtpResponse);
+  rpc ResetBrokerPassword (ResetBrokerPasswordRequest) returns (ResetBrokerPasswordResponse);
+  rpc SubmitVerificationDocuments (SubmitVerificationDocumentsRequest) returns (SubmitVerificationDocumentsResponse);
 }
 
 message SaveBrokerFcmTokenRequest {
@@ -130,6 +97,26 @@ message DeleteBrokerAccountResponse {
   string message = 2;
 }
 
+message GetSubscriptionDetailsRequest {
+  string brokerCode = 1;
+}
+
+message GetSubscriptionDetailsResponse {
+  bool success = 1;
+  string message = 2;
+  string brokerCode = 3;
+  string subscriptionTier = 4;
+  string subscriptionExpiresAt = 5;
+  SubscriptionLimits limits = 6;
+}
+
+message SubscriptionLimits {
+  int32 maxProperties = 1;
+  int32 maxPhotosPerProperty = 2;
+  int32 maxVideosPerProperty = 3;
+  int32 maxVideoSizeMB = 4;
+}
+
 message GetAllBrokersRequest {
   int32 page = 1;
   int32 limit = 2;
@@ -156,7 +143,9 @@ message ValidateBrokerRequest {
 }
 
 message ValidateBrokerResponse {
-  Broker broker = 1;
+  bool success = 1;
+  string message = 2;
+  Broker broker = 3;
 }
 
 message CreateBrokerRequest {
@@ -271,7 +260,7 @@ message DebitWalletResponse {
 }
 
 message GetWalletTransactionsRequest {
-  string brokerId = 1;
+  string brokerCode = 1;
   int32 page = 2;
   int32 limit = 3;
 }
@@ -295,6 +284,7 @@ message WithdrawRequest {
   string bankIdentificationCode = 11;
   string bankTransferType = 12;
   string sendAt = 13;
+  string brokerCode = 14;
 }
 
 message WithdrawResponse {
@@ -497,6 +487,7 @@ message SetupBrokerAccountRequest {
   string brokerCode = 1;
   string password = 2;
   string deviceId = 3;
+  string brokerBrandName = 4;
 }
 
 message SetupBrokerAccountResponse {
@@ -508,6 +499,7 @@ message SetupBrokerAccountResponse {
   string deviceId = 6;
   int64 expiresAt = 7;
   int32 ttlSeconds = 8;
+  string brokerBrandName = 9;
 }
 
 message TierConfig {
@@ -546,6 +538,97 @@ message Broker {
   string googleId = 20;
   string deviceId = 21;
   string subscriptionExpiresAt = 22;
+  string brokerBrandName = 23;
+}
+
+message RegisterBrokerRequest {
+  string fullName = 1;
+  string email = 2;
+  string phoneNumber = 3;
+  string idFrontUrl = 4;
+  string idBackUrl = 5;
+}
+
+message RegisterBrokerResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
+}
+
+message SendBrokerOtpRequest {
+  string email = 1;
+  string phoneNumber = 2;
+}
+
+message SendBrokerOtpResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresInSeconds = 3;
+}
+
+message VerifyBrokerOtpRequest {
+  string email = 1;
+  string phoneNumber = 2;
+  string emailCode = 3;
+  string phoneCode = 4;
+}
+
+message VerifyBrokerOtpResponse {
+  bool success = 1;
+  string message = 2;
+  string brokerCode = 3;
+}
+
+message VerifyOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message VerifyOtpResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ForgotPasswordRequest {
+  string email = 1;
+}
+
+message ForgotPasswordResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresIn = 3;
+}
+
+message VerifyForgotPasswordOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message VerifyForgotPasswordOtpResponse {
+  bool success = 1;
+  string message = 2;
+  bool valid = 3;
+}
+
+message ResetBrokerPasswordRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message ResetBrokerPasswordResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SubmitVerificationDocumentsRequest {
+  string brokerCode = 1;
+  string idFrontUrl = 2;
+  string idBackUrl = 3;
+}
+
+message SubmitVerificationDocumentsResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message BrokerMessage {
@@ -595,10 +678,11 @@ message ProcessPropertyPaymentRequest {
   string customerPhone = 1;
   string customerEmail = 2;
   string customerName = 3;
-  double amount = 4;
-  string reasonForPayment = 5;
-  string propertyId = 6;
-  string brokerId = 7;
+  string customerId = 4;
+  double amount = 5;
+  string reasonForPayment = 6;
+  string propertyId = 7;
+  string brokerId = 8;
 }
 
 message ProcessPropertyPaymentResponse {

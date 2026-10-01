@@ -41,4 +41,7 @@ export class TransactionEntity{
 
   @Column({default:''})
   transactionCode!:string;
+
+  @Column({default:''})
+  customerId!:string;
 }

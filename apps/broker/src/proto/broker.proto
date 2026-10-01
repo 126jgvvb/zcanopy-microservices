@@ -678,10 +678,11 @@ message ProcessPropertyPaymentRequest {
   string customerPhone = 1;
   string customerEmail = 2;
   string customerName = 3;
-  double amount = 4;
-  string reasonForPayment = 5;
-  string propertyId = 6;
-  string brokerId = 7;
+  string customerId = 4;
+  double amount = 5;
+  string reasonForPayment = 6;
+  string propertyId = 7;
+  string brokerId = 8;
 }
 
 message ProcessPropertyPaymentResponse {

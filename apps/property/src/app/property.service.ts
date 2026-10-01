@@ -89,6 +89,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     @InjectRepository(CustomerRatingEntity)
     private readonly ratingRepo: Repository<CustomerRatingEntity>,
     @Inject('AUTH_CLIENT') private readonly authClient: ClientGrpc,
+    @Inject('CUSTOMER_CLIENT') private readonly customerClient: ClientGrpc,
     @Inject('BROKER_CLIENT') private readonly brokerClient: ClientGrpc,
     @Inject('PAYMENT_CLIENT') private readonly paymentClient: ClientGrpc,
     private readonly httpService: HttpService,
@@ -688,10 +689,13 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  async getPropertyLocations(): Promise<{ locations: Array<{ propertyId: string; title: string; location: string; postgisSpatialField: string | null; brokerCode: string }> }> {
+  // Deliberately unfiltered and unpaginated: this feeds the storefront's filter
+  // dropdowns, which must list every available option regardless of the active
+  // filters. propertyType is included so locations and types come from one call.
+  async getPropertyLocations(): Promise<{ locations: Array<{ propertyId: string; title: string; location: string; postgisSpatialField: string | null; brokerCode: string; propertyType: string }> }> {
     try {
       const properties = await this.propertyRepo.find({
-        select: { id: true, title: true, location: true, postgis_spatial_field: true, brokersUniqueCode: true } as FindOptionsSelect<PropertyEntity>,
+        select: { id: true, title: true, location: true, postgis_spatial_field: true, brokersUniqueCode: true, propertyType: true } as FindOptionsSelect<PropertyEntity>,
       });
 
       return {
@@ -701,6 +705,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
           location: p.location,
           postgisSpatialField: p.postgis_spatial_field ? JSON.stringify(p.postgis_spatial_field) : null,
           brokerCode: p.brokersUniqueCode,
+          propertyType: p.propertyType,
         })),
       };
     } catch (err) {
@@ -1132,6 +1137,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
           customerPhone: dto.customerPhone || 'anonymous',
           customerEmail: dto.customerEmail || '',
           customerName: dto.customerName || 'Customer',
+          customerId: dto.customerId,
           amount: dto.amount,
           reasonForPayment: 'booking',
           propertyId: dto.propertyId || '',
@@ -1260,6 +1266,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
           customerPhone: dto.customerPhone,
           customerEmail: dto.customerEmail,
           customerName: dto.customerName,
+          customerId: dto.customerId,
           amount: dto.amount,
           reasonForPayment: 'booking',
           propertyId: dto.propertyId,
@@ -1331,6 +1338,20 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         date: dto.date,
         status: 'booked',
       }));
+
+      try {
+        await lastValueFrom(
+          this.customerClient.getService('CustomerService').createNotification({
+            customerId: dto.customerId,
+            title: 'Booking confirmed',
+            body: `Your booking for "${property.title}" has been confirmed. Transaction code: ${transactionCode}`,
+            type: 'booking',
+            dataJson: JSON.stringify({ propertyId: property.id, transactionCode, bookingCode, amount: dto.amount }),
+          }).pipe(timeout(5000)),
+        );
+      } catch (notifErr) {
+        this.logger.warn(`Failed to create customer notification for booking ${transactionCode}: ${(notifErr as Error).message}`);
+      }
 
       return {
         success: true,

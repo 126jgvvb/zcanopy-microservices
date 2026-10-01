@@ -117,9 +117,13 @@ export class WebPublicController {
 
   @Get('brokers')
   @ApiOperation({ summary: 'Get all brokers for filter dropdown' })
-  async getBrokers() {
+  async getBrokers(@Query() query: any) {
     this.logger.log('Web public brokers request');
-    return this.proxyService.forwardToBroker('GetAllBrokers', {});
+    // BrokerService defaults limit to 10, which silently truncates the dropdown.
+    // Cap generously so the filter can list every broker.
+    const limit = Math.min(Number(query?.limit) || 200, 200);
+    const page = Math.max(Number(query?.page) || 1, 1);
+    return this.proxyService.forwardToBroker('GetAllBrokers', { page, limit });
   }
 
   @Get('locations')

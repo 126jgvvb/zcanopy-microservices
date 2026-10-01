@@ -78,6 +78,16 @@ export class PropertyController {
     return this.proxyService.forwardToProperty('UpdateProperty', { id, ...body });
   }
 
+  @Put(':id/availability')
+  @ApiOperation({ summary: 'Update property availability' })
+  async updatePropertyAvailability(@Param('id') id: string, @Body() body: { isAvailable: boolean }) {
+    this.logger.log(`Update property availability request for id ${id}`);
+    return this.proxyService.forwardToProperty('UpdateProperty', {
+      id,
+      isAvailable: body.isAvailable,
+    });
+  }
+
   @Post(':id')
   @ApiOperation({ summary: 'Update property details (POST alias for broker app)' })
   async updatePropertyPost(@Param('id') id: string, @Body() body: any) {
