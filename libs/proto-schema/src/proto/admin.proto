@@ -39,6 +39,7 @@ service AdminService {
   rpc GetPropertyComments (GetPropertyCommentsRequest) returns (GetPropertyCommentsResponse);
   rpc GetAllCustomerFavorites (GetAllCustomerFavoritesRequest) returns (GetAllCustomerFavoritesResponse);
   rpc GetComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
+  rpc GetTiers (GetTiersRequest) returns (GetTiersResponse);
  
 }
 
@@ -46,6 +47,18 @@ service AdminService {
 
 
 
+
+
+message GetTiersRequest {}
+
+message TierPrice {
+  string tier = 1;
+  int32 price = 2;
+}
+
+message GetTiersResponse {
+  repeated TierPrice tiers = 1;
+}
 
 
 message GetPropertyCommentsRequest {
