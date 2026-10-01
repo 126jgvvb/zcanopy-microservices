@@ -34,16 +34,22 @@ service AdminService {
   rpc FreezeAdmin (FreezeAdminRequest) returns (FreezeAdminResponse);
   rpc SendMessage (SendMessageRequest) returns (SendMessageResponse);
   rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
+  rpc SendWithdrawalOtp (SendWithdrawalOtpRequest) returns (SendWithdrawalOtpResponse);
+  rpc VerifyWithdrawalOtp (VerifyWithdrawalOtpRequest) returns (VerifyWithdrawalOtpResponse);
   rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
   rpc GetNotifications (GetNotificationsRequest) returns (GetNotificationsResponse);
   rpc ApproveBrokerDocument (ApproveBrokerDocumentRequest) returns (ApproveBrokerDocumentResponse);
   rpc GetActiveCustomerSessions (GetActiveCustomerSessionsRequest) returns (GetActiveCustomerSessionsResponse);
+  rpc GetAllCustomerSearches (GetAllCustomerSearchesRequest) returns (GetAllCustomerSearchesResponse);
+  rpc GetAllCustomers (GetAllCustomersRequest) returns (GetAllCustomersResponse);
   rpc GetInvoices (GetInvoicesRequest) returns (GetInvoicesResponse);
   rpc DeleteInvoice (DeleteInvoiceRequest) returns (DeleteInvoiceResponse);
   rpc DeleteInvoices (DeleteInvoicesRequest) returns (DeleteInvoicesResponse);
   rpc GetBrokerCommissions (GetBrokerCommissionsRequest) returns (GetBrokerCommissionsResponse);
   rpc ApproveAllPendingVerifications (ApproveAllPendingVerificationsRequest) returns (ApproveAllPendingVerificationsResponse);
   rpc GetComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
+  rpc GetTiers (GetTiersRequest) returns (GetTiersResponse);
+  rpc UpdateTierPrice (UpdateTierPriceRequest) returns (UpdateTierPriceResponse);
 }
 
 message GetCommissionsRequest {}
@@ -397,6 +403,29 @@ message WithdrawResponse {
   double netAmount = 6;
 }
 
+message SendWithdrawalOtpRequest {
+  string email = 1;
+  double amount = 2;
+  string walletType = 3;
+}
+
+message SendWithdrawalOtpResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresIn = 3;
+}
+
+message VerifyWithdrawalOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message VerifyWithdrawalOtpResponse {
+  bool success = 1;
+  string message = 2;
+  bool valid = 3;
+}
+
 message GetWalletRequest {
   string walletId = 1;
 }
@@ -467,6 +496,7 @@ message Broker {
   bool isDeleted = 15;
   double walletBalance = 16;
   string subscriptionExpiresAt = 17;
+  string brokerBrandName = 18;
 }
 
 message Property {
@@ -690,6 +720,56 @@ message ApproveAllPendingVerificationsResponse {
   repeated ApproveVerificationResult results = 5;
 }
 
+message GetAllCustomerSearchesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string customerId = 3;
+  string query = 4;
+}
+
+message CustomerSearchSummary {
+  string id = 1;
+  string customerId = 2;
+  string query = 3;
+  string location = 4;
+  double radius = 5;
+  string propertyType = 6;
+  string filters = 7;
+  int32 resultCount = 8;
+  string createdAt = 9;
+  repeated string resultPropertyIds = 10;
+}
+
+message GetAllCustomerSearchesResponse {
+  repeated CustomerSearchSummary searches = 1;
+  int32 total = 2;
+}
+
+message GetAllCustomersRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  bool isActive = 3;
+}
+
+message CustomerSummary {
+  string id = 1;
+  string email = 2;
+  string firstName = 3;
+  string lastName = 4;
+  string phoneNumber = 5;
+  bool isVerified = 6;
+  string authProvider = 7;
+  bool isActive = 8;
+  int64 createdAt = 9;
+}
+
+message GetAllCustomersResponse {
+  repeated CustomerSummary customers = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
 message GetAllCommentsRequest {
   int32 page = 1;
   int32 limit = 2;
@@ -709,4 +789,25 @@ message Comment {
 message GetAllCommentsResponse {
   repeated Comment comments = 1;
   int32 total = 2;
+}
+
+message GetTiersRequest {}
+
+message TierPrice {
+  string tier = 1;
+  int32 price = 2;
+}
+
+message GetTiersResponse {
+  repeated TierPrice tiers = 1;
+}
+
+message UpdateTierPriceRequest {
+  string tier = 1;
+  int32 price = 2;
+}
+
+message UpdateTierPriceResponse {
+  bool success = 1;
+  string message = 2;
 }

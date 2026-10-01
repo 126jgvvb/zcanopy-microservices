@@ -19,6 +19,7 @@ service AdminService {
   rpc GetSystemMessages (GetSystemMessagesRequest) returns (GetSystemMessagesResponse);
   rpc GetClientMessages (GetClientMessagesRequest) returns (GetClientMessagesResponse);
   rpc GetBrokerDetails (GetBrokerDetailsRequest) returns (GetBrokerDetailsResponse);
+  rpc GetBrokerDetailsFromCache (GetBrokerDetailsFromCacheRequest) returns (GetBrokerDetailsFromCacheResponse);
   rpc DeleteBroker (DeleteBrokerRequest) returns (DeleteBrokerResponse);
   rpc EditBrokerTier (EditBrokerTierRequest) returns (EditBrokerTierResponse);
   rpc GetBrokerProperties (GetBrokerPropertiesRequest) returns (GetBrokerPropertiesResponse);
@@ -33,8 +34,22 @@ service AdminService {
   rpc FreezeAdmin (FreezeAdminRequest) returns (FreezeAdminResponse);
   rpc SendMessage (SendMessageRequest) returns (SendMessageResponse);
   rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
+  rpc SendWithdrawalOtp (SendWithdrawalOtpRequest) returns (SendWithdrawalOtpResponse);
+  rpc VerifyWithdrawalOtp (VerifyWithdrawalOtpRequest) returns (VerifyWithdrawalOtpResponse);
   rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
+  rpc GetNotifications (GetNotificationsRequest) returns (GetNotificationsResponse);
+  rpc ApproveBrokerDocument (ApproveBrokerDocumentRequest) returns (ApproveBrokerDocumentResponse);
+  rpc GetActiveCustomerSessions (GetActiveCustomerSessionsRequest) returns (GetActiveCustomerSessionsResponse);
+  rpc GetAllCustomerSearches (GetAllCustomerSearchesRequest) returns (GetAllCustomerSearchesResponse);
+  rpc GetAllCustomers (GetAllCustomersRequest) returns (GetAllCustomersResponse);
+  rpc GetInvoices (GetInvoicesRequest) returns (GetInvoicesResponse);
+  rpc DeleteInvoice (DeleteInvoiceRequest) returns (DeleteInvoiceResponse);
+  rpc DeleteInvoices (DeleteInvoicesRequest) returns (DeleteInvoicesResponse);
+  rpc GetBrokerCommissions (GetBrokerCommissionsRequest) returns (GetBrokerCommissionsResponse);
+  rpc ApproveAllPendingVerifications (ApproveAllPendingVerificationsRequest) returns (ApproveAllPendingVerificationsResponse);
   rpc GetComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
+  rpc GetTiers (GetTiersRequest) returns (GetTiersResponse);
+  rpc UpdateTierPrice (UpdateTierPriceRequest) returns (UpdateTierPriceResponse);
 }
 
 message GetCommissionsRequest {}
@@ -42,6 +57,7 @@ message GetCommissionsRequest {}
 message GetCommissionsResponse {
   double platformCommission = 1;
   double bookingCommission = 2;
+  double minimumWithdrawal = 3;
 }
 
 message RegisterAdminRequest {
@@ -122,6 +138,13 @@ message GetPropertiesRequest {
   int32 page = 1;
   int32 limit = 2;
   string brokerCode = 3;
+  string location = 4;
+  string sortBy = 5;
+  string sortOrder = 6;
+  double minAmount = 7;
+  double maxAmount = 8;
+  string fromDate = 9;
+  string toDate = 10;
 }
 
 message GetPropertiesResponse {
@@ -197,6 +220,16 @@ message GetBrokerDetailsResponse {
   repeated DashboardTransaction transactions = 3;
   repeated BrokerMessage messages = 4;
   repeated Booking bookings = 5;
+}
+
+message GetBrokerDetailsFromCacheRequest {
+  string brokerId = 1;
+}
+
+message GetBrokerDetailsFromCacheResponse {
+  Broker broker = 1;
+  double walletBalance = 2;
+  repeated DashboardTransaction transactions = 3;
 }
 
 message DeleteBrokerRequest {
@@ -370,6 +403,29 @@ message WithdrawResponse {
   double netAmount = 6;
 }
 
+message SendWithdrawalOtpRequest {
+  string email = 1;
+  double amount = 2;
+  string walletType = 3;
+}
+
+message SendWithdrawalOtpResponse {
+  bool success = 1;
+  string message = 2;
+  int32 expiresIn = 3;
+}
+
+message VerifyWithdrawalOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message VerifyWithdrawalOtpResponse {
+  bool success = 1;
+  string message = 2;
+  bool valid = 3;
+}
+
 message GetWalletRequest {
   string walletId = 1;
 }
@@ -379,6 +435,47 @@ message GetWalletResponse {
   string currency = 2;
   string walletId = 3;
   string name = 4;
+}
+
+message GetNotificationsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string status = 3;
+  string type = 4;
+  string channel = 5;
+}
+
+message NotificationEntry {
+  string id = 1;
+  string type = 2;
+  string channel = 3;
+  string title = 4;
+  string content = 5;
+  string recipient = 6;
+  string status = 7;
+  string providerMessageId = 8;
+  string error = 9;
+  string createdAt = 10;
+  string updatedAt = 11;
+}
+
+message GetNotificationsResponse {
+  repeated NotificationEntry notifications = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message ApproveBrokerDocumentRequest {
+  string brokerId = 1;
+  string adminId = 2;
+  bool namesMatched = 3;
+  string adminNotes = 4;
+}
+
+message ApproveBrokerDocumentResponse {
+  bool success = 1;
+  string message = 2;
 }
 
 message Broker {
@@ -398,12 +495,8 @@ message Broker {
   bool isActive = 14;
   bool isDeleted = 15;
   double walletBalance = 16;
-  string title = 17;
-  string brokerImage = 18;
-  repeated string ninImages = 19;
-  string googleId = 20;
-  string deviceId = 21;
-  string subscriptionExpiresAt = 22;
+  string subscriptionExpiresAt = 17;
+  string brokerBrandName = 18;
 }
 
 message Property {
@@ -452,6 +545,8 @@ message PendingDocument {
   string documentType = 4;
   string documentUrl = 5;
   string submittedAt = 6;
+  string idFrontUrl = 7;
+  string idBackUrl = 8;
 }
 
 message SystemMessage {
@@ -527,6 +622,154 @@ message Booking {
   string transactionCode = 10;
 }
 
+message GetActiveCustomerSessionsRequest {}
+
+message ActiveCustomerSession {
+  string sessionId = 1;
+  string deviceId = 2;
+  int64 createdAt = 3;
+  int64 lastActivityAt = 4;
+  double locationLat = 5;
+  double locationLng = 6;
+  int64 locationUpdatedAt = 7;
+  int64 ttlSecondsRemaining = 8;
+}
+
+message GetActiveCustomerSessionsResponse {
+  repeated ActiveCustomerSession sessions = 1;
+  int32 total = 2;
+}
+
+message GetInvoicesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string status = 3;
+}
+
+message Invoice {
+  string id = 1;
+  string invoiceNumber = 2;
+  string recipientName = 3;
+  string recipientEmail = 4;
+  string brokerCode = 5;
+  string issueDate = 6;
+  string dueDate = 7;
+  double amount = 8;
+  string currency = 9;
+  string status = 10;
+  string description = 11;
+}
+
+message GetInvoicesResponse {
+  repeated Invoice invoices = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message DeleteInvoiceRequest {
+  string invoiceId = 1;
+}
+
+message DeleteInvoiceResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteInvoicesRequest {
+  repeated string invoiceIds = 1;
+}
+
+message DeleteInvoicesResponse {
+  bool success = 1;
+  string message = 2;
+  int32 deleted = 3;
+}
+
+message GetBrokerCommissionsRequest {}
+
+message BrokerCommission {
+  string brokerId = 1;
+  string brokerCode = 2;
+  string brokerName = 3;
+  string tier = 4;
+  double totalCommission = 5;
+  int32 transactionCount = 6;
+  double totalBookings = 7;
+}
+
+message GetBrokerCommissionsResponse {
+  repeated BrokerCommission commissions = 1;
+}
+
+message ApproveAllPendingVerificationsRequest {
+  string adminId = 1;
+}
+
+message ApproveVerificationResult {
+  string brokerId = 1;
+  bool success = 2;
+  string message = 3;
+}
+
+message ApproveAllPendingVerificationsResponse {
+  bool success = 1;
+  int32 totalProcessed = 2;
+  int32 successful = 3;
+  int32 failed = 4;
+  repeated ApproveVerificationResult results = 5;
+}
+
+message GetAllCustomerSearchesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string customerId = 3;
+  string query = 4;
+}
+
+message CustomerSearchSummary {
+  string id = 1;
+  string customerId = 2;
+  string query = 3;
+  string location = 4;
+  double radius = 5;
+  string propertyType = 6;
+  string filters = 7;
+  int32 resultCount = 8;
+  string createdAt = 9;
+  repeated string resultPropertyIds = 10;
+}
+
+message GetAllCustomerSearchesResponse {
+  repeated CustomerSearchSummary searches = 1;
+  int32 total = 2;
+}
+
+message GetAllCustomersRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  bool isActive = 3;
+}
+
+message CustomerSummary {
+  string id = 1;
+  string email = 2;
+  string firstName = 3;
+  string lastName = 4;
+  string phoneNumber = 5;
+  bool isVerified = 6;
+  string authProvider = 7;
+  bool isActive = 8;
+  int64 createdAt = 9;
+}
+
+message GetAllCustomersResponse {
+  repeated CustomerSummary customers = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
 message GetAllCommentsRequest {
   int32 page = 1;
   int32 limit = 2;
@@ -546,4 +789,25 @@ message Comment {
 message GetAllCommentsResponse {
   repeated Comment comments = 1;
   int32 total = 2;
+}
+
+message GetTiersRequest {}
+
+message TierPrice {
+  string tier = 1;
+  int32 price = 2;
+}
+
+message GetTiersResponse {
+  repeated TierPrice tiers = 1;
+}
+
+message UpdateTierPriceRequest {
+  string tier = 1;
+  int32 price = 2;
+}
+
+message UpdateTierPriceResponse {
+  bool success = 1;
+  string message = 2;
 }
