@@ -457,7 +457,6 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
       return { invoices: [], total: 0 };
     }
   }
-  }
 
   async getTransactions(customerId: string, page = 1, limit = 10): Promise<{ transactions: any[]; total: number }> {
     try {
@@ -468,7 +467,6 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(`Failed to get transactions for customer ${customerId}: ${(err as Error).message}`);
       return { transactions: [], total: 0 };
     }
-  }
   }
 
   async getMessages(customerId: string, page = 1, limit = 10): Promise<{ messages: any[]; total: number }> {
