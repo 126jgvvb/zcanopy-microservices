@@ -1515,11 +1515,12 @@ private getEmptyBroker(): any {
 
     private async getTierPrices(): Promise<Record<string, number>> {
       try {
-        const tiers = await lastValueFrom(
+        const response = await lastValueFrom(
           this._adminClient.getService('AdminService').GetTiers({}),
         );
+        const tiers = (response as any)?.tiers ?? [];
         const map: Record<string, number> = {};
-        for (const item of tiers as any[]) {
+        for (const item of tiers) {
           map[item.tier] = item.price ?? 0;
         }
         return map;
@@ -1538,10 +1539,11 @@ private getEmptyBroker(): any {
       }
 
       try {
-        const tiers = await lastValueFrom(
+        const response = await lastValueFrom(
           this._adminClient.getService('AdminService').GetTiers({}),
         );
-        const found = (tiers as any[])?.find((item) => item.tier === tier);
+        const tiers = (response as any)?.tiers ?? [];
+        const found = tiers.find((item: any) => item.tier === tier);
         const price = found?.price ?? 0;
         this.tierPriceCache.set(tier, { price, expiresAt: Date.now() + 60_000 });
         return price;

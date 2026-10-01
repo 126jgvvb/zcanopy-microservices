@@ -1797,9 +1797,9 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
           { tier: 'prop', price: 0 },
         ];
         await this.tierPriceRepo.save(defaults);
-        return defaults;
+        return { tiers: defaults };
       }
-      return tiers.map((t) => ({ tier: t.tier, price: t.price }));
+      return { tiers: tiers.map((t) => ({ tier: t.tier, price: t.price })) };
     } catch (err) {
       this.logger.error(`Failed to get tiers: ${(err as Error).message}`);
       throw err;
@@ -1812,11 +1812,11 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       if (!record) {
         const created = this.tierPriceRepo.create({ tier, price });
         await this.tierPriceRepo.save(created);
-        return { success: true, tier, price };
+        return { success: true, message: `Created tier ${tier} with price ${price}` };
       }
       record.price = price;
       await this.tierPriceRepo.save(record);
-      return { success: true, tier, price };
+      return { success: true, message: `Updated tier ${tier} to price ${price}` };
     } catch (err) {
       this.logger.error(`Failed to update tier ${tier}: ${(err as Error).message}`);
       throw err;
