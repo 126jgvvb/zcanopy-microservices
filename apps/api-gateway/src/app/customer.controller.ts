@@ -14,6 +14,27 @@ export class CustomerController {
     return req?.headers?.['x-session-id'] || req?.session?.sessionId || '';
   }
 
+  // Mirrors WebCustomerController.getCustomerId: older tokens may not carry the
+  // customerId claim, so fall back to resolving it from the customer's email.
+  private async resolveCustomerId(req: any): Promise<string> {
+    let customerId = req?.user?.customerId;
+    if (!customerId && req?.user?.email) {
+      try {
+        const result: any = await this.proxyService.forwardToCustomer('GetCustomerIdByEmail', { email: req.user.email });
+        customerId = result?.customerId;
+        if (customerId) {
+          this.logger.log(`resolveCustomerId: resolved customerId=${customerId} from email`);
+        }
+      } catch (err) {
+        this.logger.error(`resolveCustomerId: failed for email=${req.user.email}: ${(err as Error).message}`);
+      }
+    }
+    if (!customerId) {
+      this.logger.warn(`resolveCustomerId: unable to resolve customerId for email=${req?.user?.email}`);
+    }
+    return customerId || '';
+  }
+
   private mapSessionId(query: any): any {
     if (query.sessionID && !query.sessionToken) {
       return { ...query, sessionToken: query.sessionID };
@@ -73,7 +94,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Initiate payment for broker property access' })
   async initiatePropertyAccessPayment(@Req() req: any, @Body() body: any) {
-    const customerId = req.user?.customerId;
+    const customerId = await this.resolveCustomerId(req);
     this.logger.log(`Initiate property access payment for customer=${customerId} broker=${body.brokerCode}`);
     return this.proxyService.forwardToProperty('CreateCustomerBooking', {
       customerId,
@@ -105,7 +126,7 @@ export class CustomerController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create customer booking' })
   async createCustomerBooking(@Req() req: any, @Body() body: any) {
-    const customerId = req.user?.customerId;
+    const customerId = await this.resolveCustomerId(req);
     this.logger.log(`Create customer booking request for customer=${customerId} property=${body.propertyId}`);
     return this.proxyService.forwardToProperty('CreateCustomerBooking', {
       customerId,

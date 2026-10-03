@@ -516,7 +516,7 @@ message GetBrokerPropertiesForCustomerResponse {
 }
 
 message CreateCustomerBookingRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string propertyId = 2;
   string customerName = 3;
   string customerPhone = 4;

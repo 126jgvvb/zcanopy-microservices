@@ -1342,6 +1342,24 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         status: 'booked',
       }));
 
+      // The payment service does not return a broker contact, so resolve the
+      // broker's phone here for the customer-facing confirmation.
+      let brokerPhone = paymentResult?.brokerPhone || '';
+      if (!brokerPhone && property.brokersUniqueCode) {
+        try {
+          const broker = await firstValueFrom(
+            this.brokerClient.getService('BrokerService').GetBrokerByCode({ brokerCode: property.brokersUniqueCode }).pipe(
+              timeout(5000),
+            ),
+          );
+          brokerPhone = broker?.phoneNumber || '';
+        } catch (brokerErr) {
+          this.logger.warn(
+            `[Property] createCustomerBooking could not resolve broker phone for brokerCode=${property.brokersUniqueCode}: ${(brokerErr as Error).message}`,
+          );
+        }
+      }
+
       if (!dto.customerId) {
         this.logger.warn(`[Property] createCustomerBooking skipping customer notification because customerId is missing for property=${dto.propertyId}`);
       } else {
@@ -1362,14 +1380,14 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         }
       }
 
-      this.logger.log(`[Property] createCustomerBooking returning success=true bookingCode=${bookingCode} brokerPhone=${paymentResult?.brokerPhone}`);
+      this.logger.log(`[Property] createCustomerBooking returning success=true bookingCode=${bookingCode} brokerPhone=${brokerPhone}`);
 
       return {
         success: true,
         message: paymentResult?.message || 'Booking created',
         bookingId: transactionCode,
         bookingCode,
-        brokerPhone: paymentResult?.brokerPhone,
+        brokerPhone,
       };
     } catch (err) {
       this.logger.error(`Failed to create booking for property ${dto.propertyId}:`, err);
