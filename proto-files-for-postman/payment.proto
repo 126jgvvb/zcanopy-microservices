@@ -61,6 +61,9 @@ message ProcessPropertyPaymentResponse {
   string customerName = 8;
   string customerEmail = 9;
   string date = 10;
+  string brokerPhone = 11;
+  double platformCommission = 12;
+  double bookingCommission = 13;
 }
 
 message GetTransactionsRequest {

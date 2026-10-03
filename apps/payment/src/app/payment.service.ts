@@ -580,7 +580,10 @@ if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecSta
         const brokerResult = await lastValueFrom(
           brokerService.GetBrokerByCode({ brokerCode: dto.brokerCode }).pipe(timeout(5000))
         );
+
+        this.logger.log(`[Payment] processPropertyPayment BROKER RESULT=${JSON.stringify(brokerResult)}`);
         brokerPhone = brokerResult?.broker?.phoneNumber || brokerResult?.phoneNumber;
+
       } catch (err) {
         this.logger.warn(`Failed to fetch broker phone for ${dto.brokerCode}: ${(err as Error).message}`);
       }

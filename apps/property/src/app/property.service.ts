@@ -1352,7 +1352,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
               timeout(5000),
             ),
           );
-          brokerPhone = broker?.phoneNumber || '';
+          brokerPhone = broker?.broker?.phoneNumber || paymentResult?.brokerPhone;
         } catch (brokerErr) {
           this.logger.warn(
             `[Property] createCustomerBooking could not resolve broker phone for brokerCode=${property.brokersUniqueCode}: ${(brokerErr as Error).message}`,

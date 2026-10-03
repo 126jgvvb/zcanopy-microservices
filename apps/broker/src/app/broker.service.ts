@@ -2515,7 +2515,7 @@ private getEmptyBroker(): any {
                 return { success: true, broker: cached };
             }
 
-            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
+            const broker = await this.(dto.brokerCode);
             if (!broker) {
                 this.logger.warn(`Broker not found by name or code: ${dto.brokerCode}`);
                 return {
