@@ -35,151 +35,32 @@ service PropertyService {
   rpc GetAllCustomerSearches (GetAllCustomerSearchesRequest) returns (GetAllCustomerSearchesResponse);
   rpc ToggleFavorite (ToggleFavoriteRequest) returns (ToggleFavoriteResponse);
   rpc GetCustomerFavorites (GetCustomerFavoritesRequest) returns (GetCustomerFavoritesResponse);
+  rpc GetAllCustomerFavorites (GetAllCustomerFavoritesRequest) returns (GetAllCustomerFavoritesResponse);
   rpc AddComment (AddCommentRequest) returns (AddCommentResponse);
   rpc GetPropertyComments (GetPropertyCommentsRequest) returns (GetPropertyCommentsResponse);
+  rpc GetAllComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
   rpc SearchProperties (SearchPropertiesRequest) returns (SearchPropertiesResponse);
   rpc GetSimilarProperties (GetSimilarPropertiesRequest) returns (GetSimilarPropertiesResponse);
+  rpc UpdateCustomerSearchCustomerId (UpdateCustomerSearchCustomerIdRequest) returns (UpdateCustomerSearchCustomerIdResponse);
+  rpc GetCustomerSearchesByCustomerId (GetCustomerSearchesByCustomerIdRequest) returns (GetCustomerSearchesByCustomerIdResponse);
+  rpc GetZeroResultSearches (GetZeroResultSearchesRequest) returns (GetZeroResultSearchesResponse);
 }
 
 
 
 
 
-message RecordCustomerSearchRequest {
+
+
+
+message GetSimilarPropertiesRequest {
   string sessionToken = 1;
-  string query = 2;
-  string location = 3;
-  double radius = 4;
-  string propertyType = 5;
-  string filtersJson = 6;
-  string resultPropertyIdsJson = 7;
-  int32 resultCount = 8;
-  double minPrice = 9;
-  double maxPrice = 10;
-  string subCounty = 11;
-  string district = 12;
-}
-
-message RecordCustomerSearchResponse {
-  bool success = 1;
-}
-
-
-message GetPropertyCommentsRequest {
-  string propertyId = 1;
-  int32 page = 2;
+  string propertyId = 2;
   int32 limit = 3;
 }
 
-message Comment {
-  string id = 1;
-  string customerName = 2;
-  string customerPhone = 3;
-  string customerEmail = 4;
-  string comment = 5;
-  double rating = 6;
-  string createdAt = 7;
-}
-
-message GetPropertyCommentsResponse {
-  repeated Comment comments = 1;
-  int32 total = 2;
-  double averageRating = 3;
-}
-
-message AddCommentRequest {
-  string sessionToken = 1;
-  string propertyId = 2;
-  string customerName = 3;
-  string customerPhone = 4;
-  string customerEmail = 5;
-  string comment = 6;
-  double rating = 7;
-}
-
-message AddCommentResponse {
-  bool success = 1;
-  string commentId = 2;
-}
-
-message CustomerFavorite {
-  string id = 1;
-  string propertyId = 2;
-  string propertyTitle = 3;
-  string propertyLocation = 4;
-  string brokerCode = 5;
-  string imageUrl = 6;
-  double price = 7;
-  string createdAt = 8;
-  string description = 9;
-  string propertyType = 10;
-  bool isAvailable = 11;
-  repeated string videoUrl = 12;
-  string brokerBrandName = 13;
-  string postgisSpatialField = 14;
-}
-
-message CustomerSearch {
-  string id = 1;
-  string query = 2;
-  string location = 3;
-  double radius = 4;
-  string propertyType = 5;
-  string filters = 6;
-  int32 resultCount = 7;
-  string createdAt = 8;
-}
-
-message GetCustomerFavoritesRequest {
-  string sessionToken = 1;
-  int32 page = 2;
-  int32 limit = 3;
-  string customerId=4;
-}
-
-message GetCustomerFavoritesResponse {
-  repeated CustomerFavorite favorites = 1;
-  int32 total = 2;
-}
-
-
-message ToggleFavoriteRequest {
-  string sessionToken = 1;
-  string propertyId = 2;
-  string propertyTitle = 3;
-  string propertyLocation = 4;
-  string brokerCode = 5;
-  string imageUrl = 6;
-  double price = 7;
-  string customerId =8;
-}
-
-
-message ToggleFavoriteResponse {
-  bool favorited = 1;
-}
-
-message GetCustomerSearchesRequest {
-  string sessionToken = 1;
-  int32 page = 2;
-  int32 limit = 3;
-  string customerId=4;
-}
-
-message GetCustomerSearchesResponse {
-  repeated CustomerSearch searches = 1;
-  int32 total = 2;
-}
-
-message GetAllCustomerSearchesRequest {
-  int32 page = 1;
-  int32 limit = 2;
-  string sessionToken = 3;
-  string query = 4;
-}
-
-message GetAllCustomerSearchesResponse {
-  repeated CustomerSearch searches = 1;
+message GetSimilarPropertiesResponse {
+  repeated Property properties = 1;
   int32 total = 2;
 }
 
@@ -343,7 +224,7 @@ message GetBrokerBookingsResponse {
 }
 
 message RecordSearchRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string query = 2;
   string location = 3;
   double radius = 4;
@@ -355,7 +236,7 @@ message RecordSearchResponse {
 }
 
 message GetRecentSearchesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 limit = 2;
 }
 
@@ -406,7 +287,7 @@ message NearbyProperty {
 }
 
 message TrackNearbyPropertiesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   double lat = 2;
   double lng = 3;
   double radiusKm = 4;
@@ -441,7 +322,7 @@ message Booking {
 }
 
 message GetCustomerPropertiesRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 page = 2;
   int32 limit = 3;
   double lat = 4;
@@ -456,7 +337,7 @@ message GetCustomerPropertiesResponse {
 }
 
 message InitiatePropertyAccessPaymentRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string brokerCode = 2;
   string propertyId = 3;
   double amount = 4;
@@ -474,7 +355,7 @@ message InitiatePropertyAccessPaymentResponse {
 }
 
 message GetBrokerPropertiesForCustomerRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string brokerCode = 2;
   int32 page = 3;
   int32 limit = 4;
@@ -486,7 +367,7 @@ message GetBrokerPropertiesForCustomerResponse {
 }
 
 message CreateCustomerBookingRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string propertyId = 2;
   string customerName = 3;
   string customerPhone = 4;
@@ -506,7 +387,7 @@ message CreateCustomerBookingResponse {
 }
 
 message GetPropertyDetailsForCustomerRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   string propertyId = 2;
 }
 
@@ -533,7 +414,7 @@ message GetPropertyDetailsForCustomerResponse {
 }
 
 message GetCustomerBookingsRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 page = 2;
   int32 limit = 3;
 }
@@ -604,7 +485,7 @@ message DeclineBookingResponse {
 
 message SearchPropertiesByBrokerTitleRequest {
   string query = 1;
-  string sessionToken = 2;
+  string customerId = 2;
   int32 page = 3;
   int32 limit = 4;
   double lat = 5;
@@ -651,8 +532,164 @@ message CustomerBooking {
   string location = 12;
 }
 
-message SearchPropertiesRequest {
+message RecordCustomerSearchRequest {
+  string customerId = 1;
+  string query = 2;
+  string location = 3;
+  double radius = 4;
+  string propertyType = 5;
+  string filtersJson = 6;
+  string resultPropertyIdsJson = 7;
+  int32 resultCount = 8;
+  double minPrice = 9;
+  double maxPrice = 10;
+  string subCounty = 11;
+  string district = 12;
+}
+
+message RecordCustomerSearchResponse {
+  bool success = 1;
+}
+
+message GetCustomerSearchesRequest {
+  string customerId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message CustomerSearch {
+  string id = 1;
+  string customerId = 2;
+  string query = 3;
+  string location = 4;
+  double radius = 5;
+  string propertyType = 6;
+  string filters = 7;
+  int32 resultCount = 8;
+  string createdAt = 9;
+  repeated string resultPropertyIds = 10;
+}
+
+message GetCustomerSearchesResponse {
+  repeated CustomerSearch searches = 1;
+  int32 total = 2;
+}
+
+message GetAllCustomerSearchesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string customerId = 3;
+  string query = 4;
+}
+
+message GetAllCustomerSearchesResponse {
+  repeated CustomerSearch searches = 1;
+  int32 total = 2;
+}
+
+message ToggleFavoriteRequest {
   string sessionToken = 1;
+  string propertyId = 2;
+  string propertyTitle = 3;
+  string propertyLocation = 4;
+  string brokerCode = 5;
+  string imageUrl = 6;
+  double price = 7;
+  string customerId =8;
+}
+
+message ToggleFavoriteResponse {
+  bool favorited = 1;
+}
+
+message GetCustomerFavoritesRequest {
+  string customerId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message CustomerFavorite {
+  string id = 1;
+  string propertyId = 2;
+  string propertyTitle = 3;
+  string propertyLocation = 4;
+  string brokerCode = 5;
+  string imageUrl = 6;
+  double price = 7;
+  string createdAt = 8;
+  string description = 9;
+  string propertyType = 10;
+  bool isAvailable = 11;
+  repeated string videoUrl = 12;
+  string brokerBrandName = 13;
+  string postgisSpatialField = 14;
+}
+
+message GetCustomerFavoritesResponse {
+  repeated CustomerFavorite favorites = 1;
+  int32 total = 2;
+}
+
+message GetAllCustomerFavoritesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message GetAllCustomerFavoritesResponse {
+  repeated CustomerFavorite favorites = 1;
+  int32 total = 2;
+}
+
+message AddCommentRequest {
+  string customerId = 1;
+  string propertyId = 2;
+  string customerName = 3;
+  string customerPhone = 4;
+  string customerEmail = 5;
+  string comment = 6;
+  double rating = 7;
+}
+
+message AddCommentResponse {
+  bool success = 1;
+  string commentId = 2;
+}
+
+message GetPropertyCommentsRequest {
+  string propertyId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message Comment {
+  string id = 1;
+  string customerName = 2;
+  string customerPhone = 3;
+  string customerEmail = 4;
+  string comment = 5;
+  double rating = 6;
+  string createdAt = 7;
+}
+
+message GetPropertyCommentsResponse {
+  repeated Comment comments = 1;
+  int32 total = 2;
+  double averageRating = 3;
+}
+
+message GetAllCommentsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string propertyId = 3;
+}
+
+message GetAllCommentsResponse {
+  repeated Comment comments = 1;
+  int32 total = 2;
+}
+
+message SearchPropertiesRequest {
+  string customerId = 1;
   string query = 2;
   string location = 3;
   double radius = 4;
@@ -669,17 +706,6 @@ message SearchPropertiesRequest {
 }
 
 message SearchPropertiesResponse {
-  repeated Property properties = 1;
-  int32 total = 2;
-}
-
-message GetSimilarPropertiesRequest {
-  string sessionToken = 1;
-  string propertyId = 2;
-  int32 limit = 3;
-}
-
-message GetSimilarPropertiesResponse {
   repeated Property properties = 1;
   int32 total = 2;
 }
@@ -713,3 +739,36 @@ message GetPublicPropertyDetailsResponse {
   double brokerBookingFee = 21;
   string brokerBrandName = 22;
 }
+
+message UpdateCustomerSearchCustomerIdRequest {
+  string customerId = 1;
+}
+
+message UpdateCustomerSearchCustomerIdResponse {
+  bool success = 1;
+  int32 updated = 2;
+}
+
+message GetCustomerSearchesByCustomerIdRequest {
+  string customerId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetCustomerSearchesByCustomerIdResponse {
+  repeated CustomerSearch searches = 1;
+  int32 total = 2;
+}
+
+message GetZeroResultSearchesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string fromDate = 3;
+}
+
+message GetZeroResultSearchesResponse {
+  repeated CustomerSearch searches = 1;
+  int32 total = 2;
+}
+
+

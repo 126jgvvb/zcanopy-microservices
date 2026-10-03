@@ -41,6 +41,9 @@ service PropertyService {
   rpc GetAllComments (GetAllCommentsRequest) returns (GetAllCommentsResponse);
   rpc SearchProperties (SearchPropertiesRequest) returns (SearchPropertiesResponse);
   rpc GetSimilarProperties (GetSimilarPropertiesRequest) returns (GetSimilarPropertiesResponse);
+  rpc UpdateCustomerSearchCustomerId (UpdateCustomerSearchCustomerIdRequest) returns (UpdateCustomerSearchCustomerIdResponse);
+  rpc GetCustomerSearchesByCustomerId (GetCustomerSearchesByCustomerIdRequest) returns (GetCustomerSearchesByCustomerIdResponse);
+  rpc GetZeroResultSearches (GetZeroResultSearchesRequest) returns (GetZeroResultSearchesResponse);
 }
 
 
@@ -735,6 +738,37 @@ message GetPublicPropertyDetailsResponse {
   double price = 20;
   double brokerBookingFee = 21;
   string brokerBrandName = 22;
+}
+
+message UpdateCustomerSearchCustomerIdRequest {
+  string customerId = 1;
+}
+
+message UpdateCustomerSearchCustomerIdResponse {
+  bool success = 1;
+  int32 updated = 2;
+}
+
+message GetCustomerSearchesByCustomerIdRequest {
+  string customerId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetCustomerSearchesByCustomerIdResponse {
+  repeated CustomerSearch searches = 1;
+  int32 total = 2;
+}
+
+message GetZeroResultSearchesRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string fromDate = 3;
+}
+
+message GetZeroResultSearchesResponse {
+  repeated CustomerSearch searches = 1;
+  int32 total = 2;
 }
 
 
