@@ -519,6 +519,10 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
 
   async createNotification(dto: { customerId: string; title: string; body: string; type?: string; dataJson?: string }): Promise<{ success: boolean; message: string }> {
     this.logger.log(`[Customer] createNotification customerId=${dto.customerId} title=${dto.title} type=${dto.type}`);
+    if (!dto.customerId) {
+      this.logger.warn('[Customer] createNotification skipped because customerId is missing');
+      return { success: false, message: 'customerId is required' };
+    }
     try {
       const notification = this.notificationRepo.create({
         customerId: dto.customerId,
