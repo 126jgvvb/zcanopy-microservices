@@ -501,6 +501,8 @@ message CreateCustomerBookingResponse {
   bool success = 1;
   string message = 2;
   string bookingId = 3;
+  string bookingCode=4;
+  string brokerPhone=5;
 }
 
 message GetPropertyDetailsForCustomerRequest {

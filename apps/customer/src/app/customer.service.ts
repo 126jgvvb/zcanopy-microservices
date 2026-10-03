@@ -448,28 +448,33 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getInvoices(customerId: string, page = 1, limit = 10): Promise<{ invoices: any[]; total: number }> {
+    this.logger.log(`[Customer] getInvoices customerId=${customerId} page=${page} limit=${limit}`);
     try {
       const paymentService = this.paymentClient.getService<any>('PaymentService');
       const result = await lastValueFrom(paymentService.GetTransactions({ page, limit, customerId }).pipe(timeout(5000))) as any;
+      this.logger.log(`[Customer] getInvoices result count=${result.transactions?.length ?? 0} total=${result.total}`);
       return { invoices: result.transactions || [], total: result.total || 0 };
     } catch (err) {
-      this.logger.error(`Failed to get invoices for customer ${customerId}: ${(err as Error).message}`);
+      this.logger.error(`[Customer] getInvoices FAILED for customer ${customerId}: ${(err as Error).message}`);
       return { invoices: [], total: 0 };
     }
   }
 
   async getTransactions(customerId: string, page = 1, limit = 10): Promise<{ transactions: any[]; total: number }> {
+    this.logger.log(`[Customer] getTransactions customerId=${customerId} page=${page} limit=${limit}`);
     try {
       const paymentService = this.paymentClient.getService<any>('PaymentService');
       const result = await lastValueFrom(paymentService.GetTransactions({ page, limit, customerId }).pipe(timeout(5000))) as any;
+      this.logger.log(`[Customer] getTransactions result count=${result.transactions?.length ?? 0} total=${result.total}`);
       return { transactions: result.transactions || [], total: result.total || 0 };
     } catch (err) {
-      this.logger.error(`Failed to get transactions for customer ${customerId}: ${(err as Error).message}`);
+      this.logger.error(`[Customer] getTransactions FAILED for customer ${customerId}: ${(err as Error).message}`);
       return { transactions: [], total: 0 };
     }
   }
 
   async getMessages(customerId: string, page = 1, limit = 10): Promise<{ messages: any[]; total: number }> {
+    this.logger.log(`[Customer] getMessages customerId=${customerId} page=${page} limit=${limit}`);
     try {
       const [messages, total] = await this.messageRepo.findAndCount({
         where: { customerId },
@@ -489,6 +494,7 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getNotifications(customerId: string, page = 1, limit = 20): Promise<{ notifications: any[]; total: number; unreadCount: number }> {
+    this.logger.log(`[Customer] getNotifications customerId=${customerId} page=${page} limit=${limit}`);
     try {
       const [notifications, total] = await this.notificationRepo.findAndCount({
         where: { customerId },
@@ -499,18 +505,20 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
 
       const unreadCount = await this.notificationRepo.count({ where: { customerId, isRead: false } });
 
+      this.logger.log(`[Customer] getNotifications result count=${notifications.length} total=${total} unreadCount=${unreadCount}`);
       return {
         notifications: notifications.map(n => ({ id: n.id, title: n.title, body: n.body, type: n.type, isRead: n.isRead, createdAt: n.createdAt, readAt: n.readAt })),
         total,
         unreadCount,
       };
     } catch (err) {
-      this.logger.error(`Failed to get notifications for customer ${customerId}:`, err);
+      this.logger.error(`[Customer] getNotifications FAILED for customer ${customerId}:`, err);
       return { notifications: [], total: 0, unreadCount: 0 };
     }
   }
 
   async createNotification(dto: { customerId: string; title: string; body: string; type?: string; dataJson?: string }): Promise<{ success: boolean; message: string }> {
+    this.logger.log(`[Customer] createNotification customerId=${dto.customerId} title=${dto.title} type=${dto.type}`);
     try {
       const notification = this.notificationRepo.create({
         customerId: dto.customerId,
@@ -519,10 +527,11 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
         type: dto.type || 'general',
         dataJson: dto.dataJson,
       });
-      await this.notificationRepo.save(notification);
+      const saved = await this.notificationRepo.save(notification);
+      this.logger.log(`[Customer] createNotification SAVED id=${saved.id} customerId=${dto.customerId}`);
       return { success: true, message: 'Notification created' };
     } catch (err) {
-      this.logger.error(`Failed to create notification for customer ${dto.customerId}:`, err);
+      this.logger.error(`[Customer] createNotification FAILED for customer ${dto.customerId}:`, err);
       throw err;
     }
   }

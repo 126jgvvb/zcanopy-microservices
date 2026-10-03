@@ -143,12 +143,14 @@ export class CustomerWebController {
   @ApiOperation({ summary: 'Get customer transactions from web dashboard' })
   async getTransactions(@Req() req: any, @Query() query: any) {
     const customerId = this.getCustomerId(req);
-    this.logger.log(`Web customer transactions request for user=${customerId}`);
-    return this.proxyService.forwardToCustomer('GetTransactions', {
+    this.logger.log(`[Gateway] getTransactions customerId=${customerId} page=${query.page} limit=${query.limit}`);
+    const result = await this.proxyService.forwardToCustomer('GetTransactions', {
       customerId,
       page: Number(query.page) || 1,
       limit: Math.min(Number(query.limit) || 10, 50),
     });
+    this.logger.log(`[Gateway] getTransactions response received for customerId=${customerId}`);
+    return result;
   }
 
   @Get('invoices')
@@ -156,12 +158,14 @@ export class CustomerWebController {
   @ApiOperation({ summary: 'Get customer invoices from web dashboard' })
   async getInvoices(@Req() req: any, @Query() query: any) {
     const customerId = this.getCustomerId(req);
-    this.logger.log(`Web customer invoices request for user=${customerId}`);
-    return this.proxyService.forwardToCustomer('GetTransactions', {
+    this.logger.log(`[Gateway] getInvoices customerId=${customerId} page=${query.page} limit=${query.limit}`);
+    const result = await this.proxyService.forwardToCustomer('GetTransactions', {
       customerId,
       page: Number(query.page) || 1,
       limit: Math.min(Number(query.limit) || 10, 50),
     });
+    this.logger.log(`[Gateway] getInvoices response received for customerId=${customerId}`);
+    return result;
   }
 
   @Get('messages')
@@ -169,12 +173,14 @@ export class CustomerWebController {
   @ApiOperation({ summary: 'Get customer messages from web dashboard' })
   async getMessages(@Req() req: any, @Query() query: any) {
     const customerId = this.getCustomerId(req);
-    this.logger.log(`Web customer messages request for user=${customerId}`);
-    return this.proxyService.forwardToCustomer('GetMessages', {
+    this.logger.log(`[Gateway] getMessages customerId=${customerId} page=${query.page} limit=${query.limit}`);
+    const result = await this.proxyService.forwardToCustomer('GetMessages', {
       customerId,
       page: Number(query.page) || 1,
       limit: Math.min(Number(query.limit) || 10, 50),
     });
+    this.logger.log(`[Gateway] getMessages response received for customerId=${customerId}`);
+    return result;
   }
 
   @Post('transactions/initiate')
@@ -292,11 +298,13 @@ export class CustomerWebController {
   @ApiOperation({ summary: 'Get customer notifications from web dashboard' })
   async getNotifications(@Req() req: any, @Query() query: any) {
     const customerId = this.getCustomerId(req);
-    this.logger.log(`Web customer notifications request for user=${customerId}`);
-    return this.proxyService.forwardToCustomer('GetNotifications', {
+    this.logger.log(`[Gateway] getNotifications customerId=${customerId} page=${query.page} limit=${query.limit}`);
+    const result = await this.proxyService.forwardToCustomer('GetNotifications', {
       customerId,
       page: Number(query.page) || 1,
       limit: Math.min(Number(query.limit) || 20, 50),
     });
+    this.logger.log(`[Gateway] getNotifications response received for customerId=${customerId}`);
+    return result;
   }
 }

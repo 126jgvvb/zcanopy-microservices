@@ -450,10 +450,11 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
     platformCommission:number;
     bookingCommission:number;
     date?: string;
-  }> {
-    const externalId = `collect-prop-${dto.propertyId}-${Date.now()}`;
-    const referenceNumber = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    const transactionCode = Math.floor(10000000 + Math.random() * 90000000).toString();
+   }> {
+     this.logger.log(`[Payment] processPropertyPayment START customerId=${dto.customerId || 'MISSING'} customerPhone=${dto.customerPhone} brokerCode=${dto.brokerCode} amount=${dto.amount} reason=${dto.reasonForPayment}`);
+     const externalId = `collect-prop-${dto.propertyId}-${Date.now()}`;
+     const referenceNumber = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+     const transactionCode = Math.floor(10000000 + Math.random() * 90000000).toString();
 
     let netAmount = dto.amount;
     let bookingCommissionAmount = 0;
@@ -523,7 +524,7 @@ const commissions = await lastValueFrom(
       });
 
       const saved = await this.transactionRepo.save(transaction);
-      this.logger.log(`Processed property payment ${referenceNumber} for property ${dto.propertyId}, iotec status: ${iotecStatus}`);
+      this.logger.log(`[Payment] processPropertyPayment SAVED transaction id=${saved.id} referenceNumber=${referenceNumber} transactionCode=${transactionCode} customerId=${dto.customerId || 'EMPTY'} status=${isSuccess ? 'SUCCESS' : 'FAILED'}`);
 
 
 

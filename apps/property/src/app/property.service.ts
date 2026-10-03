@@ -1249,6 +1249,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
   }
 
 async createCustomerBooking(dto: { customerId: string; propertyId: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; reason?: string; status?: string }): Promise<{ success: boolean; message: string; bookingId?: string; bookingCode?: string; brokerPhone?:string }> {
+    this.logger.log(`[Property] createCustomerBooking START customerId=${dto.customerId} propertyId=${dto.propertyId} amount=${dto.amount}`);
     try {
       // No session validation needed - customerId comes from JWT
 
@@ -1278,8 +1279,10 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
 
       const transactionCode = paymentResult?.transactionCode;
       if (!transactionCode) {
+        this.logger.error(`[Property] createCustomerBooking MISSING transactionCode from paymentResult=${JSON.stringify(paymentResult)}`);
         throw new BadRequestException('Payment did not return a transaction code');
       }
+      this.logger.log(`[Property] createCustomerBooking paymentResult success=${paymentResult?.success} transactionCode=${transactionCode}`);
 
       const isSuccess = paymentResult?.success === true;
       const bookingCode = this.generateBookingCode();
@@ -1340,6 +1343,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
       }));
 
       try {
+        this.logger.log(`[Property] createCustomerBooking creating customer notification customerId=${dto.customerId} title=Booking confirmed`);
         await lastValueFrom(
           this.customerClient.getService('CustomerService').createNotification({
             customerId: dto.customerId,
@@ -1349,8 +1353,9 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
             dataJson: JSON.stringify({ propertyId: property.id, transactionCode, bookingCode, amount: dto.amount }),
           }).pipe(timeout(5000)),
         );
+        this.logger.log(`[Property] createCustomerBooking customer notification CREATED for customerId=${dto.customerId}`);
       } catch (notifErr) {
-        this.logger.warn(`Failed to create customer notification for booking ${transactionCode}: ${(notifErr as Error).message}`);
+        this.logger.warn(`[Property] createCustomerBooking FAILED to create customer notification for booking ${transactionCode}: ${(notifErr as Error).message}`);
       }
 
       return {
