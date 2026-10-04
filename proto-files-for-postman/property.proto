@@ -376,6 +376,7 @@ message GetCustomerBookingsRequest {
   string sessionToken = 1;
   int32 page = 2;
   int32 limit = 3;
+  string customerEmail = 4;
 }
 
 message GetCustomerBookingsResponse {

@@ -7,6 +7,7 @@ service CustomerService {
   rpc LoginCustomer (LoginCustomerRequest) returns (LoginCustomerResponse);
   rpc LoginCustomerGoogle (LoginCustomerGoogleRequest) returns (LoginCustomerResponse);
   rpc ConfirmOtp (ConfirmOtpRequest) returns (ConfirmOtpResponse);
+  rpc GetCustomerIdByEmail (GetCustomerIdByEmailRequest) returns (GetCustomerIdByEmailResponse);
   rpc UpdatePhoneNumber (UpdatePhoneNumberRequest) returns (UpdatePhoneNumberResponse);
   rpc GetProfile (GetProfileRequest) returns (GetProfileResponse);
   rpc GetWalletBalance (GetWalletBalanceRequest) returns (GetWalletBalanceResponse);
@@ -91,6 +92,14 @@ message ConfirmOtpResponse {
   bool success = 1;
   string message = 2;
   CustomerSession session = 3;
+}
+
+message GetCustomerIdByEmailRequest {
+  string email = 1;
+}
+
+message GetCustomerIdByEmailResponse {
+  string customerId = 1;
 }
 
 message UpdatePhoneNumberRequest {

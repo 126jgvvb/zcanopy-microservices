@@ -226,6 +226,18 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
+      const broker = await firstValueFrom(
+        this.brokerClient.getService('BrokerService').GetBrokerByCode({ brokerCode: dto.brokersUniqueCode }).pipe(
+          timeout(5000),
+        ),
+      );
+      const brokerData = (broker as any)?.broker || broker || {};
+      const subscriptionTier = brokerData.subscriptionTier || 'prop';
+      const subscriptionExpiresAt = brokerData.subscriptionExpiresAt ? new Date(brokerData.subscriptionExpiresAt) : null;
+      if (subscriptionTier !== 'prop' && subscriptionExpiresAt && subscriptionExpiresAt < new Date()) {
+        throw new BadRequestException(`Your ${subscriptionTier} subscription has expired. Please renew to continue.`);
+      }
+
       const geoField: GeoSpatialField | null = dto.coordinates
         ? { lat: dto.coordinates.lat, lng: dto.coordinates.lng }
         : null;
@@ -1128,6 +1140,12 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       throw new BadRequestException('Broker not found');
     }
 
+    const subscriptionTier = brokerData.subscriptionTier || 'prop';
+    const subscriptionExpiresAt = brokerData.subscriptionExpiresAt ? new Date(brokerData.subscriptionExpiresAt) : null;
+    if (subscriptionTier !== 'prop' && subscriptionExpiresAt && subscriptionExpiresAt < new Date()) {
+      throw new BadRequestException(`Property access payment unavailable because the broker's ${subscriptionTier} subscription has expired.`);
+    }
+
     const referenceNumber = `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     this.logger.log(`[access-payment] calling processPropertyPayment via gRPC brokerCode=${dto.brokerCode} amount=${dto.amount}`);
 
@@ -1260,6 +1278,18 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
 
       if (!property.isAvailable || (property.allowedViewers ?? []).length > 0) {
         throw new BadRequestException('Property is already booked');
+      }
+
+      const broker = await firstValueFrom(
+        this.brokerClient.getService('BrokerService').GetBrokerByCode({ brokerCode: property.brokersUniqueCode }).pipe(
+          timeout(5000),
+        ),
+      );
+      const brokerData = (broker as any)?.broker || broker || {};
+      const subscriptionTier = brokerData.subscriptionTier || 'prop';
+      const subscriptionExpiresAt = brokerData.subscriptionExpiresAt ? new Date(brokerData.subscriptionExpiresAt) : null;
+      if (subscriptionTier !== 'prop' && subscriptionExpiresAt && subscriptionExpiresAt < new Date()) {
+        throw new BadRequestException(`This property is unavailable because the broker's ${subscriptionTier} subscription has expired.`);
       }
 
       const paymentResult: any = await firstValueFrom(
@@ -1567,42 +1597,63 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     }
   }
 
-  async getCustomerBookings(dto: { customerId: string; page: number; limit: number }): Promise<{ bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string }>; total: number }> {
+  async getCustomerBookings(dto: { customerId: string; customerEmail?: string; page: number; limit: number }): Promise<{ bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string }>; total: number }> {
     try {
       const page = Number(dto.page) || 1;
-      const limit = Number(dto.limit) || 10;
+    const limit = Number(dto.limit) || 10;
 
-      const [properties] = await this.propertyRepo.findAndCount({
-        where: {},
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+    // Bookings live inside each property's allowedViewers JSON, so they cannot be
+    // filtered or paged in SQL. Previously this paged over *properties* and then
+    // filtered viewers in memory, which silently dropped any booking whose
+    // property fell outside the requested window. Scan all properties, collect
+    // the caller's bookings, then page the resulting list.
+    const properties = await this.propertyRepo.find({ where: {} });
 
-      const bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string }> = [];
+    const allBookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string }> = [];
 
-      for (const property of properties) {
-        const viewers = property.allowedViewers || [];
-        for (const viewer of viewers) {
-          if (viewer && viewer.customerPhone && viewer.customerId === dto.customerId) {
-            bookings.push({
-              id: viewer.transactionId || `${property.id}-${viewer.customerPhone}`,
-              propertyId: property.id,
-              propertyTitle: property.title,
-              customerName: viewer.customerName || 'Unknown',
-              customerPhone: viewer.customerPhone,
-              customerEmail: viewer.customerEmail,
-              date: viewer.date || property.createdAt.toISOString(),
-              amount: viewer.amount || 0,
-              transactionCode: viewer.transactionCode || '',
-              reason: viewer.reason,
-              status: viewer.status || 'booked',
-              location: property.location,
-            });
-          }
+    for (const property of properties) {
+      const viewers = property.allowedViewers || [];
+      for (const viewer of viewers) {
+        if (!viewer || !viewer.customerPhone) continue;
+
+        // Bookings created before the gateway could resolve a customerId were
+        // stored with an empty owner, so fall back to the customer email to
+        // recover them rather than leaving them permanently invisible.
+        const matchesCustomerId = !!dto.customerId && viewer.customerId === dto.customerId;
+        const matchesLegacyEmail =
+          !viewer.customerId &&
+          !!dto.customerEmail &&
+          !!viewer.customerEmail &&
+          viewer.customerEmail.toLowerCase() === dto.customerEmail.toLowerCase();
+
+        if (matchesCustomerId || matchesLegacyEmail) {
+          allBookings.push({
+            id: viewer.transactionId || `${property.id}-${viewer.customerPhone}`,
+            propertyId: property.id,
+            propertyTitle: property.title,
+            customerName: viewer.customerName || 'Unknown',
+            customerPhone: viewer.customerPhone,
+            customerEmail: viewer.customerEmail,
+            date: viewer.date || property.createdAt.toISOString(),
+            amount: viewer.amount || 0,
+            transactionCode: viewer.transactionCode || '',
+            reason: viewer.reason,
+            status: viewer.status || 'booked',
+            location: property.location,
+          });
         }
       }
+    }
 
-      return { bookings, total: bookings.length };
+    // Newest first so a freshly created booking is always on page 1.
+    allBookings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const total = allBookings.length;
+    const bookings = allBookings.slice((page - 1) * limit, page * limit);
+
+    this.logger.log(`[Property] getCustomerBookings customerId=${dto.customerId} matched=${total} page=${page} limit=${limit} returned=${bookings.length}`);
+
+    return { bookings, total };
     } catch (err) {
       this.logger.error(`Failed to get customer bookings for customer ${dto.customerId}:`, err);
       throw err;

@@ -147,6 +147,9 @@ export class WebCustomerController {
     this.logger.log(`Web customer bookings request for customer=${customerId}`);
     return this.proxyService.forwardToProperty('GetCustomerBookings', {
       customerId,
+      // Lets the property service recover bookings written before the
+      // customerId claim was present on the token.
+      customerEmail: req?.user?.email || undefined,
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 20,
     });

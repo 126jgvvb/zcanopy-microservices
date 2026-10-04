@@ -77,6 +77,16 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             private readonly otpStore:OtpStoreService
         ){}
 
+        private ensureSubscriptionNotExpired(broker: BrokerEntity) {
+            const tier = broker.subscriptionTier ?? 'prop';
+            if (tier === 'prop') {
+                return;
+            }
+            if (broker.subscriptionExpiresAt && broker.subscriptionExpiresAt < new Date()) {
+                throw new BadRequestException(`Your ${tier} subscription has expired. Please renew to continue.`);
+            }
+        }
+
 
         /*private toPlainBroker(broker: any): any {
             if (!broker) return broker;
@@ -2937,7 +2947,6 @@ private getEmptyBroker(): any {
                     ttlSeconds: 0
                 };
             }
-
 
             this.logger.log('The broker passes the checkpoints successfully');
 
