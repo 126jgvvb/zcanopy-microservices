@@ -563,7 +563,7 @@ message GetPropertyDetailsForCustomerResponse {
 }
 
 message GetCustomerBookingsRequest {
-  string sessionToken = 1;
+  string customerId = 1;
   int32 page = 2;
   int32 limit = 3;
   string customerEmail = 4;
