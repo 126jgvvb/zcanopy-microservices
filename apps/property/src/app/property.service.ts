@@ -360,14 +360,23 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
       for (const property of properties) {
         const viewers = property.allowedViewers ?? [];
-        const filtered = viewers.filter((v: any) => v.transactionCode !== dto.transactionCode);
+        const target = viewers.find((v: any) => v.transactionCode === dto.transactionCode);
+        if (!target) continue;
 
-        if (filtered.length !== viewers.length) {
-          property.allowedViewers = filtered;
-          await this.propertyRepo.save(property);
-          this.logger.log(`Declined booking with transactionCode=${dto.transactionCode} from property ${property.id}`);
-          return { success: true, message: 'Booking declined successfully' };
+        // Keep the declined booking for history but clear the active claim, and
+        // re-list the property if no other active booking remains.
+        property.allowedViewers = viewers.map((v: any) =>
+          v.transactionCode === dto.transactionCode ? { ...v, status: 'declined', declinedAt: new Date().toISOString() } : v,
+        );
+        const stillActive = property.allowedViewers.some((v: any) => v && v.status === 'booked');
+        if (!stillActive) {
+          property.isAvailable = true;
         }
+        await this.propertyRepo.save(property);
+        this.logger.log(
+          `Declined booking with transactionCode=${dto.transactionCode} from property ${property.id}; isAvailable=${property.isAvailable}`,
+        );
+        return { success: true, message: 'Booking declined successfully' };
       }
 
       return { success: false, message: 'Booking not found' };
@@ -464,7 +473,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async updateProperty(id: string, dto: Partial<CreatePropertyDto>): Promise<PropertyEntity> {
+  async updateProperty(id: string, dto: Partial<CreatePropertyDto> & { isAvailable?: boolean }): Promise<PropertyEntity> {
     try {
       const property = await this.propertyRepo.findOne({ where: { id } });
       if (!property) {
@@ -495,6 +504,28 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       if (dto.price != null) updateData.price = dto.price;
       if (dto.brokerBookingFee != null) updateData.brokerBookingFee = dto.brokerBookingFee;
 
+      // Re-listing a booked property. Booking history is preserved: active
+      // viewers are marked 'released' instead of deleted, so past bookings
+      // remain visible on customer dashboards while the property becomes
+      // bookable again.
+      if (dto.isAvailable != null) {
+        const wasAvailable = property.isAvailable;
+        updateData.isAvailable = dto.isAvailable;
+
+        if (dto.isAvailable && !wasAvailable) {
+          const viewers = property.allowedViewers ?? [];
+          const released = viewers.map((v: any) =>
+            v && v.status === 'booked' ? { ...v, status: 'released', releasedAt: new Date().toISOString() } : v,
+          );
+          if (released.length !== viewers.length || viewers.some((v: any, i: number) => v !== released[i])) {
+            updateData.allowedViewers = released;
+          }
+          this.logger.log(
+            `Property ${id} made available: released ${viewers.filter((v: any) => v?.status === 'booked').length} active booking(s), history retained`,
+          );
+        }
+      }
+
       await this.propertyRepo.update(id, updateData);
       const updated = await this.propertyRepo.findOne({ where: { id } });
       if (!updated) {
@@ -509,6 +540,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         location: updated.location,
         price: updated.price,
         brokerBookingFee: updated.brokerBookingFee,
+        isAvailable: updated.isAvailable,
         imageUrl: updated.imageUrl?.[0] || null,
         lat: updated.postgis_spatial_field?.lat || null,
         lng: updated.postgis_spatial_field?.lng || null,
@@ -1276,7 +1308,10 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         throw new BadRequestException('Property not found');
       }
 
-      if (!property.isAvailable || (property.allowedViewers ?? []).length > 0) {
+      // Only an active claim blocks a new booking. Viewers kept for history after a
+      // 'released' / 'declined' booking must not prevent re-listing.
+      const hasActiveBooking = (property.allowedViewers ?? []).some((v: any) => v && v.status === 'booked');
+      if (!property.isAvailable || hasActiveBooking) {
         throw new BadRequestException('Property is already booked');
       }
 

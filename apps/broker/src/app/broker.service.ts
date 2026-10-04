@@ -895,25 +895,6 @@ private getEmptyBroker(): any {
             const limits = this.getSubscriptionLimits(updatedBroker.subscriptionTier);
             const plainBroker = this.toPlainBroker(updatedBroker);
 
-            try {
-                await lastValueFrom(
-                    this.propertyClient.getService('PropertyService').createProperty({
-                        brokersUniqueCode: updatedBroker.brokerCode,
-                        title: `${updatedBroker.username}'s Property`,
-                        description: 'Auto-created property for verified broker',
-                        propertyType: 'RESIDENTIAL',
-                        location: 'Unknown',
-                        maxProperties: limits.maxProperties,
-                        maxPhotosPerProperty: limits.maxPhotosPerProperty,
-                        maxVideosPerProperty: limits.maxVideosPerProperty,
-                        maxVideoSizeMB: limits.maxVideoSizeMB,
-                    }),
-                );
-                this.logger.log(`Notified property service for broker ${brokerId}`);
-            } catch (err) {
-                this.logger.error(`Failed to notify property service for broker ${brokerId}:`, err);
-            }
-
             return plainBroker;
         } catch (err) {
             this.logger.error(`Failed to mark broker verified ${brokerId}:`, err);

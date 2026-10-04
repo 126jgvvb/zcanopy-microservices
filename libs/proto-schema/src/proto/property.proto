@@ -149,6 +149,7 @@ message UpdatePropertyRequest {
   string subCounty = 10;
   string district = 11;
   Coordinates coordinates = 12;
+  bool isAvailable = 13;
 }
 
 message UpdatePropertyResponse {

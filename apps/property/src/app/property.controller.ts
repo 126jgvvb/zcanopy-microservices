@@ -117,6 +117,7 @@ export class PropertyController {
       id: property.id,
       brokersUniqueCode: property.brokersUniqueCode,
       title: property.title,
+      isAvailable: property.isAvailable,
       success: true,
       message: 'Property updated successfully',
     };
