@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, NotFoundException, BadRequestException, OnM
 import { ClientProxy, ClientGrpc } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { HttpService } from '@nestjs/axios';
 import { AdminEntity } from '../entity/admin.entity';
 import { DashaordEntity, SystemMessage } from '../entity/dashboard.entity';
 import { InvitationCodeEntity } from '../entity/invitation-code.entity';
@@ -62,6 +63,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     @Inject('AUTH_CLIENT') private readonly authClient: ClientGrpc,
     @Inject('CUSTOMER_CLIENT') private readonly customerClient: ClientGrpc,
     @Inject(REDIS_CLIENT_PROVIDER) private readonly redis: Redis,
+    private readonly httpService: HttpService,
   ) {}
 
   async onModuleInit() {
@@ -771,10 +773,26 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   async getClientMessages(query: { page: number; limit: number }) {
     try {
       const dashboard = await this.getOrCreateDashboard();
-      const messages = dashboard.clientMessages || [];
+      let messages = dashboard.clientMessages || [];
       const page = Number(query.page) || 1;
       const limit = Number(query.limit) || 10;
       const start = (page - 1) * limit;
+
+      if (!messages.length) {
+        try {
+          const notificationUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3001';
+          const response = await lastValueFrom(
+            this.httpService.get(`${notificationUrl}/api/support-messages`, {
+              params: { page, limit },
+            }).pipe(timeout(5000)),
+          );
+          const data = response.data as { messages?: any[]; total?: number };
+          messages = data.messages || [];
+        } catch (httpErr) {
+          this.logger.warn(`Failed to fetch support messages from notification service: ${(httpErr as Error).message}`);
+        }
+      }
+
       const paginatedMessages = messages.slice(start, start + limit);
 
       return {
