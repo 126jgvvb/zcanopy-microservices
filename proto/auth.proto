@@ -5,6 +5,7 @@ package auth.v1;
 service AuthService {
   rpc Login (LoginRequest) returns (LoginResponse);
   rpc LoginBroker (LoginBrokerRequest) returns (LoginBrokerResponse);
+  rpc LoginBrokerGoogle (LoginBrokerRequest) returns (LoginBrokerResponse);
   rpc RefreshToken (RefreshTokenRequest) returns (LoginResponse);
   rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
   rpc IssueCustomerSession (IssueCustomerSessionRequest) returns (IssueCustomerSessionResponse);
@@ -51,6 +52,7 @@ message LoginResponse {
   string username = 5;
   string role = 6;
   string type = 7;
+  string brokerCode = 8;
 }
 
 message RefreshTokenRequest {
@@ -84,12 +86,14 @@ message IssueCustomerSessionResponse {
 
 message ValidateCustomerSessionRequest {
   string sessionToken = 1;
+  string customerId = 2;
 }
 
 message ValidateCustomerSessionResponse {
   bool valid = 1;
   string sessionId = 2;
   string deviceId = 3;
+  string customerId = 4;
 }
 
 message GetCustomerSessionRequest {
