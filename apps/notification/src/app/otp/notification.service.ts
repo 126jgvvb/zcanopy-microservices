@@ -916,14 +916,16 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
         await this.attachSupportMessageBody(saved.id, data.resendEmailId);
       }
 
+      const updated = await this.supportMessageRepo.findOne({ where: { id: saved.id } });
+
       this.redisClient.emit('support_message_received', {
-        id: saved.id,
-        customerEmail: data.customerEmail,
-        subject: data.subject,
-        textContent: data.textContent,
-        htmlContent: data.htmlContent,
-        recipientInbox: data.recipientInbox,
-        receivedAt: saved.receivedAt,
+        id: updated.id,
+        customerEmail: updated.customerEmail,
+        subject: updated.subject,
+        textContent: updated.textContent,
+        htmlContent: updated.htmlContent,
+        recipientInbox: updated.recipientInbox,
+        receivedAt: updated.receivedAt,
       });
 
       return saved;
@@ -1191,5 +1193,33 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
 
   private stripHtml(html: string): string {
     return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  async fetchEmailBody(resendEmailId: string): Promise<{ textContent?: string; htmlContent?: string }> {
+    if (!resendEmailId) {
+      return {};
+    }
+    if (!this.resendApiKey) {
+      this.logger.warn(`fetchEmailBody: RESEND_API_KEY missing for ${resendEmailId}`);
+      return {};
+    }
+
+    try {
+      const resend = new Resend(this.resendApiKey);
+      const { data, error } = await resend.emails.receiving.get(resendEmailId);
+
+      if (error || !data) {
+        this.logger.warn(`fetchEmailBody: Resend returned no body for ${resendEmailId}: ${JSON.stringify(error)}`);
+        return {};
+      }
+
+      const htmlContent = data.html ?? undefined;
+      const textContent = data.text ?? (htmlContent ? this.stripHtml(htmlContent) : undefined);
+
+      return { textContent, htmlContent };
+    } catch (err) {
+      this.logger.warn(`fetchEmailBody failed for ${resendEmailId}: ${(err as Error).message}`);
+      return {};
+    }
   }
 }
