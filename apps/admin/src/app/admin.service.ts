@@ -782,7 +782,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         try {
           const notificationUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3001';
           const response = await lastValueFrom(
-            this.httpService.get(`${notificationUrl}/api/support-messages`, {
+            this.httpService.get(`${notificationUrl}/support-messages`, {
               params: { page, limit },
             }).pipe(timeout(5000)),
           );
