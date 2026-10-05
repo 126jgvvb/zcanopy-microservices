@@ -550,7 +550,9 @@ export class AdminController {
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 20,
       customerId: query.customerId || '',
-      query: query.q || '',
+      // The admin dashboard sends `query`; it was previously read as `q`, so the
+      // search-text filter was silently dropped.
+      query: query.query || query.q || '',
     });
   }
 
