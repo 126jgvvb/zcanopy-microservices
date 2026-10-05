@@ -29,18 +29,20 @@ export class WebhooksController {
 
         const customerEmail = emailData.from;
         const subject = emailData.subject;
-        const textContent = emailData.text;
-        const htmlContent = emailData.html;
         const recipientInbox = Array.isArray(emailData.to) ? emailData.to[0] : emailData.to;
 
-        this.logger.log(`Received support email to ${recipientInbox} from ${customerEmail}`);
+        this.logger.log(
+          `Received support email to ${recipientInbox} from ${customerEmail} (email_id=${emailData.email_id})`,
+        );
 
+        // NOTE: Resend's email.received payload carries metadata only - it has no
+        // `text`/`html`. The body is fetched separately from the received-emails
+        // API using `email_id`.
         await this.notificationService.recordSupportMessage({
           customerEmail,
           subject,
-          textContent,
-          htmlContent,
           recipientInbox,
+          resendEmailId: emailData.email_id,
         });
       }
 

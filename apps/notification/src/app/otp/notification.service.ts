@@ -897,6 +897,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     textContent?: string;
     htmlContent?: string;
     recipientInbox: string;
+    resendEmailId?: string;
   }) {
     try {
       const message = this.supportMessageRepo.create({
@@ -911,22 +912,62 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       const saved = await this.supportMessageRepo.save(message);
       this.logger.log(`Recorded support message id=${saved.id} from ${data.customerEmail}`);
 
+      if (saved.id) {
+        await this.attachSupportMessageBody(saved.id, data.resendEmailId);
+      }
+
+      const updated = await this.supportMessageRepo.findOne({ where: { id: saved.id } });
+
       this.redisClient.emit('support_message_received', {
-        id: saved.id,
-        customerEmail: data.customerEmail,
-        subject: data.subject,
-        // The body was previously dropped here, so mirrored copies only ever
-        // carried a subject line.
-        textContent: data.textContent,
-        htmlContent: data.htmlContent,
-        recipientInbox: data.recipientInbox,
-        receivedAt: saved.receivedAt,
+        id: updated.id,
+        customerEmail: updated.customerEmail,
+        subject: updated.subject,
+        textContent: updated.textContent,
+        htmlContent: updated.htmlContent,
+        recipientInbox: updated.recipientInbox,
+        receivedAt: updated.receivedAt,
       });
 
       return saved;
     } catch (err) {
       this.logger.error(`Failed to record support message: ${(err as Error).message}`);
       throw err;
+    }
+  }
+
+  /**
+   * Resend's `email.received` webhook deliberately carries only metadata - the
+   * body is not included and must be fetched from the received-emails API. Without
+   * this the row (and every mirrored copy) is permanently missing its content.
+   */
+  async attachSupportMessageBody(id: number, resendEmailId?: string): Promise<void> {
+    if (!resendEmailId) {
+      this.logger.warn(`attachSupportMessageBody: no resendEmailId for support message ${id}`);
+      return;
+    }
+    if (!this.resendApiKey) {
+      this.logger.warn(`attachSupportMessageBody: RESEND_API_KEY missing for support message ${id}`);
+      return;
+    }
+
+    try {
+      const resend = new Resend(this.resendApiKey);
+      const { data, error } = await resend.emails.receiving.get(resendEmailId);
+
+      if (error || !data) {
+        this.logger.warn(`attachSupportMessageBody: Resend returned no body for ${resendEmailId}: ${JSON.stringify(error)}`);
+        return;
+      }
+
+      const html = data.html ?? undefined;
+      // `text` is null for HTML-only emails, so derive a plain-text fallback.
+      const text = data.text ?? (html ? this.stripHtml(html) : undefined);
+
+      await this.supportMessageRepo.update(id, { textContent: text, htmlContent: html });
+      this.logger.log(`attachSupportMessageBody: attached body to support message ${id} (text=${!!text} html=${!!html})`);
+    } catch (err) {
+      // Never fail the webhook because body retrieval failed; metadata is saved.
+      this.logger.error(`attachSupportMessageBody failed for support message ${id}: ${(err as Error).message}`);
     }
   }
 

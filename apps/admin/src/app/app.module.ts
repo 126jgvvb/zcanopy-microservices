@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -33,6 +34,7 @@ import Redis from 'ioredis';
       }),
     }),
     TypeOrmModule.forFeature([DashaordEntity, AdminEntity, InvitationCodeEntity, LogEntity, AdminMessageEntity, TierPriceEntity]),
+    HttpModule,
     ClientsModule.registerAsync([
       {
         name: 'REDIS_CLIENT',
