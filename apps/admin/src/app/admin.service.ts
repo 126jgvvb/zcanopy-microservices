@@ -3,6 +3,7 @@ import { ClientProxy, ClientGrpc } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
 import { AdminEntity } from '../entity/admin.entity';
 import { DashaordEntity, SystemMessage } from '../entity/dashboard.entity';
 import { InvitationCodeEntity } from '../entity/invitation-code.entity';
@@ -64,6 +65,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     @Inject('CUSTOMER_CLIENT') private readonly customerClient: ClientGrpc,
     @Inject(REDIS_CLIENT_PROVIDER) private readonly redis: Redis,
     private readonly httpService: HttpService,
+    private readonly configService: ConfigService,
   ) {}
 
   async onModuleInit() {
@@ -1147,14 +1149,15 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
   async sendWithdrawalOtp(dto: { email: string; amount: number; walletType?: string }): Promise<{ success: boolean; message: string; expiresIn: number }> {
     try {
-      this.logger.log(`Sending withdrawal OTP to ${dto.email} for amount ${dto.amount}`);
+      const configuredEmail = this.configService.get<string>('ADMIN_WITHDRAWAL_OTP_EMAIL') || dto.email;
+      this.logger.log(`Sending withdrawal OTP to configured email ${configuredEmail} for amount ${dto.amount}`);
       
       // Generate 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
       const ttlSeconds = 300; // 5 minutes
       
       // Store OTP in Redis with TTL
-      const redisKey = `admin:withdrawal:otp:${dto.email}`;
+      const redisKey = `admin:withdrawal:otp:${configuredEmail}`;
       await this.redis.setex(redisKey, ttlSeconds, JSON.stringify({
         otp,
         amount: dto.amount,
@@ -1164,7 +1167,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       
       // Send OTP via notification service
       this.redisClient.emit('send_email_otp', {
-        email: dto.email,
+        email: configuredEmail,
         otp,
         purpose: 'admin-withdrawal',
         username: 'Admin',
@@ -1182,9 +1185,10 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
   async verifyWithdrawalOtp(dto: { email: string; otp: string }): Promise<{ success: boolean; message: string; valid: boolean }> {
     try {
-      this.logger.log(`Verifying withdrawal OTP for ${dto.email}`);
+      const configuredEmail = this.configService.get<string>('ADMIN_WITHDRAWAL_OTP_EMAIL') || dto.email;
+      this.logger.log(`Verifying withdrawal OTP for ${configuredEmail}`);
       
-      const redisKey = `admin:withdrawal:otp:${dto.email}`;
+      const redisKey = `admin:withdrawal:otp:${configuredEmail}`;
       const stored = await this.redis.get(redisKey);
       
       if (!stored) {
