@@ -559,12 +559,14 @@ message SystemMessage {
 }
 
 message ClientMessage {
-  string id = 1;
-  string senderPhone = 2;
-  string senderName = 3;
-  string message = 4;
-  string sentAt = 5;
-  bool read = 6;
+  int64 id = 1;
+  string customerEmail = 2;
+  string subject = 3;
+  string textContent = 4;
+  string htmlContent = 5;
+  string recipientInbox = 6;
+  string status = 7;
+  string receivedAt = 8;
 }
 
 message DashboardTransaction {

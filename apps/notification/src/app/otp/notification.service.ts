@@ -916,16 +916,14 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
         await this.attachSupportMessageBody(saved.id, data.resendEmailId);
       }
 
-      const updated = await this.supportMessageRepo.findOne({ where: { id: saved.id } });
-
       this.redisClient.emit('support_message_received', {
-        id: updated.id,
-        customerEmail: updated.customerEmail,
-        subject: updated.subject,
-        textContent: updated.textContent,
-        htmlContent: updated.htmlContent,
-        recipientInbox: updated.recipientInbox,
-        receivedAt: updated.receivedAt,
+        id: saved.id,
+        customerEmail: data.customerEmail,
+        subject: data.subject,
+        textContent: data.textContent,
+        htmlContent: data.htmlContent,
+        recipientInbox: data.recipientInbox,
+        receivedAt: saved.receivedAt,
       });
 
       return saved;

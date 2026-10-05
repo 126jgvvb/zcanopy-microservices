@@ -34,7 +34,6 @@ import Redis from 'ioredis';
       }),
     }),
     TypeOrmModule.forFeature([DashaordEntity, AdminEntity, InvitationCodeEntity, LogEntity, AdminMessageEntity, TierPriceEntity]),
-    HttpModule,
     ClientsModule.registerAsync([
       {
         name: 'REDIS_CLIENT',
