@@ -170,6 +170,12 @@ export class AdminController {
     return this.adminService.updateAdminSms(dto);
   }
 
+  @GrpcMethod('AdminService', 'UpdateAdminUsername')
+  async updateAdminUsername(dto: any) {
+    this.logger.log(`Received updateAdminUsername request for ${dto.adminId}`);
+    return this.adminService.updateAdminUsername(dto);
+  }
+
   @GrpcMethod('AdminService', 'GetLogs')
   async getLogs(dto: any) {
     this.logger.log('Received getLogs request');

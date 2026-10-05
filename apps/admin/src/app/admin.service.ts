@@ -1537,6 +1537,23 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async updateAdminUsername(dto: { adminId: string; username: string }) {
+    try {
+      const admin = await this.adminRepo.findOne({ where: { id: dto.adminId } });
+      if (!admin) {
+        throw new NotFoundException('Admin not found');
+      }
+
+      admin.username = dto.username;
+      await this.adminRepo.save(admin);
+
+      return { success: true, message: 'Username updated successfully' };
+    } catch (err) {
+      this.logger.error(`Failed to update admin username for ${dto.adminId}:`, err);
+      throw err;
+    }
+  }
+
   async getNotifications(query: { page?: number; limit?: number; status?: string; type?: string; channel?: string }) {
     try {
       const page = Number(query.page) || 1;

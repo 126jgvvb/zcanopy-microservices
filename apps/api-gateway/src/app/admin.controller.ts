@@ -219,6 +219,14 @@ export class AdminController {
     return this.proxyService.forwardToAdmin('UpdateAdminSms', body);
   }
 
+  @Put('admins/:adminId/username')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update admin username' })
+  async updateAdminUsername(@Param('adminId') adminId: string, @Body() body: any) {
+    this.logger.log(`Update admin username request for ${adminId}`);
+    return this.proxyService.forwardToAdmin('UpdateAdminUsername', { adminId, username: body.username });
+  }
+
   @Get('customers/active-sessions')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get active customer sessions from Redis' })

@@ -28,6 +28,7 @@ service AdminService {
   rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse);
   rpc UpdateAdminEmail (UpdateAdminEmailRequest) returns (UpdateAdminEmailResponse);
   rpc UpdateAdminSms (UpdateAdminSmsRequest) returns (UpdateAdminSmsResponse);
+  rpc UpdateAdminUsername (UpdateAdminUsernameRequest) returns (UpdateAdminUsernameResponse);
   rpc GetLogs (GetLogsRequest) returns (GetLogsResponse);
   rpc AddAdmin (AddAdminRequest) returns (AddAdminResponse);
   rpc DeleteAdmin (DeleteAdminRequest) returns (DeleteAdminResponse);
@@ -306,6 +307,16 @@ message UpdateAdminSmsRequest {
 }
 
 message UpdateAdminSmsResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message UpdateAdminUsernameRequest {
+  string adminId = 1;
+  string username = 2;
+}
+
+message UpdateAdminUsernameResponse {
   bool success = 1;
   string message = 2;
 }
