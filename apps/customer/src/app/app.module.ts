@@ -15,6 +15,7 @@ import { CustomerOtpEntity } from './entity/customer-otp.entity';
 import { CustomerMessageEntity } from './entity/customer-message.entity';
 import { CustomerNotificationEntity } from './entity/customer-notification.entity';
 import { CustomerSearchEntity } from './entity/customer-search.entity';
+import { CustomerCronService } from './cron.service';
 import { join } from 'path';
 
 @Module({
@@ -91,6 +92,6 @@ import { join } from 'path';
     ]),
   ],
   controllers: [AppController, CustomerController, CustomerGrpcController],
-  providers: [AppService, CustomerService, JwtAuthGuard],
+  providers: [AppService, CustomerService, JwtAuthGuard, CustomerCronService],
 })
 export class AppModule {}

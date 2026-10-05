@@ -224,6 +224,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     id: number;
     customerEmail: string;
     subject?: string;
+    textContent?: string;
+    htmlContent?: string;
     recipientInbox: string;
     receivedAt?: string;
   }): Promise<void> {
@@ -233,6 +235,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         id: data.id,
         customerEmail: data.customerEmail,
         subject: data.subject,
+        textContent: data.textContent,
+        htmlContent: data.htmlContent,
         recipientInbox: data.recipientInbox,
         receivedAt: data.receivedAt || new Date().toISOString(),
         status: 'new',

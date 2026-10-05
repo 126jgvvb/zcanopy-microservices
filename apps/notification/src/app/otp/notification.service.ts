@@ -915,6 +915,10 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
         id: saved.id,
         customerEmail: data.customerEmail,
         subject: data.subject,
+        // The body was previously dropped here, so mirrored copies only ever
+        // carried a subject line.
+        textContent: data.textContent,
+        htmlContent: data.htmlContent,
         recipientInbox: data.recipientInbox,
         receivedAt: saved.receivedAt,
       });
