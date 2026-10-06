@@ -97,7 +97,10 @@ export class WebPublicController {
   @Get('explorer')
   @ApiOperation({ summary: 'Public explorer properties for web dashboard' })
   async explorer(@Query() query: any, @Req() req: any) {
+
     this.logger.log(`Web public explorer request sessionId=${this.getSessionToken(req)}`);
+    this.logger.log(`Web public explorer request query=${JSON.stringify(query)}`);
+
     return this.proxyService.forwardToProperty('GetCustomerProperties', {
       sessionToken: this.getSessionToken(req),
       page: Number(query.page) || 1,
