@@ -138,7 +138,10 @@ export class PropertyController {
   @GrpcMethod('PropertyService', 'GetCustomerProperties')
   async getCustomerProperties(dto: { customerId: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number; propertyType?: string; minPrice?: number; maxPrice?: number; location?: string; brokerCode?: string; brokerBrandName?: string; subCounty?: string; district?: string; fromDate?: string; toDate?: string }) {
     this.logger.log(`Received get-customer-properties request for customer ${dto.customerId}`);
-    return this.propertyService.getCustomerProperties(dto);
+     const result= this.propertyService.getCustomerProperties(dto);
+
+    this.logger.log(`Obatined properties are: ${(await result).properties}`);
+    return result;
   }
 
   @GrpcMethod('PropertyService', 'InitiatePropertyAccessPayment')
