@@ -1195,7 +1195,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
   }
 
-  async fetchEmailBody(resendEmailId: string): Promise<{ textContent?: string; htmlContent?: string }> {
+  async fetchEmailBody(resendEmailId: string)  : Promise<{ textContent?: string; htmlContent?: string }> {
     if (!resendEmailId) {
       return {};
     }

@@ -182,31 +182,23 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       if (dto.type === 'admin') {
         user = await this.validateAdmin(dto.email, dto.password);
         role = user?.role || 'admin';
-      } else {
-        const brokerResult = await this.validateBroker(dto.email, dto.password);
+} else {
+          const brokerResult = await this.validateBroker(dto.email, dto.password);
 
-        /*
-        this.logger.log('getting broker from the dashboard call...');
+          if (!brokerResult?.success) {
+            throw new BadRequestException(brokerResult?.message || 'Invalid broker credentials');
+          }
 
-        const dashboard = await lastValueFrom(
-          this.brokerServiceRpc.getBrokerDashboard({ brokerId: brokerResult?.broker?.id }),
-        );
+          const brokerEntity = brokerResult?.broker;
 
-        this.logger.log(`Broker obtained: ${dashboard?.broker}`);
+          this.logger.log(`JSON Object: ${JSON.stringify(brokerEntity)}`);
 
-        const brokerEntity = dashboard?.broker;
-        */
-
-        const brokerEntity = brokerResult?.broker;
-
-        this.logger.log(`JSON Object: ${JSON.stringify(brokerEntity)}`);
-
-        if (!brokerEntity) {
-          throw new BadRequestException(brokerResult?.message || 'Invalid broker credentials');
+          if (!brokerEntity?.id) {
+            throw new BadRequestException('Invalid broker credentials');
+          }
+          user = brokerEntity;
+          role = 'broker';
         }
-        user = brokerEntity;
-        role = 'broker';
-      }
 
       if (!user?.id) {
         throw new BadRequestException('Invalid login credentials');
