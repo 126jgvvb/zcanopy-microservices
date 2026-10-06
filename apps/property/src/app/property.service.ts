@@ -415,11 +415,15 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (query.fromDate) {
-        qb.andWhere('property.createdAt >= :fromDate', { fromDate: query.fromDate });
+        const from = new Date(query.fromDate);
+        from.setUTCHours(0, 0, 0, 0);
+        qb.andWhere('property.createdAt >= :fromDate', { fromDate: from });
       }
 
       if (query.toDate) {
-        qb.andWhere('property.createdAt <= :toDate', { toDate: query.toDate });
+        const to = new Date(query.toDate);
+        to.setUTCHours(23, 59, 59, 999);
+        qb.andWhere('property.createdAt <= :toDate', { toDate: to });
       }
 
       if (query.minAmount != null || query.maxAmount != null) {
@@ -1084,11 +1088,15 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (dto.fromDate) {
-        query = query.andWhere('property.createdAt >= :fromDate', { fromDate: dto.fromDate });
+        const from = new Date(dto.fromDate);
+        from.setUTCHours(0, 0, 0, 0);
+        query = query.andWhere('property.createdAt >= :fromDate', { fromDate: from });
       }
 
       if (dto.toDate) {
-        query = query.andWhere('property.createdAt <= :toDate', { toDate: dto.toDate + 'T23:59:59Z' });
+        const to = new Date(dto.toDate);
+        to.setUTCHours(23, 59, 59, 999);
+        query = query.andWhere('property.createdAt <= :toDate', { toDate: to });
       }
 
       if (dto.minPrice != null) {
