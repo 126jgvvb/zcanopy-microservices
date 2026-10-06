@@ -14,6 +14,12 @@ export class WebPublicController {
     return req?.session?.sessionId || req?.headers?.['x-session-id'] || 'public-web';
   }
 
+  private getCustomerId(req: any): string {
+    // For public/explorer endpoints, user may not be authenticated
+    // Return customerId from JWT if available, otherwise empty string for anonymous access
+    return req?.user?.customerId || '';
+  }
+
   @Get('properties')
   @ApiOperation({ summary: 'Public property listings for web dashboard' })
   async getPublicProperties(@Query() query: any, @Req() req: any) {
@@ -102,7 +108,7 @@ export class WebPublicController {
     this.logger.log(`Web public explorer request query=${JSON.stringify(query)}`);
 
     return this.proxyService.forwardToProperty('GetCustomerProperties', {
-      sessionToken: this.getSessionToken(req),
+      customerId: this.getCustomerId(req),
       page: Number(query.page) || 1,
       limit: Math.min(Number(query.limit) || 12, 12),
       propertyType: query.propertyType,

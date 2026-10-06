@@ -330,6 +330,15 @@ message GetCustomerPropertiesRequest {
   double lng = 5;
   double radiusKm = 6;
   string propertyType = 7;
+  string location = 8;
+  string brokerCode = 9;
+  string brokerBrandName = 10;
+  string subCounty = 11;
+  string district = 12;
+  double minPrice = 13;
+  double maxPrice = 14;
+  string fromDate = 15;
+  string toDate = 16;
 }
 
 message GetCustomerPropertiesResponse {
