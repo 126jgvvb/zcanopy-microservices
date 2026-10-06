@@ -1045,6 +1045,14 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getCustomerProperties(dto: { customerId: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number; propertyType?: string; minPrice?: number; maxPrice?: number; location?: string; brokerCode?: string; brokerBrandName?: string; subCounty?: string; district?: string; fromDate?: string; toDate?: string }): Promise<{ properties: Array<{ id: string; title: string; description: string; propertyType: string; location: string; brokersUniqueCode: string; isAvailable: boolean; createdAt: Date; photoCount: number; videoCount: number; postgisSpatialField: string | null; imageUrl: string[]; videoUrl: string[]; distanceKm: number | null; bookingState: any; totalBrokerProperties: number }>; total: number }> {
+  
+    this.logger.log(`Getting customer properties for customer ${dto.customerId}`);
+    this.logger.log(`Page: ${dto.page}, Limit: ${dto.limit}`);
+    this.logger.log(`Lat: ${dto.lat}, Lng: ${dto.lng}, RadiusKm: ${dto.radiusKm}`);
+    this.logger.log(`PropertyType: ${dto.propertyType}, MinPrice: ${dto.minPrice}, MaxPrice: ${dto.maxPrice}`);
+    this.logger.log(`Location: ${dto.location}, BrokerCode: ${dto.brokerCode}, BrokerBrandName: ${dto.brokerBrandName}`);
+    this.logger.log(`SubCounty: ${dto.subCounty}, District: ${dto.district}, FromDate: ${dto.fromDate}, ToDate: ${dto.toDate}`);
+    
     try {
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 10;
