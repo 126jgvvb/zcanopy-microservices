@@ -2051,6 +2051,49 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
 
   async recordSearch(dto: { customerId: string; query?: string; location?: string; radius?: number; propertyType?: string; filters?: any; resultPropertyIds?: string[]; resultCount?: number; minPrice?: number; maxPrice?: number; subCounty?: string; district?: string }): Promise<{ success: boolean }> {
     try {
+      const now = new Date();
+      const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+
+      const recentSearch = await this.searchRepo.findOne({
+        where: {
+          customerId: dto.customerId,
+          createdAt: Between(oneMinuteAgo, now),
+        },
+        order: { createdAt: 'DESC' },
+      });
+
+      if (recentSearch) {
+        const currentFilters = dto.filters || {};
+        let recentFilters: Record<string, any> = {};
+        try {
+          recentFilters = recentSearch.filtersJson ? JSON.parse(recentSearch.filtersJson) : {};
+        } catch {
+          recentFilters = {};
+        }
+
+        const filterKeys = Object.keys(currentFilters);
+        const matchCount = filterKeys.filter(k =>
+          recentFilters[k] !== undefined &&
+          recentFilters[k] === currentFilters[k]
+        ).length;
+
+        if (filterKeys.length > 0 && matchCount / filterKeys.length > 0.5) {
+          recentSearch.query = dto.query || '';
+          recentSearch.location = dto.location || '';
+          recentSearch.radius = Number(dto.radius) || 0;
+          recentSearch.propertyType = dto.propertyType || '';
+          recentSearch.filtersJson = dto.filters ? JSON.stringify(dto.filters) : '';
+          recentSearch.resultPropertyIdsJson = dto.resultPropertyIds ? JSON.stringify(dto.resultPropertyIds) : '';
+          recentSearch.resultCount = Number(dto.resultCount) || 0;
+          recentSearch.minPrice = Number(dto.minPrice) || 0;
+          recentSearch.maxPrice = Number(dto.maxPrice) || 0;
+          recentSearch.subCounty = dto.subCounty || '';
+          recentSearch.district = dto.district || '';
+          await this.searchRepo.save(recentSearch);
+          return { success: true };
+        }
+      }
+
       const search = this.searchRepo.create({
         customerId: dto.customerId,
         query: dto.query || '',
