@@ -1721,17 +1721,50 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getAllCustomerSearches(dto: { page: number; limit: number; customerId?: string; query?: string }) {
+  async getAllCustomerSearches(dto: {
+    page: number; limit: number; customerId?: string; query?: string;
+    propertyType?: string; location?: string; brokerCode?: string; brokerBrandName?: string;
+    subCounty?: string; district?: string; minPrice?: number; maxPrice?: number;
+    fromDate?: string; toDate?: string; lat?: number; lng?: number; radiusKm?: number;
+  }) {
     this.logger.log(`Received getAll-customer-searches request`);
     try {
-      const result = await lastValueFrom(
+      const result: any = await lastValueFrom(
         this.propertyClient.getService('PropertyService').getAllCustomerSearches({
           page: Number(dto.page) || 1,
-          limit: Math.min(Number(dto.limit) || 10, 10),  // Cap at 10 for admin to prevent buffer overflow
+          limit: Number(dto.limit) || 20,
           customerId: dto.customerId || '',
           query: dto.query || '',
+          propertyType: dto.propertyType || '',
+          location: dto.location || '',
+          brokerCode: dto.brokerCode || '',
+          brokerBrandName: dto.brokerBrandName || '',
+          subCounty: dto.subCounty || '',
+          district: dto.district || '',
+          minPrice: Number(dto.minPrice) || 0,
+          maxPrice: Number(dto.maxPrice) || 0,
+          fromDate: dto.fromDate || '',
+          toDate: dto.toDate || '',
+          lat: Number(dto.lat) || 0,
+          lng: Number(dto.lng) || 0,
+          radiusKm: Number(dto.radiusKm) || 0,
         }).pipe(timeout(10000)),
       );
+
+      if (result.searches) {
+        result.searches = result.searches.map((s: any) => {
+          let parsedFilters = null;
+          if (s.filters) {
+            try {
+              parsedFilters = typeof s.filters === 'string' ? JSON.parse(s.filters) : s.filters;
+            } catch {
+              parsedFilters = null;
+            }
+          }
+          return { ...s, filters: parsedFilters };
+        });
+      }
+
       return result;
     } catch (err) {
       this.logger.error(`Failed to get all customer searches: ${(err as Error).message}`);

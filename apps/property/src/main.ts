@@ -32,6 +32,8 @@ async function bootstrap() {
       url: `0.0.0.0:${port}`,
       package: 'property.v1',
       protoPath: propertyProtoPath,
+      maxReceiveMessageSize: 16 * 1024 * 1024,
+      maxSendMessageSize: 16 * 1024 * 1024,
     },
   });
 

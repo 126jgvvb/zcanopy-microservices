@@ -579,6 +579,10 @@ message CustomerSearch {
   int32 resultCount = 8;
   string createdAt = 9;
   repeated string resultPropertyIds = 10;
+  double minPrice = 11;
+  double maxPrice = 12;
+  string subCounty = 13;
+  string district = 14;
 }
 
 message GetCustomerSearchesResponse {
@@ -591,6 +595,19 @@ message GetAllCustomerSearchesRequest {
   int32 limit = 2;
   string customerId = 3;
   string query = 4;
+  string propertyType = 5;
+  string location = 6;
+  string brokerCode = 7;
+  string brokerBrandName = 8;
+  string subCounty = 9;
+  string district = 10;
+  double minPrice = 11;
+  double maxPrice = 12;
+  string fromDate = 13;
+  string toDate = 14;
+  double lat = 15;
+  double lng = 16;
+  double radiusKm = 17;
 }
 
 message GetAllCustomerSearchesResponse {

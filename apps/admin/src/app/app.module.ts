@@ -72,6 +72,8 @@ import Redis from 'ioredis';
             url: process.env.PROPERTY_SERVICE_URL || 'localhost:3004',
             package: 'property.v1',
             protoPath: join(process.cwd(), 'apps/property/src/proto/property.proto'),
+            maxReceiveMessageSize: 16 * 1024 * 1024,
+            maxSendMessageSize: 16 * 1024 * 1024,
           },
         }),
       },

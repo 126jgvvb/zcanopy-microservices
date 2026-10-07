@@ -248,9 +248,39 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'GetAllCustomerSearches')
-  async getAllCustomerSearches(dto: { page: number; limit: number; customerId?: string; query?: string }) {
+  async getAllCustomerSearches(dto: {
+    page: number; limit: number; customerId?: string; query?: string;
+    propertyType?: string; location?: string; brokerCode?: string; brokerBrandName?: string;
+    subCounty?: string; district?: string; minPrice?: number; maxPrice?: number;
+    fromDate?: string; toDate?: string; lat?: number; lng?: number; radiusKm?: number;
+  }) {
     this.logger.log(`Received get-all-customer-searches request`);
     return this.propertyService.getAllCustomerSearches(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'GetCustomerSearchById')
+  async getCustomerSearchById(dto: { id: string }) {
+    this.logger.log(`Received get-customer-search-by-id request for id ${dto.id}`);
+    const result = await this.propertyService.getCustomerSearchById(dto.id);
+    if (!result) {
+      return { id: '' };
+    }
+    return {
+      id: result.id,
+      customerId: result.customerId,
+      query: result.query,
+      location: result.location,
+      radius: result.radius,
+      propertyType: result.propertyType,
+      filters: result.filters ? JSON.stringify(result.filters) : '',
+      resultCount: result.resultCount,
+      resultPropertyIds: result.resultPropertyIds,
+      minPrice: result.minPrice || 0,
+      maxPrice: result.maxPrice || 0,
+      subCounty: result.subCounty || '',
+      district: result.district || '',
+      createdAt: result.createdAt,
+    };
   }
 
   @GrpcMethod('PropertyService', 'ToggleFavorite')

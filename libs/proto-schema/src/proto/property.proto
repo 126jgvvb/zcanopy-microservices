@@ -33,6 +33,7 @@ service PropertyService {
   rpc RecordCustomerSearch (RecordCustomerSearchRequest) returns (RecordCustomerSearchResponse);
   rpc GetCustomerSearches (GetCustomerSearchesRequest) returns (GetCustomerSearchesResponse);
   rpc GetAllCustomerSearches (GetAllCustomerSearchesRequest) returns (GetAllCustomerSearchesResponse);
+  rpc GetCustomerSearchById (GetCustomerSearchByIdRequest) returns (GetCustomerSearchByIdResponse);
   rpc ToggleFavorite (ToggleFavoriteRequest) returns (ToggleFavoriteResponse);
   rpc GetCustomerFavorites (GetCustomerFavoritesRequest) returns (GetCustomerFavoritesResponse);
   rpc GetAllCustomerFavorites (GetAllCustomerFavoritesRequest) returns (GetAllCustomerFavoritesResponse);
@@ -579,6 +580,10 @@ message CustomerSearch {
   int32 resultCount = 8;
   string createdAt = 9;
   repeated string resultPropertyIds = 10;
+  double minPrice = 11;
+  double maxPrice = 12;
+  string subCounty = 13;
+  string district = 14;
 }
 
 message GetCustomerSearchesResponse {
@@ -591,11 +596,45 @@ message GetAllCustomerSearchesRequest {
   int32 limit = 2;
   string customerId = 3;
   string query = 4;
+  string propertyType = 5;
+  string location = 6;
+  string brokerCode = 7;
+  string brokerBrandName = 8;
+  string subCounty = 9;
+  string district = 10;
+  double minPrice = 11;
+  double maxPrice = 12;
+  string fromDate = 13;
+  string toDate = 14;
+  double lat = 15;
+  double lng = 16;
+  double radiusKm = 17;
 }
 
 message GetAllCustomerSearchesResponse {
   repeated CustomerSearch searches = 1;
   int32 total = 2;
+}
+
+message GetCustomerSearchByIdRequest {
+  string id = 1;
+}
+
+message GetCustomerSearchByIdResponse {
+  string id = 1;
+  string customerId = 2;
+  string query = 3;
+  string location = 4;
+  double radius = 5;
+  string propertyType = 6;
+  string filtersJson = 7;
+  int32 resultCount = 8;
+  repeated string resultPropertyIds = 9;
+  double minPrice = 10;
+  double maxPrice = 11;
+  string subCounty = 12;
+  string district = 13;
+  string createdAt = 14;
 }
 
 message ToggleFavoriteRequest {

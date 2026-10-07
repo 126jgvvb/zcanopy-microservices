@@ -554,14 +554,57 @@ export class AdminController {
   @ApiOperation({ summary: 'Get all customer searches for admin' })
   async getAllSearches(@Query() query: any) {
     this.logger.log(`Get all searches request: ${JSON.stringify(query)}`);
-    return this.proxyService.forwardToAdmin('GetAllCustomerSearches', {
+    const result: any = await this.proxyService.forwardToProperty('GetAllCustomerSearches', {
       page: Number(query.page) || 1,
       limit: Number(query.limit) || 20,
       customerId: query.customerId || '',
-      // The admin dashboard sends `query`; it was previously read as `q`, so the
-      // search-text filter was silently dropped.
       query: query.query || query.q || '',
+      propertyType: query.propertyType || '',
+      location: query.location || '',
+      brokerCode: query.brokerCode || '',
+      brokerBrandName: query.brokerBrandName || '',
+      subCounty: query.subCounty || '',
+      district: query.district || '',
+      minPrice: Number(query.minPrice) || 0,
+      maxPrice: Number(query.maxPrice) || 0,
+      fromDate: query.fromDate || '',
+      toDate: query.toDate || '',
+      lat: Number(query.lat) || 0,
+      lng: Number(query.lng) || 0,
+      radiusKm: Number(query.radiusKm) || 0,
     });
+
+    if (result && result.searches) {
+      result.searches = result.searches.map((s: any) => {
+        let parsedFilters = null;
+        if (s.filters) {
+          try {
+            parsedFilters = typeof s.filters === 'string' ? JSON.parse(s.filters) : s.filters;
+          } catch {
+            parsedFilters = null;
+          }
+        }
+        return { ...s, filters: parsedFilters };
+      });
+    }
+
+    return result;
+  }
+
+  @Get('searches/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get single customer search by ID with full details' })
+  async getSearchById(@Param('id') id: string) {
+    this.logger.log(`Get search by id request: ${id}`);
+    const result: any = await this.proxyService.forwardToProperty('GetCustomerSearchById', { id });
+    if (result && result.filters) {
+      try {
+        result.filters = typeof result.filters === 'string' ? JSON.parse(result.filters) : result.filters;
+      } catch {
+        result.filters = null;
+      }
+    }
+    return result;
   }
 
   @Delete('invoices/batch-delete')

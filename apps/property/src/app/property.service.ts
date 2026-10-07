@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository, In } from '@nestjs/typeorm';
-import { Repository, FindOptionsSelect, ILike } from 'typeorm';
+import { Repository, FindOptionsSelect, ILike, Between, LessThan } from 'typeorm';
 import Redis from 'ioredis';
 import { Inject } from '@nestjs/common';
 import { ClientGrpc } from '@nestjs/microservices';
@@ -1137,6 +1137,34 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
+      // Record the search query and results
+      await this.recordSearch({
+        customerId: dto.customerId,
+        query: dto.propertyType || '',
+        location: dto.location || '',
+        radius: dto.radiusKm,
+        propertyType: dto.propertyType || '',
+        filters: {
+          brokerCode: dto.brokerCode,
+          brokerBrandName: dto.brokerBrandName,
+          subCounty: dto.subCounty,
+          district: dto.district,
+          minPrice: dto.minPrice,
+          maxPrice: dto.maxPrice,
+          fromDate: dto.fromDate,
+          toDate: dto.toDate,
+          lat: dto.lat,
+          lng: dto.lng,
+          radiusKm: dto.radiusKm,
+        },
+        resultPropertyIds: properties.map(p => p.id),
+        resultCount: total,
+        minPrice: dto.minPrice,
+        maxPrice: dto.maxPrice,
+        subCounty: dto.subCounty,
+        district: dto.district,
+      });
+
       return {
         properties: properties.map(p => {
           const geo = p.postgis_spatial_field;
@@ -1867,7 +1895,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
 
       const [properties, total] = await query.getManyAndCount();
 
-      const resultBrokerCodes = [...new Set(properties.map((p) => p.brokersUniqueCode))];
+      const resultBrokerCodes = [...new Set(properties.map(p => p.brokersUniqueCode))];
       const brokerPropertyCounts: Record<string, number> = {};
       if (resultBrokerCodes.length > 0) {
         const counts = await this.propertyRepo.createQueryBuilder('property')
@@ -1880,6 +1908,34 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
           brokerPropertyCounts[row.brokerCode] = Number(row.count);
         }
       }
+
+      // Record the search query and results
+      await this.recordSearch({
+        customerId: dto.customerId,
+        query: dto.propertyType || '',
+        location: dto.location || '',
+        radius: dto.radiusKm,
+        propertyType: dto.propertyType || '',
+        filters: {
+          brokerCode: dto.brokerCode,
+          brokerBrandName: dto.brokerBrandName,
+          subCounty: dto.subCounty,
+          district: dto.district,
+          minPrice: dto.minPrice,
+          maxPrice: dto.maxPrice,
+          fromDate: dto.fromDate,
+          toDate: dto.toDate,
+          lat: dto.lat,
+          lng: dto.lng,
+          radiusKm: dto.radiusKm,
+        },
+        resultPropertyIds: properties.map(p => p.id),
+        resultCount: total,
+        minPrice: dto.minPrice,
+        maxPrice: dto.maxPrice,
+        subCounty: dto.subCounty,
+        district: dto.district,
+      });
 
       return {
         properties: properties.map(p => {
@@ -2038,7 +2094,40 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     }
   }
 
-  async getAllCustomerSearches(dto: { page: number; limit: number; customerId?: string; query?: string }): Promise<{ searches: any[]; total: number }> {
+  async getCustomerSearchById(id: string): Promise<any> {
+    try {
+      const search = await this.searchRepo.findOne({ where: { id } });
+      if (!search) {
+        return null;
+      }
+      return {
+        id: search.id,
+        customerId: search.customerId,
+        query: search.query,
+        location: search.location,
+        radius: search.radius,
+        propertyType: search.propertyType,
+        filters: search.filtersJson ? JSON.parse(search.filtersJson) : null,
+        resultCount: search.resultCount,
+        resultPropertyIds: search.resultPropertyIdsJson ? JSON.parse(search.resultPropertyIdsJson) : [],
+        minPrice: search.minPrice,
+        maxPrice: search.maxPrice,
+        subCounty: search.subCounty,
+        district: search.district,
+        createdAt: search.createdAt,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to get search by id ${id}: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async getAllCustomerSearches(dto: {
+    page: number; limit: number; customerId?: string; query?: string;
+    propertyType?: string; location?: string; brokerCode?: string; brokerBrandName?: string;
+    subCounty?: string; district?: string; minPrice?: number; maxPrice?: number;
+    fromDate?: string; toDate?: string; lat?: number; lng?: number; radiusKm?: number;
+  }): Promise<{ searches: any[]; total: number }> {
     try {
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 20;
@@ -2049,6 +2138,33 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
       }
       if (dto.query) {
         where.query = ILike(`%${dto.query}%`);
+      }
+      if (dto.propertyType) {
+        where.propertyType = dto.propertyType;
+      }
+      if (dto.location) {
+        where.location = ILike(`%${dto.location}%`);
+      }
+      if (dto.subCounty) {
+        where.subCounty = ILike(`%${dto.subCounty}%`);
+      }
+      if (dto.district) {
+        where.district = ILike(`%${dto.district}%`);
+      }
+      if (dto.minPrice) {
+        where.minPrice = Number(dto.minPrice);
+      }
+      if (dto.maxPrice) {
+        where.maxPrice = Number(dto.maxPrice);
+      }
+      if (dto.fromDate) {
+        if (dto.toDate) {
+          where.createdAt = Between(new Date(dto.fromDate), new Date(dto.toDate));
+        } else {
+          where.createdAt = Between(new Date(dto.fromDate), new Date());
+        }
+      } else if (dto.toDate) {
+        where.createdAt = LessThan(new Date(dto.toDate));
       }
 
       const [searches, total] = await this.searchRepo.findAndCount({
@@ -2066,11 +2182,13 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
           location: s.location,
           radius: s.radius,
           propertyType: s.propertyType,
-          // filters excluded from list response to avoid protobuf buffer overflow
-          filters: null,
+          filters: s.filtersJson || '',
           resultCount: s.resultCount,
-          // Limit resultPropertyIds to prevent protobuf buffer overflow
-          resultPropertyIds: s.resultPropertyIdsJson ? JSON.parse(s.resultPropertyIdsJson).slice(0, 10) : [],
+          resultPropertyIds: s.resultPropertyIdsJson ? JSON.parse(s.resultPropertyIdsJson) : [],
+          minPrice: s.minPrice,
+          maxPrice: s.maxPrice,
+          subCounty: s.subCounty,
+          district: s.district,
           createdAt: s.createdAt,
         })),
         total,
