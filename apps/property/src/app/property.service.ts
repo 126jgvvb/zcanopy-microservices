@@ -1137,33 +1137,40 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         }
       }
 
-      // Record the search query and results
-      await this.recordSearch({
-        customerId: dto.customerId,
-        query: dto.propertyType || '',
-        location: dto.location || '',
-        radius: dto.radiusKm,
-        propertyType: dto.propertyType || '',
-        filters: {
-          brokerCode: dto.brokerCode,
-          brokerBrandName: dto.brokerBrandName,
-          subCounty: dto.subCounty,
-          district: dto.district,
+      const hasFilter = [
+        dto.brokerCode, dto.brokerBrandName, dto.subCounty, dto.district,
+        dto.minPrice, dto.maxPrice, dto.fromDate, dto.toDate,
+        dto.lat, dto.lng, dto.radiusKm, dto.propertyType, dto.location,
+      ].some(v => v !== undefined && v !== '');
+
+      if (hasFilter) {
+        await this.recordSearch({
+          customerId: dto.customerId,
+          query: dto.propertyType || '',
+          location: dto.location || '',
+          radius: dto.radiusKm,
+          propertyType: dto.propertyType || '',
+          filters: {
+            brokerCode: dto.brokerCode,
+            brokerBrandName: dto.brokerBrandName,
+            subCounty: dto.subCounty,
+            district: dto.district,
+            minPrice: dto.minPrice,
+            maxPrice: dto.maxPrice,
+            fromDate: dto.fromDate,
+            toDate: dto.toDate,
+            lat: dto.lat,
+            lng: dto.lng,
+            radiusKm: dto.radiusKm,
+          },
+          resultPropertyIds: properties.map(p => p.id),
+          resultCount: total,
           minPrice: dto.minPrice,
           maxPrice: dto.maxPrice,
-          fromDate: dto.fromDate,
-          toDate: dto.toDate,
-          lat: dto.lat,
-          lng: dto.lng,
-          radiusKm: dto.radiusKm,
-        },
-        resultPropertyIds: properties.map(p => p.id),
-        resultCount: total,
-        minPrice: dto.minPrice,
-        maxPrice: dto.maxPrice,
-        subCounty: dto.subCounty,
-        district: dto.district,
-      });
+          subCounty: dto.subCounty,
+          district: dto.district,
+        });
+      }
 
       return {
         properties: properties.map(p => {
@@ -1909,33 +1916,40 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         }
       }
 
-      // Record the search query and results
-      await this.recordSearch({
-        customerId: dto.customerId,
-        query: dto.propertyType || '',
-        location: dto.location || '',
-        radius: dto.radiusKm,
-        propertyType: dto.propertyType || '',
-        filters: {
-          brokerCode: dto.brokerCode,
-          brokerBrandName: dto.brokerBrandName,
-          subCounty: dto.subCounty,
-          district: dto.district,
+      const hasFilter = [
+        dto.brokerCode, dto.brokerBrandName, dto.subCounty, dto.district,
+        dto.minPrice, dto.maxPrice, dto.fromDate, dto.toDate,
+        dto.lat, dto.lng, dto.radiusKm, dto.propertyType, dto.location,
+      ].some(v => v !== undefined && v !== '');
+
+      if (hasFilter) {
+        await this.recordSearch({
+          customerId: dto.customerId,
+          query: dto.propertyType || '',
+          location: dto.location || '',
+          radius: dto.radiusKm,
+          propertyType: dto.propertyType || '',
+          filters: {
+            brokerCode: dto.brokerCode,
+            brokerBrandName: dto.brokerBrandName,
+            subCounty: dto.subCounty,
+            district: dto.district,
+            minPrice: dto.minPrice,
+            maxPrice: dto.maxPrice,
+            fromDate: dto.fromDate,
+            toDate: dto.toDate,
+            lat: dto.lat,
+            lng: dto.lng,
+            radiusKm: dto.radiusKm,
+          },
+          resultPropertyIds: properties.map(p => p.id),
+          resultCount: total,
           minPrice: dto.minPrice,
           maxPrice: dto.maxPrice,
-          fromDate: dto.fromDate,
-          toDate: dto.toDate,
-          lat: dto.lat,
-          lng: dto.lng,
-          radiusKm: dto.radiusKm,
-        },
-        resultPropertyIds: properties.map(p => p.id),
-        resultCount: total,
-        minPrice: dto.minPrice,
-        maxPrice: dto.maxPrice,
-        subCounty: dto.subCounty,
-        district: dto.district,
-      });
+          subCounty: dto.subCounty,
+          district: dto.district,
+        });
+      }
 
       return {
         properties: properties.map(p => {
