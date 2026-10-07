@@ -292,7 +292,11 @@ export class PropertyController {
   @GrpcMethod('PropertyService', 'GetCustomerFavorites')
   async getCustomerFavorites(dto: any) {
     this.logger.log(`Received get-customer-favorites request for customer ${JSON.stringify(dto)}`);
-    dto.customerId=dto.sessionToken;
+    const customerId = dto.sessionToken || dto.customerId;
+    if (!customerId) {
+      throw new Error('Missing customer identifier for favorites lookup');
+    }
+    dto.customerId = customerId;
     return this.propertyService.getCustomerFavorites(dto);
   }
 

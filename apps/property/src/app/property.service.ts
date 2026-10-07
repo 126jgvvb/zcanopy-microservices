@@ -2291,9 +2291,14 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     try {
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 10;
+      const customerId = dto.customerId;
+
+      if (!customerId) {
+        throw new Error('Missing customerId for favorites lookup');
+      }
 
       const [favorites, total] = await this.favoriteRepo.findAndCount({
-        where: { customerId: dto.customerId },
+        where: { customerId },
         order: { createdAt: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
