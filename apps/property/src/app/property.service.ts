@@ -2226,7 +2226,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
 
       const [searches, total] = await this.searchRepo.findAndCount({
         where,
-        order: { createdAt: 'DESC' },
+        order: { id: 'DESC' },
         skip: (page - 1) * limit,
         take: limit,
       });
