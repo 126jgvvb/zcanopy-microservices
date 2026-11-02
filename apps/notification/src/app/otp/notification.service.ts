@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 import Redis from 'ioredis';
 import * as admin from 'firebase-admin';
 import { Resend } from 'resend';
+import axios from 'axios';
 import { OtpChannel, OtpNotificationPayload } from './otp-payload.interface';
 import { NotificationEntity } from '../entitty/notification.entity';
 import { SupportMessageEntity } from '../entitty/support-message.entity';
@@ -108,9 +109,9 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   private subscriber!: Redis;
   private redis!: Redis;
 
-  private brevoApiKey: string;
-  private brevoSenderName: string;
-  private brevoSenderEmail: string;
+  private ugatextClientId: string;
+  private ugatextClientSecret: string;
+  private ugatextSenderId: string;
 
   private resendApiKey: string;
   private resendFromEmail: string;
@@ -123,9 +124,9 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     private readonly supportMessageRepo: Repository<SupportMessageEntity>,
     @Inject('REDIS_CLIENT') private readonly redisClient: ClientProxy,
   ) {
-    this.brevoApiKey = this.configService.get<string>('BREVO_API_KEY') || '';
-    this.brevoSenderName = this.configService.get<string>('BREVO_SENDER_NAME') || 'ZCanopy';
-    this.brevoSenderEmail = this.configService.get<string>('BREVO_SENDER_EMAIL') || 'noreply@zcanopy.com';
+    this.ugatextClientId = this.configService.get<string>('UGATEXT_CLIENT_ID') || '';
+    this.ugatextClientSecret = this.configService.get<string>('UGATEXT_CLIENT_SECRET') || '';
+    this.ugatextSenderId = this.configService.get<string>('UGATEXT_SENDER_ID') || 'UGATEXT';
 
     this.resendApiKey = this.configService.get<string>('RESEND_API_KEY') || '';
     this.resendFromEmail = this.configService.get<string>('RESEND_FROM_EMAIL') || 'ZCanopy <noreply@zcanopy.com>';
@@ -303,6 +304,26 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.logger.log('Subscribed to get_notifications Redis channel');
+
+    void this.sendAdminStartupSms();
+  }
+
+  private async sendAdminStartupSms(): Promise<void> {
+    try {
+      const adminPhone = this.configService.get<string>('ADMIN_PHONE') || '0741882818';
+      const body = `ZCanopy notification service has started successfully at ${new Date().toISOString()}.`;
+      const result = await this.dispatchSms(adminPhone, body);
+      await this.saveNotification({
+        type: 'server_started',
+        channel: 'sms',
+        title: 'Server started',
+        content: body,
+        recipient: adminPhone,
+        result,
+      });
+    } catch (err) {
+      this.logger.error(`Failed to send server started SMS: ${(err as Error).message}`);
+    }
   }
 
   async onModuleDestroy() {
@@ -1033,10 +1054,45 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Transport implementations (Brevo SMS + Resend Email)
-  // ---------------------------------------------------------------------------
+  /**
+   * Applies a UgaText delivery receipt to the notification row that was created
+   * when the SMS was dispatched. Returns how many rows were updated.
+   */
+  async updateSmsStatusByProviderMessageId(
+    messageId: string,
+    status: 'sent' | 'delivered' | 'failed',
+    error?: string,
+  ): Promise<{ updated: number }> {
+    if (!messageId) {
+      return { updated: 0 };
+    }
 
+    try {
+      const patch: Partial<NotificationEntity> = { status };
+      if (error) {
+        patch.error = error;
+      }
+
+      const result = await this.notificationRepo.update(
+        { providerMessageId: messageId, channel: 'sms' },
+        patch,
+      );
+      const updated = result.affected || 0;
+      this.logger.log(
+        `UgaText receipt messageId=${messageId} status=${status} updated=${updated}${error ? ` error=${error}` : ''}`,
+      );
+      return { updated };
+    } catch (err) {
+      this.logger.error(
+        `Failed to update SMS status for messageId=${messageId}: ${(err as Error).message}`,
+      );
+      throw err;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Transport implementations (UgaText SMS + Resend Email)
+  // ---------------------------------------------------------------------------
   private async dispatchEmail(to: string, subject: string, body: string): Promise<DispatchResult> {
     if (!this.resendApiKey) {
       this.logger.warn('Resend API key not configured, skipping email dispatch');
@@ -1075,33 +1131,31 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async dispatchSms(to: string, body: string): Promise<DispatchResult> {
-    if (!this.brevoApiKey) {
-      this.logger.warn('Brevo API key not configured, skipping SMS dispatch');
-      return { success: false, error: 'Brevo API key not configured' };
+    if (!this.ugatextClientId || !this.ugatextClientSecret) {
+      this.logger.warn('UgaText credentials not configured, skipping SMS dispatch');
+      return { success: false, error: 'UgaText credentials not configured' };
     }
 
     try {
       const response = await axios.post(
-        'https://api.brevo.com/v3/sms/send',
+        'https://ugatext.com/api/v1/sms/send',
         {
-          sender: {
-            name: this.brevoSenderName,
-            email: this.brevoSenderEmail,
-          },
-          recipient: to.replace(/^\+/, ''),
-          content: body,
+          to: this.normalizePhoneNumber(to),
+          sender_id: this.ugatextSenderId,
+          message: body,
         },
         {
           headers: {
-            'api-key': this.brevoApiKey,
+            'Client-ID': this.ugatextClientId,
+            'Client-Secret': this.ugatextClientSecret,
             'Content-Type': 'application/json',
           },
           timeout: 15000,
         }
       );
 
-      const messageId = response.data?.messageId;
-      if (messageId) {
+      const messageId = response.data?.message_id;
+      if (response.data?.success && messageId) {
         this.logger.log(`SMS sent successfully to ${to}`);
         return { success: true, messageId: String(messageId) };
       }
@@ -1110,7 +1164,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(error);
       return { success: false, error };
     } catch (error) {
-      const errorMessage = (error as any).response?.data?.message || (error as Error).message;
+      const errorMessage = (error as any).response?.data?.error?.message || (error as Error).message;
       this.logger.error(`Failed to send SMS to ${to}: ${errorMessage}`);
       return { success: false, error: errorMessage };
     }
@@ -1193,6 +1247,23 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
 
   private stripHtml(html: string): string {
     return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  private normalizePhoneNumber(phone: string): string {
+    const digits = phone.replace(/[^\d]/g, '');
+    if (!digits) {
+      return phone;
+    }
+    if (phone.trim().startsWith('+')) {
+      return `+${digits}`;
+    }
+    if (digits.startsWith('256')) {
+      return `+${digits}`;
+    }
+    if (digits.startsWith('0') && digits.length === 10) {
+      return `+256${digits.slice(1)}`;
+    }
+    return `+${digits}`;
   }
 
   async fetchEmailBody(resendEmailId: string)  : Promise<{ textContent?: string; htmlContent?: string }> {

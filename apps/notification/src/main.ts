@@ -18,6 +18,7 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') || 3001;
 
   app.use('/api/webhooks/inbound', express.raw({ type: '*/*' }));
+  app.use('/api/webhooks/ugatext', express.raw({ type: 'application/json' }));
 
   // Redis transport: receives OTP delivery events emitted by other services.
   app.connectMicroservice<MicroserviceOptions>({
