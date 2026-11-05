@@ -18,10 +18,10 @@ export class TransactionEntity{
   @Column({default:''})
   referenceNumber!:string;
 
-  @Column({default:0})
+  @Column({ type: 'numeric', default: 0 })
   amount!:number;
 
-  @Column({default:0})
+  @Column({ type: 'numeric', default: 0 })
   platformCommission!:number;
 
   @Column({default:new Date()})

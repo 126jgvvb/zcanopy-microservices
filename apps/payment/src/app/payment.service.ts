@@ -3,7 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom, lastValueFrom, timeout } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ClientGrpc, ClientProxy } from '@nestjs/microservices';
+import type { ClientGrpc, ClientProxy } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { TransactionEntity } from './entity/transaction.entity';
@@ -65,6 +65,7 @@ const PLATFORM_COMMISSION_WALLET_USER_ID = process.env.PLATFORM_COMMISSION_WALLE
 export class PaymentService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PaymentService.name);
   private subscriber!: Redis;
+  private redis!: Redis;
 
   constructor(
     @InjectRepository(TransactionEntity)
@@ -94,7 +95,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
       connectTimeout: 10000,
       retryStrategy: (times) => Math.min(times * 500, 5000),
       maxRetriesPerRequest: 10,
-      reconnectOnFailedAttempt: true,
+
       keepAlive: 60,
     });
 
@@ -117,7 +118,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
       connectTimeout: 10000,
       retryStrategy: (times) => Math.min(times * 500, 5000),
       maxRetriesPerRequest: 10,
-      reconnectOnFailedAttempt: true,
+
       keepAlive: 60,
     });
 
@@ -271,8 +272,8 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
       //4% of the iotec charge fee
       const actual_Amount_After_Gateway_Deduction=collectResult.data?.amount-(collectResult.data?.amount*this.IOTEC_CHARGE_PERCENTAGE);
 
-        const commissions = await firstValueFrom(
-          this.adminClient.getService('AdminService').GetCommissions({}).pipe(
+        const commissions: any = await firstValueFrom(
+          this.adminClient.getService<any>('AdminService').GetCommissions({}).pipe(
             timeout(5000),
           ),
         );
@@ -326,8 +327,8 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
 
         let fallbackCommissionRate = 0;
         try {
-          const commissions = await firstValueFrom(
-            this.adminClient.getService('AdminService').GetCommissions({}).pipe(
+          const commissions: any = await firstValueFrom(
+            this.adminClient.getService<any>('AdminService').GetCommissions({}).pipe(
               timeout(5000),
             ),
           );
@@ -461,8 +462,8 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
     let platformCommissionAmount = 0;
 
     try {
-const commissions = await lastValueFrom(
-         this.adminClient.getService('AdminService').GetCommissions({}),
+const commissions: any = await lastValueFrom(
+         this.adminClient.getService<any>('AdminService').GetCommissions({}),
        );
 
       const collectResult = await firstValueFrom(
@@ -582,7 +583,7 @@ if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecSta
         );
 
         this.logger.log(`[Payment] processPropertyPayment BROKER RESULT=${JSON.stringify(brokerResult)}`);
-        brokerPhone = brokerResult?.broker?.phoneNumber || brokerResult?.phoneNumber;
+        brokerPhone = (brokerResult as any)?.broker?.phoneNumber || (brokerResult as any)?.phoneNumber;
 
       } catch (err) {
         this.logger.warn(`Failed to fetch broker phone for ${dto.brokerCode}: ${(err as Error).message}`);
@@ -851,11 +852,4 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
     }
   }
 
-  private generateReference(): string {
-    return 'TXN-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-  }
-
-  private generateTransactionCode(): string {
-    return Math.floor(10000000 + Math.random() * 90000000).toString();
-  }
 }
