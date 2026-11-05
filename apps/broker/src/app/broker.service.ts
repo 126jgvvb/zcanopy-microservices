@@ -919,6 +919,42 @@ private getEmptyBroker(): any {
         const tierLimits = this.getSubscriptionLimits(dto.tier);
         const amount = await this.getTierPrice(dto.tier);
 
+        // The Prop tier is free, so there is no payment to collect. Activate
+        // the subscription directly instead of initiating a mobile money
+        // transaction.
+        if (dto.tier === 'prop' || amount <= 0) {
+            try {
+                await this.brokerRepo.update(broker.id, {
+                    subscriptionTier: dto.tier,
+                    maxProperties: tierLimits.maxProperties,
+                    maxPhotosPerProperty: tierLimits.maxPhotosPerProperty,
+                    maxVideosPerProperty: tierLimits.maxVideosPerProperty,
+                    maxVideoSizeMB: tierLimits.maxVideoSizeMB,
+                    subscriptionExpiresAt: dto.tier === 'prop'
+                        ? null
+                        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                    updatedAt: new Date(),
+                });
+
+                this.logger.log(`Free tier subscription activated for broker ${dto.brokerId}, tier ${dto.tier}`);
+
+                return {
+                    success: true,
+                    message: `Subscribed to ${dto.tier} plan successfully`,
+                    proofCode: null,
+                    tier: dto.tier,
+                };
+            } catch (err) {
+                this.logger.error(`Free tier subscription failed for broker ${dto.brokerId}:`, err);
+
+                return {
+                    success: false,
+                    message: 'Failed to activate free subscription',
+                    proofCode: null,
+                };
+            }
+        }
+
         try {
             //initiating payment to the payment microservice
             const paymentResponse = await lastValueFrom(
