@@ -113,7 +113,7 @@ subscriptionTier!:string;
  @Column({default: 'https://delos.com/broker/image.jpg'})
  brokerImage!:string;
 
-  @Column({default: 0})
+  @Column({ type: 'numeric', default: 0 })
   walletBalance!:number;
 
   @Column({ nullable: true })
