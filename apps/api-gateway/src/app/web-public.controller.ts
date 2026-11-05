@@ -133,7 +133,7 @@ export class WebPublicController {
     const limit = Math.min(Number(query?.limit) || 200, 200);
     const page = Math.max(Number(query?.page) || 1, 1);
     return this.proxyService.forwardToBroker('GetAllBrokers', { page, limit });
-  }
+  }    
 
   @Get('locations')
   @ApiOperation({ summary: 'Get all property locations for filter dropdown' })
