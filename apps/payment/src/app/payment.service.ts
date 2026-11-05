@@ -540,6 +540,8 @@ const commissions: any = await lastValueFrom(
       }
 
       if (Number.isFinite(netAmount) && netAmount >= 0 && isSuccess) {
+        this.logger.log(`[Payment] processPropertyPayment UPDATING BROKER WALLET brokerCode=${dto.brokerCode} amount=${netAmount} externalId=${externalId}`);
+        
         this.redisClient.emit('update_broker_wallet', {
           brokerCode: dto.brokerCode,
           amount: netAmount,
