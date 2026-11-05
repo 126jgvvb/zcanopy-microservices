@@ -80,6 +80,20 @@ import { join } from 'path';
           },
         }),
       },
+      {
+        name: 'PROPERTY_CLIENT',
+        useFactory: () => ({
+          transport: Transport.GRPC,
+          options: {
+            url: process.env.PROPERTY_SERVICE_URL || 'localhost:3004',
+            package: 'property.v1',
+            protoPath: join(process.cwd(), 'apps/property/src/proto/property.proto'),
+            loader: { keepCase: false, longs: String, enums: String, defaults: true, oneofs: true },
+            maxReceiveMessageLength: 16 * 1024 * 1024,
+            maxSendMessageLength: 16 * 1024 * 1024,
+          },
+        }),
+      },
     ]),
   ],
   controllers: [AppController, PaymentController],

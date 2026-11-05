@@ -74,6 +74,7 @@ export class PaymentService implements OnModuleInit, OnModuleDestroy {
     @Inject('REDIS_CLIENT') private readonly redisClient: ClientProxy,
     @Inject('ADMIN_CLIENT') private readonly adminClient: ClientGrpc,
     @Inject('BROKER_CLIENT') private readonly brokerClient: ClientGrpc,
+    @Inject('PROPERTY_CLIENT') private readonly propertyClient: ClientGrpc,
     private readonly configService: ConfigService,
   ) {}
 
@@ -488,6 +489,107 @@ const commissions: any = await lastValueFrom(
       //4% of the iotec charge fee
       const actual_Amount_After_Gateway_Deduction=collectResult.data?.amount-(collectResult.data?.amount*this.IOTEC_CHARGE_PERCENTAGE);
 
+      // Property check: if the property is already booked, reverse/disburse the collected amount to the customer.
+      let propertyBooked = false;
+      try {
+        if (dto.propertyId) {
+          const propertyService = this.propertyClient.getService<any>('PropertyService');
+          const property: any = await lastValueFrom(
+            propertyService.GetPublicPropertyDetails({ propertyId: dto.propertyId, brokerCode: dto.brokerCode || '' }).pipe(
+              timeout(8000),
+            ),
+          );
+          const bookedState = property?.bookingState;
+          propertyBooked = bookedState?.isBooked === true || bookedState?.isBooked === 'true';
+          if (propertyBooked) {
+            this.logger.warn(
+              `[property-payment] Property ${dto.propertyId} already booked (isBooked=${bookedState?.isBooked}). Initiating reversal/disbursement for externalId=${externalId}.`,
+            );
+
+            const reversalAmount = Number(actual_Amount_After_Gateway_Deduction);
+            const withdrawalFee = this.getWithdrawFee(reversalAmount);
+            const amountToTransact = reversalAmount - withdrawalFee;
+            let reversalStatus = 'FAILED';
+            let reversalReference = `REV-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+            try {
+              if (reversalAmount > 0 && dto.customerPhone) {
+                const reversalResult = await firstValueFrom(
+                  this.httpService
+                    .post(`${IOTEC_BASE_URL}/iotec/mobile-money`, {
+                      amount: amountToTransact,
+                      phoneNumber: dto.customerPhone,
+                      provider: 'MTN',
+                      reference: reversalReference,
+                      externalId: `reversal-${externalId}`,
+                      payeeName: dto.customerName || 'Customer',
+                      payeeEmail: dto.customerEmail || null,
+                      payerNote: 'Payment reversal - property already booked',
+                      payeeNote: `Refund for property ${dto.propertyId}`,
+                      currency: 'UGX',
+                      payee: dto.customerPhone,
+                      sendAt: new Date().toISOString(),
+                    })
+                    .pipe(timeout(120000)),
+                );
+                reversalStatus = reversalResult.data?.status || reversalStatus;
+                reversalReference = reversalResult.data?.reference || reversalResult.data?.externalId || reversalReference;
+                this.logger.log(
+                  `[property-payment] Reversal/disbursement status=${reversalStatus} reference=${reversalReference} property=${dto.propertyId}`,
+                );
+              } else {
+                this.logger.warn(
+                  `[property-payment] Cannot initiate reversal: reversalAmount=${reversalAmount} customerPhone=${dto.customerPhone}`,
+                );
+              }
+            } catch (reversalErr) {
+              this.logger.error(
+                `[property-payment] Reversal/disbursement failed for property=${dto.propertyId}: ${(reversalErr as Error).message}`,
+              );
+            }
+
+            const reversalTransaction = this.transactionRepo.create({
+              propertyID: dto.brokerCode,
+              clientPhone: dto.customerPhone,
+              provider: 'iotec-mobile-money-reversal',
+              referenceNumber: reversalReference,
+              amount: amountToTransact,
+              platformCommission: 0,
+              createdAt: new Date(),
+              paymentStatus: reversalStatus === 'Success' || reversalStatus === 'success' ? 'REVERSED' : 'REVERSAL_FAILED',
+              reasonForPayment: `Reversal: property already booked (${dto.reasonForPayment || 'property payment'})`,
+              customerName: dto.customerName,
+              customerEmail: dto.customerEmail,
+              transactionCode,
+              customerId: dto.customerId || '',
+            });
+            const savedReversal = await this.transactionRepo.save(reversalTransaction);
+
+            // Notify via admin system messages/dashboard where available is handled by consumers of transaction state/events.
+            return {
+              success: false,
+              message: `Property is already booked. Payment reversal/disbursement ${reversalStatus === 'Success' || reversalStatus === 'success' ? 'initiated' : 'attempted'} for the collected amount.`,
+              transactionId: savedReversal.id,
+              referenceNumber: savedReversal.referenceNumber,
+              transactionCode,
+              netAmount: 0,
+              platformCommission: 0,
+              bookingCommission: 0,
+              customerPhone: dto.customerPhone,
+              customerName: dto.customerName,
+              customerEmail: dto.customerEmail,
+              date: new Date().toISOString(),
+            };
+          }
+        }
+      } catch (propertyCheckErr) {
+        this.logger.warn(
+          `[property-payment] Property check failed for property=${dto.propertyId}; continuing normal flow: ${(propertyCheckErr as Error).message}`,
+        );
+      }
+
+
+
+      
       if (dto.reasonForPayment !== 'booking') {
         const platformRate = Number(commissions?.platformCommission) || 0;
         platformCommissionAmount = Number((actual_Amount_After_Gateway_Deduction || 0) * (platformRate / 100));
@@ -544,7 +646,7 @@ const commissions: any = await lastValueFrom(
         
         this.redisClient.emit('update_broker_wallet', {
           brokerCode: dto.brokerCode,
-          amount: netAmount,
+          amount: amountToTransact,
           externalId,
         });
       }
@@ -639,6 +741,14 @@ if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecSta
 
  
 
+  private getWithdrawFee(amount: number): number {
+    if (amount >= 500 && amount <= 60000) return 700;
+    if (amount >= 60001 && amount <= 500000) return 1400;
+    if (amount >= 500001 && amount <= 1000000) return 2300;
+    if (amount >= 1000001 && amount <= 5000000) return 2800;
+    return 0;
+  }
+
   async withdraw(dto: WithdrawDto): Promise<{
     success: boolean;
     message: string;
@@ -652,6 +762,8 @@ if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecSta
     this.logger.log(`[withdraw] start: walletType=${dto.walletType} brokerCode=${dto.brokerCode} amount=${dto.amount} ref=${referenceNumber}`);
 
     const withdrawalAmount = Number(dto.amount);
+    const withdrawFee = 0;        //this.getWithdrawFee(withdrawalAmount);
+    const amountToTransact = withdrawalAmount - withdrawFee;
 
     if (withdrawalAmount < MIN_WITHDRAWAL) {
       throw new HttpException(`Minimum withdrawal amount is UGX ${MIN_WITHDRAWAL.toLocaleString()}`, HttpStatus.BAD_REQUEST);
@@ -666,7 +778,7 @@ const netAmount = withdrawalAmount; //deduction will be done at the iotec end
 iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
 
       payload = {
-        amount: netAmount,
+        amount: amountToTransact,
         phoneNumber: dto.phoneNumber,
         provider: dto.provider,
         reference: externalId,
@@ -686,7 +798,7 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
       iotecEndpoint = `${IOTEC_BASE_URL}/iotec/mobile-money`;
 
       payload = {
-        amount: withdrawalAmount,
+        amount: amountToTransact,
         phoneNumber: dto.phoneNumber,
         provider: dto.provider,
         reference: externalId,
