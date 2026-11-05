@@ -1418,6 +1418,7 @@ private getEmptyBroker(): any {
                 username: broker.username,
                 title: data.title,
                 location: data.location,
+                propertyId: data.propertyId,
             });
         } catch (err) {
             this.logger.error(`Failed to handle broker property created for ${data.brokerCode}:`, err);
@@ -1460,6 +1461,7 @@ private getEmptyBroker(): any {
                 username: broker.username,
                 title: data.title,
                 location: data.location,
+                propertyId: data.propertyId,
             });
         } catch (err) {
             this.logger.error(`Failed to handle broker property updated for ${data.brokerCode}:`, err);

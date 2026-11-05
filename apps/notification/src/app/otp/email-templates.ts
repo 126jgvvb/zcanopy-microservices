@@ -192,7 +192,7 @@ export function propertyPaymentConfirmationEmailHtml(payload: { username?: strin
   return baseTemplate('ZCanopy property payment confirmation', body);
 }
 
-export function bookingConfirmationEmailHtml(payload: { username?: string; email: string; propertyTitle: string; propertyId: string; location?: string; amount: number; transactionCode: string; bookingCode: string; date: string; status?: string }): string {
+export function bookingConfirmationEmailHtml(payload: { username?: string; email: string; propertyTitle: string; propertyId: string; location?: string; amount: number; transactionCode: string; bookingCode: string; date: string; status?: string; brokerPhone: string }): string {
   const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
   const statusText = payload.status === 'pending_payment' ? 'Your booking is pending payment confirmation.' : 'Your booking has been confirmed.';
 
@@ -207,6 +207,7 @@ export function bookingConfirmationEmailHtml(payload: { username?: string; email
       <div><span class="label">Transaction Code:</span> ${payload.transactionCode}</div>
       <div><span class="label">Booking Code:</span> ${payload.bookingCode}</div>
       <div><span class="label">Date:</span> ${payload.date}</div>
+      <div><span class="label">Broker Phone:</span> ${payload.brokerPhone}</div>
     </div>
     <div class="text">Use your <span class="label">Booking Code (${payload.bookingCode})</span> to retrieve your booking details later. Keep this email for your records. If you have any questions, contact our support team.</div>
   `;
@@ -214,10 +215,10 @@ export function bookingConfirmationEmailHtml(payload: { username?: string; email
   return baseTemplate('ZCanopy booking confirmation', body);
 }
 
-export function bookingConfirmationSmsBody(payload: { username?: string; propertyTitle: string; amount: number; bookingCode: string; date: string; status?: string }): string {
+export function bookingConfirmationSmsBody(payload: { username?: string; propertyTitle: string; amount: number; bookingCode: string; date: string; status?: string; brokerPhone: string }): string {
   const greeting = payload.username ? `Hi ${payload.username}, ` : 'Hello, ';
   const statusText = payload.status === 'pending_payment' ? 'Booking pending payment. ' : 'Booking confirmed. ';
-  return `${greeting}${statusText}Property: ${payload.propertyTitle}. Amount: UGX ${payload.amount}. Booking Code: ${payload.bookingCode}. Date: ${payload.date}. Use this code to retrieve your booking later.`;
+  return `${greeting}${statusText}Property: ${payload.propertyTitle}. Amount: UGX ${payload.amount}. Booking Code: ${payload.bookingCode}. Date: ${payload.date}. Broker Phone: ${payload.brokerPhone}. Use this code to retrieve your booking later.`;
 }
 
 export function propertyCreatedEmailHtml(payload: { username?: string; email?: string; title: string; location?: string; price?: number; brokerBookingFee?: number; imageUrl?: string | null; lat?: number | null; lng?: number | null; createdAt?: string }): string {

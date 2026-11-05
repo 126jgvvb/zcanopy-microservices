@@ -1372,6 +1372,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         ),
       );
       const brokerData = (broker as any)?.broker || broker || {};
+      const brokerPhone = brokerData.phoneNumber || '';
       const subscriptionTier = brokerData.subscriptionTier || 'prop';
       const subscriptionExpiresAt = brokerData.subscriptionExpiresAt ? new Date(brokerData.subscriptionExpiresAt) : null;
       if (subscriptionTier !== 'prop' && subscriptionExpiresAt && subscriptionExpiresAt < new Date()) {
@@ -1456,25 +1457,8 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         bookingCode,
         date: dto.date,
         status: 'booked',
+        brokerPhone,
       }));
-
-      // The payment service does not return a broker contact, so resolve the
-      // broker's phone here for the customer-facing confirmation.
-      let brokerPhone = paymentResult?.brokerPhone || '';
-      if (!brokerPhone && property.brokersUniqueCode) {
-        try {
-          const broker = await firstValueFrom(
-            this.brokerClient.getService('BrokerService').GetBrokerByCode({ brokerCode: property.brokersUniqueCode }).pipe(
-              timeout(5000),
-            ),
-          );
-          brokerPhone = broker?.broker?.phoneNumber || paymentResult?.brokerPhone;
-        } catch (brokerErr) {
-          this.logger.warn(
-            `[Property] createCustomerBooking could not resolve broker phone for brokerCode=${property.brokersUniqueCode}: ${(brokerErr as Error).message}`,
-          );
-        }
-      }
 
       if (!dto.customerId) {
         this.logger.warn(`[Property] createCustomerBooking skipping customer notification because customerId is missing for property=${dto.propertyId}`);

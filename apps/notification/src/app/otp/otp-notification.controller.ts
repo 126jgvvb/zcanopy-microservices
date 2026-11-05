@@ -359,6 +359,7 @@ export class OtpNotificationController {
           bookingCode: payload.bookingCode,
           date: payload.date,
           status: payload.status,
+          brokerPhone: payload.brokerPhone,
         });
       }
       if (payload.customerPhone) {
@@ -370,6 +371,7 @@ export class OtpNotificationController {
           bookingCode: payload.bookingCode,
           date: payload.date,
           status: payload.status,
+          brokerPhone: payload.brokerPhone,
         });
       }
     } catch (error) {

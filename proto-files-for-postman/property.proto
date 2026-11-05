@@ -150,6 +150,8 @@ message UpdatePropertyRequest {
   string district = 11;
   Coordinates coordinates = 12;
   bool isAvailable = 13;
+  double price = 14;
+  double brokerBookingFee = 15;
 }
 
 message UpdatePropertyResponse {

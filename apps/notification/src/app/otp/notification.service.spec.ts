@@ -75,6 +75,7 @@ describe('NotificationService', () => {
       bookingCode: 'BK-456',
       date: '2026-11-04',
       status: 'booked',
+      brokerPhone: '+256700000000',
     };
 
     it('sends a booking confirmation email', async () => {
