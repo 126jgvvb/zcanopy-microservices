@@ -14,11 +14,14 @@ import {
   otpEmailHtml,
   passwordResetEmailHtml,
   passwordChangedEmailHtml,
+  accountDeletedEmailHtml,
   adminAlertEmailHtml,
   brokerAccountCreatedEmailHtml,
   brokerApprovalEmailHtml,
   paymentConfirmationEmailHtml,
   propertyPaymentConfirmationEmailHtml,
+  bookingConfirmationEmailHtml,
+  bookingConfirmationSmsBody,
   propertyCreatedEmailHtml,
   propertyUpdatedEmailHtml,
   propertyDeletedEmailHtml,
@@ -304,26 +307,6 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.logger.log('Subscribed to get_notifications Redis channel');
-
-    void this.sendAdminStartupSms();
-  }
-
-  private async sendAdminStartupSms(): Promise<void> {
-    try {
-      const adminPhone = this.configService.get<string>('ADMIN_PHONE') || '0741882818';
-      const body = `ZCanopy notification service has started successfully at ${new Date().toISOString()}.`;
-      const result = await this.dispatchSms(adminPhone, body);
-      await this.saveNotification({
-        type: 'server_started',
-        channel: 'sms',
-        title: 'Server started',
-        content: body,
-        recipient: adminPhone,
-        result,
-      });
-    } catch (err) {
-      this.logger.error(`Failed to send server started SMS: ${(err as Error).message}`);
-    }
   }
 
   async onModuleDestroy() {

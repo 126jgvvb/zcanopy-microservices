@@ -27,7 +27,7 @@ describe('NotificationService', () => {
     redisClient = { emit: jest.fn(() => of(undefined)) } as any;
     subscriber = { subscribe: jest.fn(), on: jest.fn(), quit: jest.fn() };
     MockRedis.mockImplementation(() => subscriber);
-    service = new NotificationService(config, repo, redisClient);
+    service = new NotificationService(config, repo, repo, redisClient);
   });
 
   describe('dispatch + persistence', () => {
@@ -61,6 +61,58 @@ describe('NotificationService', () => {
       );
       expect(res.total).toBe(3);
       expect(res.page).toBe(2);
+    });
+  });
+
+  describe('booking confirmation', () => {
+    const booking = {
+      username: 'Jane',
+      propertyTitle: 'Lakeview Apartment',
+      propertyId: 'prop-1',
+      location: 'Entebbe',
+      amount: 150000,
+      transactionCode: 'TXN-123',
+      bookingCode: 'BK-456',
+      date: '2026-11-04',
+      status: 'booked',
+    };
+
+    it('sends a booking confirmation email', async () => {
+      const dispatch = jest
+        .spyOn(service as any, 'dispatchEmail')
+        .mockResolvedValue({ success: true, messageId: 'email-1' });
+
+      await service.sendBookingConfirmationEmail({ email: 'jane@example.com', ...booking });
+
+      expect(dispatch).toHaveBeenCalledWith(
+        'jane@example.com',
+        'Booking confirmation',
+        expect.stringContaining('Lakeview Apartment'),
+      );
+      const saved = repo.create.mock.calls[0][0];
+      expect(saved).toEqual(
+        expect.objectContaining({ type: 'booking', channel: 'email', status: 'sent' }),
+      );
+    });
+
+    it('sends a booking confirmation SMS', async () => {
+      const dispatch = jest
+        .spyOn(service as any, 'dispatchSms')
+        .mockResolvedValue({ success: true, messageId: 'sms-1' });
+
+      await service.sendBookingConfirmationSms({
+        phoneNumber: '0700000000',
+        ...booking,
+      });
+
+      expect(dispatch).toHaveBeenCalledWith(
+        '0700000000',
+        expect.stringContaining('BK-456'),
+      );
+      const saved = repo.create.mock.calls[0][0];
+      expect(saved).toEqual(
+        expect.objectContaining({ type: 'booking', channel: 'sms', status: 'sent' }),
+      );
     });
   });
 

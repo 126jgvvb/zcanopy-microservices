@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { NotificationService } from './otp/notification.service';
 
 describe('AppController', () => {
   let app: TestingModule;
@@ -8,7 +9,7 @@ describe('AppController', () => {
   beforeAll(async () => {
     app = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [AppService, { provide: NotificationService, useValue: {} }],
     }).compile();
   });
 
