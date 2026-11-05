@@ -283,6 +283,18 @@ export class PropertyController {
     };
   }
 
+  @GrpcMethod('PropertyService', 'DeleteCustomerSearch')
+  async deleteCustomerSearch(dto: { id: string }) {
+    this.logger.log(`Received delete-customer-search request for id ${dto.id}`);
+    return this.propertyService.deleteCustomerSearch(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'DeleteCustomerSearches')
+  async deleteCustomerSearches(dto: { ids: string[] }) {
+    this.logger.log(`Received delete-customer-searches request for ${dto?.ids?.length ?? 0} id(s)`);
+    return this.propertyService.deleteCustomerSearches(dto);
+  }
+
   @GrpcMethod('PropertyService', 'ToggleFavorite')
   async toggleFavorite(dto: { customerId: string; propertyId: string; propertyTitle: string; propertyLocation?: string; brokerCode?: string; imageUrl?: string; price?: number }) {
     this.logger.log(`Received toggle-favorite request for customer ${dto.customerId}`);

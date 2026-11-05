@@ -22,6 +22,7 @@ function repoMock() {
     count: jest.fn().mockResolvedValue(0),
     create: jest.fn((x: any) => x),
     save: jest.fn(async (x: any) => x),
+    delete: jest.fn().mockResolvedValue({ affected: 1 }),
     createQueryBuilder: jest.fn(() => qb),
   } as any;
 }
@@ -243,6 +244,44 @@ describe('PropertyService - customer session searches', () => {
       const res = await service.getBookingsByPhone({ customerPhone: '0700000000', page: 1, limit: 10 });
       expect(res.bookings.length).toBe(1);
       expect(res.bookings[0].customerPhone).toBe('0700000000');
+    });
+  });
+
+  describe('customer search deletion', () => {
+    it('deletes a single search by id', async () => {
+      searchRepo.delete.mockResolvedValue({ affected: 1 });
+      const res = await service.deleteCustomerSearch({ id: '42' });
+      expect(searchRepo.delete).toHaveBeenCalledWith({ id: '42' });
+      expect(res).toEqual({ success: true, deletedCount: 1 });
+    });
+
+    it('returns success=false when a single search does not exist', async () => {
+      searchRepo.delete.mockResolvedValue({ affected: 0 });
+      const res = await service.deleteCustomerSearch({ id: 'missing' });
+      expect(res).toEqual({ success: false, deletedCount: 0 });
+    });
+
+    it('rejects a missing id', async () => {
+      await expect(service.deleteCustomerSearch({ id: '' })).rejects.toThrow('Search id is required');
+    });
+
+    it('deletes multiple searches and reports the affected count', async () => {
+      searchRepo.delete.mockResolvedValue({ affected: 2 });
+      const res = await service.deleteCustomerSearches({ ids: ['1', '2', '3'] });
+      expect(searchRepo.delete).toHaveBeenCalledWith(['1', '2', '3']);
+      expect(res).toEqual({ success: true, deletedCount: 2 });
+    });
+
+    it('ignores empty ids when deleting multiple searches', async () => {
+      const res = await service.deleteCustomerSearches({ ids: ['1', '', '  '] });
+      expect(searchRepo.delete).toHaveBeenCalledWith(['1']);
+      expect(res).toEqual({ success: true, deletedCount: 1 });
+    });
+
+    it('skips the database call when no valid ids are supplied', async () => {
+      const res = await service.deleteCustomerSearches({ ids: [] });
+      expect(searchRepo.delete).not.toHaveBeenCalled();
+      expect(res).toEqual({ success: true, deletedCount: 0 });
     });
   });
 });

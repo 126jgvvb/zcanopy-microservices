@@ -33,6 +33,8 @@ service PropertyService {
   rpc RecordCustomerSearch (RecordCustomerSearchRequest) returns (RecordCustomerSearchResponse);
   rpc GetCustomerSearches (GetCustomerSearchesRequest) returns (GetCustomerSearchesResponse);
   rpc GetAllCustomerSearches (GetAllCustomerSearchesRequest) returns (GetAllCustomerSearchesResponse);
+  rpc DeleteCustomerSearch (DeleteCustomerSearchRequest) returns (DeleteCustomerSearchResponse);
+  rpc DeleteCustomerSearches (DeleteCustomerSearchesRequest) returns (DeleteCustomerSearchesResponse);
   rpc ToggleFavorite (ToggleFavoriteRequest) returns (ToggleFavoriteResponse);
   rpc GetCustomerFavorites (GetCustomerFavoritesRequest) returns (GetCustomerFavoritesResponse);
   rpc GetAllCustomerFavorites (GetAllCustomerFavoritesRequest) returns (GetAllCustomerFavoritesResponse);
@@ -615,6 +617,24 @@ message GetAllCustomerSearchesRequest {
 message GetAllCustomerSearchesResponse {
   repeated CustomerSearch searches = 1;
   int32 total = 2;
+}
+
+message DeleteCustomerSearchRequest {
+  string id = 1;
+}
+
+message DeleteCustomerSearchResponse {
+  bool success = 1;
+  int32 deletedCount = 2;
+}
+
+message DeleteCustomerSearchesRequest {
+  repeated string ids = 1;
+}
+
+message DeleteCustomerSearchesResponse {
+  bool success = 1;
+  int32 deletedCount = 2;
 }
 
 message ToggleFavoriteRequest {

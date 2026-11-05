@@ -607,6 +607,22 @@ export class AdminController {
     return result;
   }
 
+  @Delete('searches/batch-delete')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete multiple customer searches' })
+  async deleteSearches(@Body() body: { searchIds: string[] }) {
+    this.logger.log(`Delete searches request for ${body.searchIds?.length ?? 0} ids`);
+    return this.proxyService.forwardToProperty('DeleteCustomerSearches', { ids: body?.searchIds ?? [] });
+  }
+
+  @Delete('searches/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Delete a single customer search' })
+  async deleteSearch(@Param('id') id: string) {
+    this.logger.log(`Delete search request for ${id}`);
+    return this.proxyService.forwardToProperty('DeleteCustomerSearch', { id });
+  }
+
   @Delete('invoices/batch-delete')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Delete multiple invoices' })

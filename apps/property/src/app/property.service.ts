@@ -2240,6 +2240,37 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     }
   }
 
+  async deleteCustomerSearch(dto: { id: string }): Promise<{ success: boolean; deletedCount: number }> {
+    try {
+      if (!dto?.id) {
+        throw new BadRequestException('Search id is required');
+      }
+      const result = await this.searchRepo.delete({ id: dto.id });
+      const deletedCount = result.affected ?? 0;
+      this.logger.log(`Deleted customer search id=${dto.id} deletedCount=${deletedCount}`);
+      return { success: deletedCount > 0, deletedCount };
+    } catch (err) {
+      this.logger.error(`Failed to delete customer search ${dto?.id}: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async deleteCustomerSearches(dto: { ids: string[] }): Promise<{ success: boolean; deletedCount: number }> {
+    try {
+      const ids = (dto?.ids ?? []).filter((id): id is string => typeof id === 'string' && id.trim() !== '');
+      if (ids.length === 0) {
+        return { success: true, deletedCount: 0 };
+      }
+      const result = await this.searchRepo.delete(ids);
+      const deletedCount = result.affected ?? 0;
+      this.logger.log(`Deleted ${deletedCount} customer search(es) from ${ids.length} requested id(s)`);
+      return { success: true, deletedCount };
+    } catch (err) {
+      this.logger.error(`Failed to delete customer searches: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
   async toggleFavorite(dto: { customerId: string; propertyId: string; propertyTitle: string; propertyLocation?: string; brokerCode?: string; imageUrl?: string; price?: number }): Promise<{ favorited: boolean }> {
     try {
       // No session validation needed - customerId comes from JWT
