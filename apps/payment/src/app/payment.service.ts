@@ -552,7 +552,7 @@ const commissions: any = await lastValueFrom(
               clientPhone: dto.customerPhone,
               provider: 'iotec-mobile-money-reversal',
               referenceNumber: reversalReference,
-              amount: amountToTransact,
+              amount: reversalAmount,
               platformCommission: 0,
               createdAt: new Date(),
               paymentStatus: reversalStatus === 'Success' || reversalStatus === 'success' ? 'REVERSED' : 'REVERSAL_FAILED',
@@ -646,7 +646,7 @@ const commissions: any = await lastValueFrom(
         
         this.redisClient.emit('update_broker_wallet', {
           brokerCode: dto.brokerCode,
-          amount: amountToTransact,
+          amount: netAmount,
           externalId,
         });
       }
