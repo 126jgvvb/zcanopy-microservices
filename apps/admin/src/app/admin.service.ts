@@ -329,7 +329,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       const dashboard = await this.getOrCreateDashboard();
       return {
         platformCommission: dashboard.platformCommission ?? 100,
-        bookingCommission: dashboard.bookingCommission ?? 20,
+        bookingCommission: dashboard.bookingCommission ?? 10,
         minimumWithdrawal: dashboard.minimumWithdrawal ?? 10000,
       };
     } catch (err) {
