@@ -33,6 +33,7 @@ import { ProxyService } from './proxy.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { SessionMiddleware } from './session.middleware';
 import { SpacesService } from './spaces.service';
+import { VideoTranscodeService } from './video-transcode.service';
 import { join } from 'path';
 
 @Module({
@@ -130,7 +131,7 @@ import { join } from 'path';
     ]),
   ],
   controllers: [AppController, AuthController, BrokerController, BrokerPublicController, BrokerSessionController, PropertyController, PaymentController, AdminController, CustomerController, ListingsController, SubscriptionsController, BookingsController, PaymentLegacyController, GateWayController, NotificationController, UsersController, PublicController, WebPublicController, WebAuthController, WebBrokerController, WebCustomerController, WebSessionController, UploadController, CustomerWebController],
-  providers: [AppService, ProxyService, JwtAuthGuard, SpacesService],
+  providers: [AppService, ProxyService, JwtAuthGuard, SpacesService, VideoTranscodeService],
 })
 export class AppModule implements NestModule, OnModuleInit {
   private readonly logger = new Logger(AppModule.name);
