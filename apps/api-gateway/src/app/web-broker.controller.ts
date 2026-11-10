@@ -15,6 +15,30 @@ export class WebBrokerController {
     return req.user?.brokerCode || req.user?.username || req.session?.brokerCode || '';
   }
 
+  /**
+   * Accept both the Spaces origin (`<bucket>.<region>.digitaloceanspaces.com`)
+   * and the Spaces CDN (`<bucket>.<region>.cdn.digitaloceanspaces.com`).
+   *
+   * New uploads are returned as CDN URLs, while older broker records still
+   * store origin URLs, so both must count as uploaded documents.
+   */
+  private isSpacesMediaUrl(url: unknown): boolean {
+    if (typeof url !== 'string' || !url) {
+      return false;
+    }
+
+    try {
+      const parsed = new URL(url);
+      return (
+        parsed.protocol === 'https:' &&
+        (parsed.hostname === 'digitaloceanspaces.com' ||
+          parsed.hostname.endsWith('.digitaloceanspaces.com'))
+      );
+    } catch {
+      return false;
+    }
+  }
+
   @Get('dashboard')
   @ApiOperation({ summary: 'Web broker dashboard summary' })
   async getDashboard(@Req() req: any) {
@@ -356,8 +380,7 @@ export class WebBrokerController {
 
     const ninImages = Array.isArray(brokerData.ninImages) ? brokerData.ninImages : [];
     const hasUploadedDocuments =
-      ninImages.length >= 2 &&
-      ninImages.every((url: string) => typeof url === 'string' && url.startsWith('https://zcanopy-properties-media.fra1.digitaloceanspaces.com'));
+      ninImages.length >= 2 && ninImages.every((url: string) => this.isSpacesMediaUrl(url));
 
     const verificationStatus = brokerData.isVerified ? 'approved' : hasUploadedDocuments ? 'pending' : 'unsubmitted';
 
