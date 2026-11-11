@@ -1292,6 +1292,18 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   }) {
     try {
       this.logger.log(`Received admin withdraw request: amount=${dto.amount}, phone=${dto.phoneNumber}`);
+
+      // The platform commission balance is checked here — before the request
+      // reaches the payment service — so a withdrawal is never initiated that
+      // the platform cannot fund.
+      const dashboard = await this.getOrCreateDashboard();
+      const available = Number(dashboard.currentCommission) || 0;
+      if (available < Number(dto.amount)) {
+        throw new BadRequestException(
+          `Insufficient platform balance. Available: UGX ${available.toLocaleString()}, Requested: UGX ${Number(dto.amount).toLocaleString()}`,
+        );
+      }
+
       const result = await lastValueFrom(
         this.paymentClient.getService('PaymentService').withdraw({
           ...dto,

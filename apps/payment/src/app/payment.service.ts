@@ -507,7 +507,7 @@ const commissions: any = await lastValueFrom(
             );
 
             const reversalAmount = Number(actual_Amount_After_Gateway_Deduction);
-            const withdrawalFee = this.getWithdrawFee(reversalAmount);
+            const withdrawalFee = 0;  //this.getWithdrawFee(reversalAmount);
             const amountToTransact = reversalAmount - withdrawalFee;
             let reversalStatus = 'FAILED';
             let reversalReference = `REV-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -753,6 +753,30 @@ if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecSta
     return 0;
   }
 
+  /**
+   * Works out the gross amount to request from the iotec gateway so that the
+   * payee still receives `net` after the gateway deducts its withdrawal charge.
+   *
+   * The charge is tiered on the *requested* (gross) amount, so the fee for the
+   * grossed-up amount can differ from the fee for the net amount. Each fee tier
+   * is therefore tried in turn until the arithmetic settles exactly.
+   */
+  private grossUpForGatewayFee(net: number): number {
+    const tiers = [0, 700, 1400, 2300, 2800];
+
+    for (const tier of tiers) {
+      const gross = net + tier;
+      if (this.getWithdrawFee(gross) === tier) {
+        return gross;
+      }
+    }
+
+    // No tier reproduces `net` exactly (only possible at the very top of the
+    // schedule). Fall back to the fee that applies to `net` itself so the
+    // shortfall, if any, stays as small as possible.
+    return net + this.getWithdrawFee(net);
+  }
+
   async withdraw(dto: WithdrawDto): Promise<{
     success: boolean;
     message: string;
@@ -910,8 +934,13 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
     let reversalReference = `ESC-REV-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     let reversalStatus = 'FAILED';
 
+    // The iotec gateway deducts its withdrawal charge from every disbursement,
+    // refunds included. Request the grossed-up amount so the customer still
+    // receives the full escrow amount that was held for them.
+    const grossReversalAmount = this.grossUpForGatewayFee(reversalAmount);
+
     this.logger.log(
-      `[escrow-reversal] start: booking=${dto.bookingCode} property=${dto.propertyId} broker=${dto.brokerCode} amount=${reversalAmount} phone=${dto.customerPhone}`,
+      `[escrow-reversal] start: booking=${dto.bookingCode} property=${dto.propertyId} broker=${dto.brokerCode} amount=${reversalAmount} gross=${grossReversalAmount} phone=${dto.customerPhone}`,
     );
 
     if (reversalAmount <= 0) {
@@ -925,7 +954,7 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
       const reversalResult = await firstValueFrom(
         this.httpService
           .post(`${IOTEC_BASE_URL}/iotec/mobile-money`, {
-            amount: reversalAmount,
+            amount: grossReversalAmount,
             phoneNumber: dto.customerPhone,
             provider: 'MTN',
             reference: reversalReference,
@@ -942,7 +971,7 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
       );
       reversalStatus = reversalResult.data?.status || reversalStatus;
       reversalReference = reversalResult.data?.reference || reversalResult.data?.externalId || reversalReference;
-      this.logger.log(`[escrow-reversal] disbursement status=${reversalStatus} reference=${reversalReference}`);
+      this.logger.log(`[escrow-reversal] disbursement status=${reversalStatus} reference=${reversalReference} netAmount=${reversalResult.data?.netAmount}`);
     } catch (err) {
       this.logger.error(`[escrow-reversal] disbursement failed for booking=${dto.bookingCode}: ${(err as Error).message}`);
     }
