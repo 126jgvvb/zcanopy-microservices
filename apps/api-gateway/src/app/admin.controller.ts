@@ -376,6 +376,55 @@ export class AdminController {
     return this.proxyService.forwardToAdmin('GetPendingDocuments', {});
   }
 
+  /* ---- Landlord & title (UgNLIS) verifications ---- */
+
+  @Get('landlord-verifications')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'List landlord & title verifications submitted by brokers' })
+  async getLandlordVerifications(@Query() query: any) {
+    this.logger.log(`Get landlord verifications request: ${JSON.stringify(query)}`);
+    return this.proxyService.forwardToBroker('GetLandlordVerifications', {
+      page: Number(query.page) || 1,
+      limit: Number(query.limit) || 20,
+      status: query.status || 'all',
+      brokerCode: query.brokerCode || '',
+    });
+  }
+
+  @Post('landlord-verifications/:verificationId/approve')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Approve a landlord verification with the Ministry instrument number' })
+  async approveLandlordVerification(
+    @Param('verificationId') verificationId: string,
+    @Body() body: any,
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.sub || req.user?.id;
+    this.logger.log(`Approve landlord verification ${verificationId} by admin ${adminId} instrument=${body.instrumentNumber}`);
+    return this.proxyService.forwardToBroker('ApproveLandlordVerification', {
+      verificationId,
+      adminId,
+      instrumentNumber: body.instrumentNumber || '',
+    });
+  }
+
+  @Post('landlord-verifications/:verificationId/reject')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Reject a landlord verification and email the broker the exact reason' })
+  async rejectLandlordVerification(
+    @Param('verificationId') verificationId: string,
+    @Body() body: any,
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.sub || req.user?.id;
+    this.logger.log(`Reject landlord verification ${verificationId} by admin ${adminId}`);
+    return this.proxyService.forwardToBroker('RejectLandlordVerification', {
+      verificationId,
+      adminId,
+      reason: body.reason || '',
+    });
+  }
+
   @Post('brokers/:brokerId/approve-document')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Approve/reject a broker document' })

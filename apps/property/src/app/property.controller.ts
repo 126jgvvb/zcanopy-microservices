@@ -216,6 +216,24 @@ export class PropertyController {
     return this.propertyService.declineBooking(dto);
   }
 
+  @GrpcMethod('PropertyService', 'SetBookingEscrow')
+  async setBookingEscrow(dto: { bookingCode: string; customerId?: string; customerPhone?: string; customerEmail?: string; escrowDays?: number; escrowEnabled?: boolean }) {
+    this.logger.log(`Received set-booking-escrow request for bookingCode=${dto.bookingCode} days=${dto.escrowDays} enabled=${dto.escrowEnabled}`);
+    return this.propertyService.setBookingEscrow(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'ReleaseBookingFunds')
+  async releaseBookingFunds(dto: { bookingCode: string; customerId?: string; customerPhone?: string; customerEmail?: string }) {
+    this.logger.log(`Received release-booking-funds request for bookingCode=${dto.bookingCode}`);
+    return this.propertyService.releaseBookingFunds(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'SweepExpiredEscrows')
+  async sweepExpiredEscrows() {
+    this.logger.log('Received sweep-expired-escrows request');
+    return this.propertyService.sweepExpiredEscrows();
+  }
+
   @GrpcMethod('PropertyService', 'SearchPropertiesByBrokerTitle')
   async searchPropertiesByBrokerTitle(dto: { query: string; customerId?: string; page: number; limit: number; lat?: number; lng?: number; radiusKm?: number }) {
     this.logger.log(`Received search-properties-by-broker-title request for query=${dto.query}`);

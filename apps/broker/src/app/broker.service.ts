@@ -5,6 +5,7 @@ import { PayoutsEntity } from '../entity/payouts.entity';
 import { BrokerWalletTransactionEntity } from '../entity/broker-wallet-transaction.entity';
 import { BrokerFeedbackEntity } from '../entity/broker-feedback.entity';
 import { BrokerFcmTokenEntity } from '../entity/broker-fcm-token.entity';
+import { LandlordVerificationEntity } from '../entity/landlord-verification.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientGrpc } from '@nestjs/microservices';
@@ -70,6 +71,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             private readonly feedbackRepo:Repository<BrokerFeedbackEntity>,
             @InjectRepository(BrokerFcmTokenEntity)
             private readonly fcmTokenRepo:Repository<BrokerFcmTokenEntity>,
+            @InjectRepository(LandlordVerificationEntity)
+            private readonly landlordVerificationRepo:Repository<LandlordVerificationEntity>,
 @Inject('REDIS_CLIENT') private readonly redisClient:ClientProxy,
              @Inject('PROPERTY_CLIENT') private readonly propertyClient: ClientGrpc,
              @Inject('PAYMENT_CLIENT') private readonly paymentClient: ClientGrpc,
@@ -220,6 +223,12 @@ private getEmptyBroker(): any {
                 }
             });
 
+            this.subscriber.subscribe('broker_booking_funds_released', (err) => {
+                if (err) {
+                    console.error('Failed to subscribe to broker_booking_funds_released', err);
+                }
+            });
+
             this.subscriber.subscribe('broker_property_updated', (err) => {
                 if (err) {
                     console.error('Failed to subscribe to broker_property_updated', err);
@@ -250,7 +259,7 @@ private getEmptyBroker(): any {
                 } else if (channel === 'update_broker_wallet') {
                     const raw = JSON.parse(message);
                     const data = raw.data || raw;
-                    await this.handleUpdateBrokerWallet(data.brokerCode, data.amount);
+                    await this.handleUpdateBrokerWallet(data);
                 } else if (channel === 'broker_property_payment') {
                     const raw = JSON.parse(message);
                     const data = raw.data || raw;
@@ -259,6 +268,10 @@ private getEmptyBroker(): any {
                     const raw = JSON.parse(message);
                     const data = raw.data || raw;
                     await this.handleBrokerBookingCreated(data);
+                } else if (channel === 'broker_booking_funds_released') {
+                    const raw = JSON.parse(message);
+                    const data = raw.data || raw;
+                    await this.handleBrokerBookingFundsReleased(data);
                 } else if (channel === 'broker_property_updated') {
                     const raw = JSON.parse(message);
                     const data = raw.data || raw;
@@ -340,15 +353,31 @@ private getEmptyBroker(): any {
             }
         }
 
-        async handleUpdateBrokerWallet(brokerCode: string, amount: number) {
+        async handleUpdateBrokerWallet(data: { brokerCode: string; amount: number; escrow?: boolean; externalId?: string }) {
             try {
-                const broker = await this.brokerRepo.findOne({ where: { brokerCode } });
+                const broker = await this.brokerRepo.findOne({ where: { brokerCode: data.brokerCode } });
                 if (!broker) {
-                    this.logger.error(`Broker with code ${brokerCode} not found for wallet update`);
+                    this.logger.error(`Broker with code ${data.brokerCode} not found for wallet update`);
                     return;
                 }
 
-                const currentBalance = broker.walletBalance || 0;
+                const amount = Number(data.amount) || 0;
+
+                if (data.escrow) {
+                    // Booking funds go into the held (escrow) balance first —
+                    // they cannot be withdrawn until the customer releases
+                    // them or the escrow countdown expires.
+                    const currentHeld = Number(broker.heldBalance || 0);
+                    const newHeld = currentHeld + amount;
+                    await this.brokerRepo.update(broker.id, {
+                        heldBalance: newHeld,
+                        updatedAt: new Date(),
+                    });
+                    this.logger.log(`Held (escrow) credit for ${data.brokerCode}: ${currentHeld} + ${amount} = ${newHeld} (booking=${data.externalId || 'n/a'})`);
+                    return;
+                }
+
+                const currentBalance = Number(broker.walletBalance || 0);
                 const newBalance = currentBalance + amount;
 
                 await this.brokerRepo.update(broker.id, {
@@ -356,9 +385,93 @@ private getEmptyBroker(): any {
                     updatedAt: new Date(),
                 });
 
-                this.logger.log(`Updated broker wallet for ${brokerCode}: ${currentBalance} + ${amount} = ${newBalance}`);
+                this.logger.log(`Updated broker wallet for ${data.brokerCode}: ${currentBalance} + ${amount} = ${newBalance}`);
             } catch (err) {
-                this.logger.error(`Failed to update broker wallet for ${brokerCode}:`, err);
+                this.logger.error(`Failed to update broker wallet for ${data.brokerCode}:`, err);
+            }
+        }
+
+        /**
+         * Moves booking funds from the held (escrow) balance into the
+         * withdrawable wallet balance once the customer approves the booking.
+         */
+        async releaseBookingEscrow(dto: { brokerCode: string; amount: number; bookingReference?: string }) {
+            try {
+                const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
+                if (!broker) {
+                    throw new NotFoundException(`Broker not found for name or code ${dto.brokerCode}`);
+                }
+
+                const amount = Number(dto.amount) || 0;
+                if (amount <= 0) {
+                    throw new BadRequestException('Release amount must be greater than zero');
+                }
+
+                const currentHeld = Number(broker.heldBalance || 0);
+                if (currentHeld < amount) {
+                    throw new BadRequestException(
+                        `Insufficient held (escrow) balance. Held: ${currentHeld}, requested: ${amount}`,
+                    );
+                }
+
+                const currentWallet = Number(broker.walletBalance || 0);
+                broker.heldBalance = currentHeld - amount;
+                broker.walletBalance = currentWallet + amount;
+                await this.brokerRepo.save(broker);
+
+                this.logger.log(
+                    `Released booking escrow for ${dto.brokerCode}: held ${currentHeld} -> ${broker.heldBalance}, wallet ${currentWallet} -> ${broker.walletBalance} (booking=${dto.bookingReference || 'n/a'})`,
+                );
+
+                return {
+                    success: true,
+                    message: 'Booking funds released to the withdrawable wallet balance',
+                    heldBalance: broker.heldBalance,
+                    walletBalance: broker.walletBalance,
+                };
+            } catch (err) {
+                this.logger.error(`Failed to release booking escrow for ${dto.brokerCode}:`, err);
+                throw err;
+            }
+        }
+
+        /**
+         * Removes reversed booking funds from the held (escrow) balance when
+         * an escrow countdown expires and the money is returned to the
+         * customer. Clamps at zero so ledger drift can never go negative.
+         */
+        async reverseBookingEscrow(dto: { brokerCode: string; amount: number; bookingReference?: string }) {
+            try {
+                const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
+                if (!broker) {
+                    throw new NotFoundException(`Broker not found for name or code ${dto.brokerCode}`);
+                }
+
+                const amount = Number(dto.amount) || 0;
+                const currentHeld = Number(broker.heldBalance || 0);
+                const actual = Math.min(amount, currentHeld);
+
+                broker.heldBalance = Math.max(0, currentHeld - amount);
+                await this.brokerRepo.save(broker);
+
+                if (actual < amount) {
+                    this.logger.warn(
+                        `Reversed booking escrow for ${dto.brokerCode} clamped from ${amount} to ${actual} (held=${currentHeld}) booking=${dto.bookingReference || 'n/a'}`,
+                    );
+                }
+
+                this.logger.log(
+                    `Reversed booking escrow for ${dto.brokerCode}: held ${currentHeld} -> ${broker.heldBalance} (booking=${dto.bookingReference || 'n/a'})`,
+                );
+
+                return {
+                    success: true,
+                    message: 'Booking escrow funds removed from the held balance',
+                    heldBalance: broker.heldBalance,
+                };
+            } catch (err) {
+                this.logger.error(`Failed to reverse booking escrow for ${dto.brokerCode}:`, err);
+                throw err;
             }
         }
 
@@ -1803,6 +1916,48 @@ private getEmptyBroker(): any {
         }
     }
 
+    /**
+     * The customer approved a booking, so its escrowed funds moved from the
+     * held balance into the withdrawable wallet — let the broker know.
+     */
+    private async handleBrokerBookingFundsReleased(data: { brokerCode: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; amount: number; bookingCode?: string; transactionCode?: string }) {
+        try {
+            const broker = await this.brokerRepo.findOne({ where: { brokerCode: data.brokerCode } });
+            if (!broker) {
+                this.logger.warn(`Broker ${data.brokerCode} not found for funds released notification`);
+                return;
+            }
+
+            if (!broker.bookingNotificationsEnabled) {
+                return;
+            }
+
+            this.redisClient.emit(`broker:notifications:${data.brokerCode}`, {
+                type: 'BOOKING_FUNDS_RELEASED',
+                title: 'Booking Funds Released',
+                message: `${data.customerName} approved the booking for ${data.propertyTitle}. UGX ${data.amount} is now in your withdrawable balance.`,
+                propertyId: data.propertyId,
+                propertyTitle: data.propertyTitle,
+                customerName: data.customerName,
+                customerPhone: data.customerPhone,
+                amount: data.amount,
+                bookingCode: data.bookingCode,
+                transactionCode: data.transactionCode,
+                timestamp: new Date().toISOString(),
+            });
+
+            await this.sendFcmNotification(data.brokerCode, 'Booking Funds Released', `${data.customerName} approved the booking for ${data.propertyTitle}. UGX ${data.amount} is now withdrawable.`, {
+                type: 'BOOKING_FUNDS_RELEASED',
+                propertyId: data.propertyId,
+                propertyTitle: data.propertyTitle,
+                amount: String(data.amount),
+                bookingCode: data.bookingCode || '',
+            });
+        } catch (err) {
+            this.logger.error(`Failed to handle broker booking funds released for ${data.brokerCode}:`, err);
+        }
+    }
+
 
 
     async getPendingVerifications(query: { page: number; limit: number }) {
@@ -1955,11 +2110,13 @@ private getEmptyBroker(): any {
                 isActive: broker.isActive,
                 isDeleted: broker.isDeleted,
                 walletBalance: broker.walletBalance || 0,
+                heldBalance: broker.heldBalance || 0,
                 subscriptionExpiresAt: broker.subscriptionExpiresAt ? broker.subscriptionExpiresAt.toISOString() : null,
               },
               messages,
               bookings,
               walletBalance: broker.walletBalance || 0,
+              heldBalance: broker.heldBalance || 0,
               minimumWithdrawal,
             };
 
@@ -2079,6 +2236,36 @@ private getEmptyBroker(): any {
           };
         }
 
+        // Withdrawals additionally require an approved landlord & title
+        // verification plus a fresh OTP that was sent to the landlord.
+        const landlordVerification = await this.landlordVerificationRepo.findOne({
+          where: { brokerId: broker.id, status: 'approved' },
+          order: { reviewedAt: 'DESC' },
+        });
+
+        if (!landlordVerification) {
+          return {
+            success: false,
+            message: 'Landlord & title verification required. Submit your landlord details and get them approved before withdrawing funds.',
+          };
+        }
+
+        const submittedOtp = String(dto.otp || '').trim();
+        if (!submittedOtp) {
+          return {
+            success: false,
+            message: 'A withdrawal OTP is required. Request one to be sent to the landlord, then submit it with the withdrawal.',
+          };
+        }
+
+        const storedOtp = await this.redis.get(this.landlordWithdrawalOtpKey(brokerCode));
+        if (!storedOtp || storedOtp !== submittedOtp) {
+          return {
+            success: false,
+            message: 'Invalid or expired landlord OTP. Request a new OTP and try again.',
+          };
+        }
+
         const withdrawalAmount = Number(dto.amount);
         if (Number.isNaN(withdrawalAmount) || withdrawalAmount <= 0) {
           throw new BadRequestException('Invalid withdrawal amount');
@@ -2105,6 +2292,9 @@ private getEmptyBroker(): any {
         const netAmount = Number(withdrawalAmount);  
         broker.walletBalance = Math.max(0, currentBalance - netAmount);
           await this.brokerRepo.save(broker);
+
+          // The landlord OTP is single-use: burn it after a successful payout.
+          await this.redis.del(this.landlordWithdrawalOtpKey(brokerCode));
 
           const payout = this.payoutsRepo.create({
             brokerId: broker.id,
@@ -2169,6 +2359,7 @@ private getEmptyBroker(): any {
 
         return {
           balance: broker.walletBalance || 0,
+          heldBalance: broker.heldBalance || 0,
           currency: 'UGX',
           walletId: broker.brokerCode,
           name: broker.username,
@@ -2212,6 +2403,542 @@ private getEmptyBroker(): any {
             };
         } catch (err) {
             this.logger.error(`Failed to get wallet transactions for broker ${dto.brokerCode}:`, err);
+            throw err;
+        }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Landlord & title (UgNLIS) verification                             */
+    /* ------------------------------------------------------------------ */
+
+    private static readonly LANDLORD_WITHDRAWAL_OTP_TTL_SECONDS = 300;
+    private static readonly LANDLORD_BROKER_OTP_TTL_SECONDS = 600;
+
+    private landlordWithdrawalOtpKey(brokerCode: string): string {
+        return `landlord:withdraw-otp:${brokerCode}`;
+    }
+
+    private landlordBrokerOtpKey(requestingBrokerCode: string, targetBrokerCode: string): string {
+        return `landlord:broker-otp:${requestingBrokerCode}:${targetBrokerCode}`;
+    }
+
+    /**
+     * Finds landlord verifications from OTHER brokers that clash with the
+     * given landlord identity (matching NIN, phone number or full name).
+     * A landlord can legitimately be represented by several brokers, but a
+     * new submission must be cross-confirmed via OTPs sent to those brokers.
+     */
+    private async findMatchingLandlordRecords(
+        broker: BrokerEntity,
+        fullName: string,
+        nin: string,
+        phoneNumber: string,
+    ): Promise<LandlordVerificationEntity[]> {
+        const normalizedPhone = (phoneNumber || '').replace(/\s+/g, '');
+        const normalizedNin = (nin || '').trim().toUpperCase();
+        const normalizedName = (fullName || '').trim().toLowerCase();
+
+        const qb = this.landlordVerificationRepo
+            .createQueryBuilder('lv')
+            .where('lv.brokerCode != :brokerCode', { brokerCode: broker.brokerCode });
+
+        if (normalizedNin && normalizedPhone && normalizedName) {
+            qb.andWhere('(UPPER(lv.landlordNin) = :nin OR lv.landlordPhoneNumber = :phone OR LOWER(lv.landlordFullName) = :name)', {
+                nin: normalizedNin,
+                phone: normalizedPhone,
+                name: normalizedName,
+            });
+        } else if (normalizedNin && normalizedPhone) {
+            qb.andWhere('(UPPER(lv.landlordNin) = :nin OR lv.landlordPhoneNumber = :phone)', {
+                nin: normalizedNin,
+                phone: normalizedPhone,
+            });
+        } else if (normalizedNin) {
+            qb.andWhere('UPPER(lv.landlordNin) = :nin', { nin: normalizedNin });
+        } else if (normalizedPhone) {
+            qb.andWhere('lv.landlordPhoneNumber = :phone', { phone: normalizedPhone });
+        } else if (normalizedName) {
+            qb.andWhere('LOWER(lv.landlordFullName) = :name', { name: normalizedName });
+        } else {
+            return [];
+        }
+
+        return qb.orderBy('lv.createdAt', 'DESC').take(10).getMany();
+    }
+
+    private async findBrokersForLandlordMatches(
+        matches: LandlordVerificationEntity[],
+    ): Promise<Array<{ brokerId: string; brokerCode: string; brokerName: string; channel: 'email' | 'phone' }>> {
+        const results: Array<{ brokerId: string; brokerCode: string; brokerName: string; channel: 'email' | 'phone' }> = [];
+        const seen = new Set<string>();
+
+        for (const match of matches) {
+            if (seen.has(match.brokerCode)) continue;
+            seen.add(match.brokerCode);
+
+            const broker = await this.brokerRepo.findOne({ where: { brokerCode: match.brokerCode } });
+            if (!broker) continue;
+
+            results.push({
+                brokerId: broker.id,
+                brokerCode: broker.brokerCode,
+                brokerName: broker.username,
+                channel: broker.email ? 'email' : 'phone',
+            });
+        }
+
+        return results;
+    }
+
+    async submitLandlordDetails(dto: {
+        brokerCode: string;
+        fullName: string;
+        nin: string;
+        phoneNumber: string;
+        email?: string;
+        mzoDistrict: string;
+        tenureType: string;
+        countyDivision?: string;
+        blockNumber?: string;
+        plotNumber?: string;
+        volumeNumber?: string;
+        folioNumber?: string;
+        leaseExpiryDate?: string;
+        subCountyVillage?: string;
+        ccoRefNumber?: string;
+        brokerConfirmations?: Array<{ brokerCode: string; otp: string }>;
+    }) {
+        try {
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
+            if (!broker) {
+                return { success: false, message: `Broker with code ${dto.brokerCode} not found` };
+            }
+
+            const fullName = (dto.fullName || '').trim();
+            const nin = (dto.nin || '').trim().toUpperCase();
+            const phoneNumber = (dto.phoneNumber || '').trim();
+
+            if (!fullName || !nin || !phoneNumber || !dto.mzoDistrict || !dto.tenureType) {
+                return { success: false, message: 'Landlord full name, NIN, phone number, MZO district and tenure type are required' };
+            }
+
+            if (!/^C[FM][0-9A-Z]{12}$/.test(nin)) {
+                return { success: false, message: 'Invalid Ugandan NIN format. Expected 14 characters starting with CF or CM.' };
+            }
+
+            const matches = await this.findMatchingLandlordRecords(broker, fullName, nin, phoneNumber);
+
+            if (matches.length > 0) {
+                const confirmations = dto.brokerConfirmations || [];
+                if (confirmations.length === 0) {
+                    // Step 1: tell the broker which other brokers hold records for
+                    // this landlord so they can agree to send them OTPs first.
+                    const matchedBrokers = await this.findBrokersForLandlordMatches(matches);
+                    return {
+                        success: false,
+                        needsBrokerConfirmation: true,
+                        message:
+                            'These landlord details match records submitted by other brokers. ' +
+                            'You must agree to send confirmation OTPs to those brokers and enter them before submitting.',
+                        matchedBrokers,
+                    };
+                }
+
+                // Step 2: validate each provided broker OTP.
+                for (const confirmation of confirmations) {
+                    const key = this.landlordBrokerOtpKey(broker.brokerCode, confirmation.brokerCode);
+                    const stored = await this.redis.get(key);
+                    if (!stored || stored !== String(confirmation.otp || '').trim()) {
+                        // Resend fresh OTPs so the flow can be retried.
+                        const matchedBrokers = await this.findBrokersForLandlordMatches(matches);
+                        for (const matched of matchedBrokers) {
+                            await this.sendLandlordBrokerOtp(broker, matched.brokerCode);
+                        }
+                        return {
+                            success: false,
+                            needsBrokerConfirmation: true,
+                            message: 'One or more broker confirmation OTPs were invalid or expired. New OTPs have been sent.',
+                            matchedBrokers,
+                        };
+                    }
+                    await this.redis.del(key);
+                }
+            }
+
+            // Mark any earlier submissions by this same broker as superseded.
+            await this.landlordVerificationRepo.update(
+                { brokerCode: broker.brokerCode, status: 'pending' },
+                { status: 'rejected', rejectionReason: 'Superseded by a newer submission', updatedAt: new Date() },
+            );
+
+            const verification = this.landlordVerificationRepo.create({
+                brokerId: broker.id,
+                brokerCode: broker.brokerCode,
+                landlordFullName: fullName,
+                landlordNin: nin,
+                landlordPhoneNumber: phoneNumber,
+                landlordEmail: dto.email || undefined,
+                mzoDistrict: dto.mzoDistrict,
+                tenureType: dto.tenureType,
+                countyDivision: dto.countyDivision || undefined,
+                blockNumber: dto.blockNumber || undefined,
+                plotNumber: dto.plotNumber || undefined,
+                volumeNumber: dto.volumeNumber || undefined,
+                folioNumber: dto.folioNumber || undefined,
+                leaseExpiryDate: dto.leaseExpiryDate || undefined,
+                subCountyVillage: dto.subCountyVillage || undefined,
+                ccoRefNumber: dto.ccoRefNumber || undefined,
+                status: 'pending',
+            });
+
+            const saved = await this.landlordVerificationRepo.save(verification);
+
+            this.logger.log(
+                `Broker ${broker.brokerCode} submitted landlord details for ${fullName} (verification ${saved.id})`,
+            );
+
+            // Notify admins that a new landlord verification awaits review.
+            this.redisClient.emit('send_admin_message_email', {
+                recipientEmail: 'admin@zcanopy.com',
+                recipientName: 'ZCanopy Admin',
+                subject: 'New landlord & title verification submitted',
+                body:
+                    `Broker ${broker.username} (${broker.brokerCode}) submitted landlord details for ` +
+                    `${fullName} (NIN ${nin}, ${dto.mzoDistrict}, ${dto.tenureType}). ` +
+                    `Review it in the admin console and record the instrument number to approve.`,
+            });
+
+            return {
+                success: true,
+                message: 'Landlord details submitted successfully. Verification is in progress.',
+                verificationId: saved.id,
+                status: 'pending',
+            };
+        } catch (err) {
+            this.logger.error(`Failed to submit landlord details for ${dto.brokerCode}:`, err);
+            throw err;
+        }
+    }
+
+    /** Generates + dispatches the cross-broker confirmation OTP for one target broker. */
+    private async sendLandlordBrokerOtp(requestingBroker: BrokerEntity, targetBrokerCode: string) {
+        const target = await this.brokerRepo.findOne({ where: { brokerCode: targetBrokerCode } });
+        if (!target) {
+            return;
+        }
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        await this.redis.setex(
+            this.landlordBrokerOtpKey(requestingBroker.brokerCode, target.brokerCode),
+            BrokerService.LANDLORD_BROKER_OTP_TTL_SECONDS,
+            otp,
+        );
+
+        if (target.email) {
+            this.redisClient.emit('send_email_otp', {
+                otp,
+                email: target.email,
+                username: target.username,
+                ttlSeconds: BrokerService.LANDLORD_BROKER_OTP_TTL_SECONDS,
+                purpose: 'landlord-confirmation',
+            });
+        } else if (target.phoneNumber) {
+            this.redisClient.emit('send_sms_otp', {
+                otp,
+                phoneNumber: target.phoneNumber,
+                username: target.username,
+                ttlSeconds: BrokerService.LANDLORD_BROKER_OTP_TTL_SECONDS,
+                purpose: 'landlord-confirmation',
+            });
+        }
+    }
+
+    async sendLandlordBrokerOtps(dto: { brokerCode: string; fullName: string; nin: string; phoneNumber: string }) {
+        try {
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
+            if (!broker) {
+                return { success: false, message: `Broker with code ${dto.brokerCode} not found` };
+            }
+
+            const matches = await this.findMatchingLandlordRecords(broker, dto.fullName, dto.nin, dto.phoneNumber);
+            const matchedBrokers = await this.findBrokersForLandlordMatches(matches);
+
+            if (matchedBrokers.length === 0) {
+                return { success: false, message: 'No other brokers are connected to these landlord details.' };
+            }
+
+            for (const matched of matchedBrokers) {
+                await this.sendLandlordBrokerOtp(broker, matched.brokerCode);
+            }
+
+            this.logger.log(
+                `Sent landlord confirmation OTPs from ${broker.brokerCode} to brokers: ${matchedBrokers
+                    .map((m) => m.brokerCode)
+                    .join(', ')}`,
+            );
+
+            return {
+                success: true,
+                message: 'Confirmation OTPs sent to the brokers connected to this landlord.',
+                matchedBrokers,
+            };
+        } catch (err) {
+            this.logger.error(`Failed to send landlord broker OTPs for ${dto.brokerCode}:`, err);
+            throw err;
+        }
+    }
+
+    async getLandlordDetailsStatus(dto: { brokerCode: string }) {
+        try {
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
+            if (!broker) {
+                throw new NotFoundException(`Broker not found for name or code ${dto.brokerCode}`);
+            }
+
+            const latest = await this.landlordVerificationRepo.findOne({
+                where: { brokerId: broker.id },
+                order: { createdAt: 'DESC' },
+            });
+
+            if (!latest) {
+                return { status: 'unsubmitted' };
+            }
+
+            return {
+                status: latest.status,
+                instrumentNumber: latest.instrumentNumber || '',
+                rejectionReason: latest.rejectionReason || '',
+                submittedAt: latest.createdAt ? latest.createdAt.toISOString() : '',
+                fullName: latest.landlordFullName,
+                nin: latest.landlordNin,
+                mzoDistrict: latest.mzoDistrict,
+                tenureType: latest.tenureType,
+            };
+        } catch (err) {
+            this.logger.error(`Failed to get landlord details status for ${dto.brokerCode}:`, err);
+            throw err;
+        }
+    }
+
+    async getLandlordVerifications(dto: { page: number; limit: number; status?: string; brokerCode?: string }) {
+        try {
+            const page = Number(dto.page) || 1;
+            const limit = Number(dto.limit) || 20;
+
+            const where: any = {};
+            if (dto.status && dto.status !== 'all') {
+                where.status = dto.status;
+            }
+            if (dto.brokerCode) {
+                where.brokerCode = dto.brokerCode;
+            }
+
+            const [verifications, total] = await this.landlordVerificationRepo.findAndCount({
+                where,
+                order: { createdAt: 'DESC' },
+                skip: (page - 1) * limit,
+                take: limit,
+            });
+
+            const rows = await Promise.all(
+                verifications.map(async (v) => {
+                    const broker = await this.brokerRepo.findOne({ where: { brokerCode: v.brokerCode } });
+                    return {
+                        id: v.id,
+                        brokerId: v.brokerId,
+                        brokerCode: v.brokerCode,
+                        brokerName: broker?.username || v.brokerCode,
+                        brokerEmail: broker?.email || '',
+                        landlordFullName: v.landlordFullName,
+                        landlordNin: v.landlordNin,
+                        landlordPhoneNumber: v.landlordPhoneNumber,
+                        landlordEmail: v.landlordEmail || '',
+                        mzoDistrict: v.mzoDistrict,
+                        tenureType: v.tenureType,
+                        countyDivision: v.countyDivision || '',
+                        blockNumber: v.blockNumber || '',
+                        plotNumber: v.plotNumber || '',
+                        volumeNumber: v.volumeNumber || '',
+                        folioNumber: v.folioNumber || '',
+                        leaseExpiryDate: v.leaseExpiryDate || '',
+                        subCountyVillage: v.subCountyVillage || '',
+                        ccoRefNumber: v.ccoRefNumber || '',
+                        instrumentNumber: v.instrumentNumber || '',
+                        rejectionReason: v.rejectionReason || '',
+                        status: v.status,
+                        createdAt: v.createdAt ? v.createdAt.toISOString() : '',
+                        updatedAt: v.updatedAt ? v.updatedAt.toISOString() : '',
+                    };
+                }),
+            );
+
+            return { verifications: rows, total, page, limit };
+        } catch (err) {
+            this.logger.error('Failed to get landlord verifications:', err);
+            throw err;
+        }
+    }
+
+    async approveLandlordVerification(dto: { verificationId: string; adminId: string; instrumentNumber: string }) {
+        try {
+            const verification = await this.landlordVerificationRepo.findOne({ where: { id: dto.verificationId } });
+            if (!verification) {
+                throw new NotFoundException(`Landlord verification ${dto.verificationId} not found`);
+            }
+
+            if (verification.status === 'approved') {
+                return { success: false, message: 'This landlord verification is already approved' };
+            }
+
+            const instrumentNumber = (dto.instrumentNumber || '').trim();
+            if (!instrumentNumber) {
+                return {
+                    success: false,
+                    message: 'The instrument number from the Ministry Zonal Office is required before approval',
+                };
+            }
+
+            verification.status = 'approved';
+            verification.instrumentNumber = instrumentNumber;
+            verification.rejectionReason = null;
+            verification.reviewedAt = new Date();
+            verification.reviewedByAdminId = dto.adminId || '';
+            await this.landlordVerificationRepo.save(verification);
+
+            // Approval unlocks withdrawals for the broker: reuse the existing
+            // broker_approved flow so the broker is marked verified + notified.
+            this.redisClient.emit('broker_approved', {
+                brokerId: verification.brokerId,
+                instrumentNumber,
+                source: 'landlord-verification',
+            });
+
+            const broker = await this.brokerRepo.findOne({ where: { id: verification.brokerId } });
+            if (broker) {
+                this.redisClient.emit('send_admin_message_email', {
+                    recipientEmail: broker.email,
+                    recipientName: broker.username,
+                    subject: 'Landlord & title details approved',
+                    body:
+                        `Dear ${broker.username}, your landlord and property title details for ` +
+                        `${verification.landlordFullName} have been approved with instrument number ${instrumentNumber}. ` +
+                        `You may now withdraw your funds — each withdrawal will require an OTP sent to the landlord.`,
+                });
+            }
+
+            this.logger.log(`Approved landlord verification ${verification.id} with instrument number ${instrumentNumber}`);
+            return { success: true, message: 'Landlord verification approved and broker notified' };
+        } catch (err) {
+            this.logger.error(`Failed to approve landlord verification ${dto.verificationId}:`, err);
+            throw err;
+        }
+    }
+
+    async rejectLandlordVerification(dto: { verificationId: string; adminId: string; reason: string }) {
+        try {
+            const verification = await this.landlordVerificationRepo.findOne({ where: { id: dto.verificationId } });
+            if (!verification) {
+                throw new NotFoundException(`Landlord verification ${dto.verificationId} not found`);
+            }
+
+            const reason = (dto.reason || '').trim();
+            if (!reason) {
+                return { success: false, message: 'A rejection reason is required so the broker can be told why the details failed validation' };
+            }
+
+            verification.status = 'rejected';
+            verification.rejectionReason = reason;
+            verification.instrumentNumber = null;
+            verification.reviewedAt = new Date();
+            verification.reviewedByAdminId = dto.adminId || '';
+            await this.landlordVerificationRepo.save(verification);
+
+            const broker = await this.brokerRepo.findOne({ where: { id: verification.brokerId } });
+            if (broker) {
+                this.redisClient.emit('send_admin_message_email', {
+                    recipientEmail: broker.email,
+                    recipientName: broker.username,
+                    subject: 'Landlord & title details could not be validated',
+                    body:
+                        `Dear ${broker.username}, the landlord and property title details you submitted for ` +
+                        `${verification.landlordFullName} (NIN ${verification.landlordNin}) could not be validated with the ` +
+                        `Ministry Zonal Office. Reason: ${reason}. Please correct the details and resubmit.`,
+                });
+            }
+
+            this.logger.log(`Rejected landlord verification ${verification.id}: ${reason}`);
+            return { success: true, message: 'Landlord verification rejected and broker notified by email' };
+        } catch (err) {
+            this.logger.error(`Failed to reject landlord verification ${dto.verificationId}:`, err);
+            throw err;
+        }
+    }
+
+    async requestLandlordWithdrawalOtp(dto: { brokerCode: string }) {
+        try {
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
+            if (!broker) {
+                throw new NotFoundException(`Broker not found for name or code ${dto.brokerCode}`);
+            }
+
+            const verification = await this.landlordVerificationRepo.findOne({
+                where: { brokerId: broker.id, status: 'approved' },
+                order: { reviewedAt: 'DESC' },
+            });
+
+            if (!verification) {
+                return {
+                    success: false,
+                    message: 'Your landlord & title details must be approved before requesting a withdrawal OTP',
+                };
+            }
+
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            await this.redis.setex(
+                this.landlordWithdrawalOtpKey(broker.brokerCode),
+                BrokerService.LANDLORD_WITHDRAWAL_OTP_TTL_SECONDS,
+                otp,
+            );
+
+            let channel = 'phone';
+            let destination = verification.landlordPhoneNumber;
+            if (verification.landlordEmail) {
+                channel = 'email';
+                destination = verification.landlordEmail;
+                this.redisClient.emit('send_email_otp', {
+                    otp,
+                    email: verification.landlordEmail,
+                    username: verification.landlordFullName,
+                    ttlSeconds: BrokerService.LANDLORD_WITHDRAWAL_OTP_TTL_SECONDS,
+                    purpose: 'landlord-withdrawal-authorization',
+                    amount: undefined,
+                });
+            } else {
+                this.redisClient.emit('send_sms_otp', {
+                    otp,
+                    phoneNumber: verification.landlordPhoneNumber,
+                    username: verification.landlordFullName,
+                    ttlSeconds: BrokerService.LANDLORD_WITHDRAWAL_OTP_TTL_SECONDS,
+                    purpose: 'landlord-withdrawal-authorization',
+                });
+            }
+
+            this.logger.log(`Sent landlord withdrawal OTP for broker ${broker.brokerCode} via ${channel}`);
+
+            // Mask the destination so the response never leaks the landlord's
+            // full contact details to the requesting broker.
+            const masked = destination.length > 4
+                ? `${destination.slice(0, 3)}****${destination.slice(-3)}`
+                : '****';
+
+            return {
+                success: true,
+                message: `An authorisation OTP was sent to the landlord via ${channel === 'email' ? 'email' : 'SMS'} (${masked}). Obtain it from the landlord to complete the withdrawal.`,
+                channel,
+                destination: masked,
+            };
+        } catch (err) {
+            this.logger.error(`Failed to request landlord withdrawal OTP for ${dto.brokerCode}:`, err);
             throw err;
         }
     }

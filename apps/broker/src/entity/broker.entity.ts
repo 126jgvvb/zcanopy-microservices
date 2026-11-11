@@ -116,6 +116,15 @@ subscriptionTier!:string;
   @Column({ type: 'numeric', default: 0 })
   walletBalance!:number;
 
+  /**
+   * Funds from customer bookings held in escrow. Not withdrawable until the
+   * customer approves/releases the booking funds (moved to walletBalance) or
+   * the escrow countdown expires and the amount is reversed back to the
+   * customer's phone number.
+   */
+  @Column({ type: 'numeric', default: 0 })
+  heldBalance!:number;
+
   @Column({ nullable: true })
   googleId?:string;
 

@@ -187,7 +187,7 @@ export class WebBrokerController {
   }
 
   @Post('withdraw')
-  @ApiOperation({ summary: 'Withdraw broker wallet funds to mobile money' })
+  @ApiOperation({ summary: 'Withdraw broker wallet funds to mobile money (requires landlord OTP)' })
   async withdraw(@Req() req: any, @Body() body: any) {
     this.logger.log(`Web broker withdraw request for ${this.getBrokerCode(req)}, amount=${body.amount}`);
     return this.proxyService.forwardToBroker('Withdraw', {
@@ -195,6 +195,63 @@ export class WebBrokerController {
       phoneNumber: body.phoneNumber,
       provider: body.provider,
       payeeName: body.payeeName,
+      otp: body.otp,
+      brokerCode: this.getBrokerCode(req),
+    });
+  }
+
+  @Post('withdraw/request-otp')
+  @ApiOperation({ summary: 'Request an authorisation OTP sent to the landlord for a withdrawal' })
+  async requestWithdrawalOtp(@Req() req: any) {
+    this.logger.log(`Web broker withdrawal OTP request for ${this.getBrokerCode(req)}`);
+    return this.proxyService.forwardToBroker('RequestLandlordWithdrawalOtp', {
+      brokerCode: this.getBrokerCode(req),
+    });
+  }
+
+  /* ---- Landlord & title (UgNLIS) verification ---- */
+
+  @Post('landlord-details')
+  @ApiOperation({ summary: 'Submit landlord identity and property title details for UgNLIS title search' })
+  async submitLandlordDetails(@Req() req: any, @Body() body: any) {
+    this.logger.log(`Web broker submit landlord details for ${this.getBrokerCode(req)}`);
+    return this.proxyService.forwardToBroker('SubmitLandlordDetails', {
+      brokerCode: this.getBrokerCode(req),
+      fullName: body.landlord?.fullName ?? body.fullName,
+      nin: body.landlord?.nin ?? body.nin,
+      phoneNumber: body.landlord?.phoneNumber ?? body.phoneNumber,
+      email: body.landlord?.email ?? body.email,
+      mzoDistrict: body.search?.mzoDistrict ?? body.mzoDistrict,
+      tenureType: body.search?.tenureType ?? body.tenureType,
+      countyDivision: body.search?.location?.countyDivision ?? body.countyDivision,
+      blockNumber: body.search?.location?.blockNumber ?? body.blockNumber,
+      plotNumber: body.search?.location?.plotNumber ?? body.plotNumber,
+      volumeNumber: body.search?.location?.volumeNumber ?? body.volumeNumber,
+      folioNumber: body.search?.location?.folioNumber ?? body.folioNumber,
+      leaseExpiryDate: body.search?.location?.leaseExpiryDate ?? body.leaseExpiryDate,
+      subCountyVillage: body.search?.location?.subCountyVillage ?? body.subCountyVillage,
+      ccoRefNumber: body.search?.location?.ccoRefNumber ?? body.ccoRefNumber,
+      brokerConfirmations: body.brokerConfirmations || [],
+    });
+  }
+
+  @Post('landlord-details/send-broker-otps')
+  @ApiOperation({ summary: 'Send confirmation OTPs to other brokers linked to the same landlord' })
+  async sendLandlordBrokerOtps(@Req() req: any, @Body() body: any) {
+    this.logger.log(`Web broker send landlord broker OTPs for ${this.getBrokerCode(req)}`);
+    return this.proxyService.forwardToBroker('SendLandlordBrokerOtps', {
+      brokerCode: this.getBrokerCode(req),
+      fullName: body.fullName,
+      nin: body.nin,
+      phoneNumber: body.phoneNumber,
+    });
+  }
+
+  @Get('landlord-details/status')
+  @ApiOperation({ summary: 'Get the landlord & title verification status for the authenticated broker' })
+  async getLandlordDetailsStatus(@Req() req: any) {
+    this.logger.log(`Web broker landlord details status for ${this.getBrokerCode(req)}`);
+    return this.proxyService.forwardToBroker('GetLandlordDetailsStatus', {
       brokerCode: this.getBrokerCode(req),
     });
   }

@@ -17,6 +17,23 @@ export interface AllowedViewer {
   reason?: string;
   status?: string;
   bookingCode?: string;
+
+  /* ---- Booking fund escrow ---- */
+  /** Countdown active (defaults to true for new bookings). */
+  escrowEnabled?: boolean;
+  /** Timeframe in days set by the customer. */
+  escrowDays?: number;
+  /** ISO timestamp when the countdown hits zero. */
+  escrowEndsAt?: string;
+  /** Net amount held in the broker's held (escrow) balance for this booking. */
+  escrowAmount?: number;
+  /** Customer approved the booking — funds moved to the withdrawable wallet. */
+  fundsReleased?: boolean;
+  fundsReleasedAt?: string;
+  /** Countdown expired — funds reversed back to the customer's phone number. */
+  fundsReversed?: boolean;
+  fundsReversedAt?: string;
+  reversalReason?: string;
 }
 
 export interface BookingState {

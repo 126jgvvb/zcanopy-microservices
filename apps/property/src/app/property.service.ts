@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ForbiddenException, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository, In } from '@nestjs/typeorm';
 import { Repository, FindOptionsSelect, ILike, Between, LessThan } from 'typeorm';
@@ -59,6 +59,32 @@ export interface BookingState {
   latestBookingDate?: string;
 }
 
+/**
+ * Shape returned by the customer booking read endpoints. Includes the booking
+ * fund escrow fields used by the customer dashboard countdown widget.
+ */
+export interface CustomerBookingView {
+  id: string;
+  propertyId: string;
+  propertyTitle: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  date: string;
+  amount: number;
+  transactionCode: string;
+  reason?: string;
+  status?: string;
+  location: string;
+  bookingCode?: string;
+  escrowEnabled?: boolean;
+  escrowDays?: number;
+  escrowEndsAt?: string;
+  escrowAmount?: number;
+  fundsReleased?: boolean;
+  fundsReversed?: boolean;
+}
+
 export interface FindNearbyDto {
   lat: number;
   lng: number;
@@ -74,6 +100,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
   private redis!: Redis;
   private redisSubscriber!: Redis;
   private nearbySubscribers: Map<string, { customerId: string; radius: number; lat: number; lng: number }[]> = new Map();
+  private escrowSweepInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     @InjectRepository(PropertyEntity)
@@ -133,9 +160,21 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         this.handleNearbyPropertyUpdate(data);
       }
     });
+
+    // Periodically reverse booking escrows whose countdown expired so
+    // customers get their money back even if they never open the dashboard.
+    this.escrowSweepInterval = setInterval(() => {
+      this.sweepExpiredEscrows().catch((err: Error) => {
+        this.logger.error(`Periodic escrow sweep failed: ${err.message}`);
+      });
+    }, 15 * 60 * 1000);
   }
 
   async onModuleDestroy() {
+    if (this.escrowSweepInterval) {
+      clearInterval(this.escrowSweepInterval);
+      this.escrowSweepInterval = null;
+    }
     if (this.redis) {
       await this.redis.quit();
     }
@@ -383,6 +422,394 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       this.logger.error(`Failed to decline booking ${dto.transactionCode}:`, err);
       throw err;
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Booking fund escrow                                                 */
+  /* ------------------------------------------------------------------ */
+
+  private async findBookingByCode(bookingCode: string): Promise<{ property: PropertyEntity; viewer: AllowedViewer; viewerIndex: number } | null> {
+    const properties = await this.propertyRepo.find({ where: {} });
+    for (const property of properties) {
+      const viewers = property.allowedViewers || [];
+      const viewerIndex = viewers.findIndex((v: any) => v && v.bookingCode === bookingCode);
+      if (viewerIndex >= 0) {
+        return { property, viewer: viewers[viewerIndex], viewerIndex };
+      }
+    }
+    return null;
+  }
+
+  private ownsBooking(
+    viewer: AllowedViewer,
+    dto: { customerId?: string; customerPhone?: string; customerEmail?: string },
+  ): boolean {
+    if (dto.customerId && viewer.customerId && viewer.customerId === dto.customerId) return true;
+    if (dto.customerPhone && viewer.customerPhone && viewer.customerPhone === dto.customerPhone) return true;
+    if (dto.customerEmail && viewer.customerEmail && viewer.customerEmail.toLowerCase() === dto.customerEmail.toLowerCase()) return true;
+    return false;
+  }
+
+  /**
+   * Lets the customer configure the escrow countdown for one of their
+   * bookings: the timeframe in days and whether the countdown runs at all.
+   * Disabling the countdown keeps the funds held until the customer manually
+   * releases them (no automatic reversal).
+   */
+  async setBookingEscrow(
+    dto: { bookingCode: string; customerId?: string; customerPhone?: string; customerEmail?: string; escrowDays?: number; escrowEnabled?: boolean },
+  ): Promise<{ success: boolean; message: string; bookingCode?: string; escrowEnabled?: boolean; escrowDays?: number; escrowEndsAt?: string }> {
+    try {
+      if (!dto.bookingCode) {
+        throw new BadRequestException('Booking code is required');
+      }
+
+      const found = await this.findBookingByCode(dto.bookingCode);
+      if (!found) {
+        throw new BadRequestException('Booking not found');
+      }
+      const { property, viewer, viewerIndex } = found;
+
+      if (!this.ownsBooking(viewer, dto)) {
+        throw new ForbiddenException('You are not allowed to change escrow settings for this booking');
+      }
+
+      if (viewer.fundsReleased || viewer.fundsReversed) {
+        throw new BadRequestException('Escrow settings can no longer be changed for this booking');
+      }
+      if (viewer.status !== 'booked') {
+        throw new BadRequestException('This booking is no longer active');
+      }
+
+      const escrowEnabled = dto.escrowEnabled !== false;
+      const escrowDays = Math.max(1, Math.min(365, Math.floor(Number(dto.escrowDays) || 7)));
+      const escrowEndsAt = escrowEnabled
+        ? new Date(Date.now() + escrowDays * 24 * 60 * 60 * 1000).toISOString()
+        : viewer.escrowEndsAt || '';
+
+      const viewers = property.allowedViewers || [];
+      viewers[viewerIndex] = { ...viewer, escrowEnabled, escrowDays, escrowEndsAt };
+      property.allowedViewers = viewers;
+      await this.propertyRepo.save(property);
+
+      this.logger.log(
+        `Set booking escrow for bookingCode=${dto.bookingCode}: enabled=${escrowEnabled} days=${escrowDays} endsAt=${escrowEndsAt}`,
+      );
+
+      return {
+        success: true,
+        message: escrowEnabled
+          ? `Escrow countdown set to ${escrowDays} day(s). The held funds return to you automatically if it expires.`
+          : 'Escrow countdown disabled. The funds stay held until you release them.',
+        bookingCode: dto.bookingCode,
+        escrowEnabled,
+        escrowDays,
+        escrowEndsAt,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to set booking escrow for ${dto.bookingCode}:`, err);
+      throw err;
+    }
+  }
+
+  /**
+   * Customer approves the booking: the held (escrow) funds are moved from the
+   * broker's held balance into their withdrawable wallet balance.
+   */
+  async releaseBookingFunds(
+    dto: { bookingCode: string; customerId?: string; customerPhone?: string; customerEmail?: string },
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      if (!dto.bookingCode) {
+        throw new BadRequestException('Booking code is required');
+      }
+
+      const found = await this.findBookingByCode(dto.bookingCode);
+      if (!found) {
+        throw new BadRequestException('Booking not found');
+      }
+      const { property, viewer, viewerIndex } = found;
+
+      if (!this.ownsBooking(viewer, dto)) {
+        throw new ForbiddenException('You are not allowed to release funds for this booking');
+      }
+
+      if (viewer.fundsReleased) {
+        return { success: true, message: 'Funds for this booking have already been released' };
+      }
+      if (viewer.fundsReversed) {
+        throw new BadRequestException('Funds for this booking were already reversed back to you');
+      }
+      if (viewer.status !== 'booked') {
+        throw new BadRequestException('This booking is no longer active');
+      }
+
+      const escrowAmount = Number(viewer.escrowAmount) || 0;
+      if (escrowAmount <= 0) {
+        throw new BadRequestException('No escrowed funds are recorded for this booking');
+      }
+
+      // Move the held funds into the broker's withdrawable wallet.
+      let release: any = null;
+      try {
+        release = await firstValueFrom(
+          this.brokerClient
+            .getService('BrokerService')
+            .releaseBookingEscrow({
+              brokerCode: property.brokersUniqueCode,
+              amount: escrowAmount,
+              bookingReference: dto.bookingCode,
+            })
+            .pipe(timeout(10000)),
+        );
+      } catch (brokerErr) {
+        this.logger.error(
+          `Failed to release escrow for booking ${dto.bookingCode} via broker service: ${(brokerErr as Error).message}`,
+        );
+      }
+
+      if (!release || release.success !== true) {
+        throw new BadRequestException(release?.message || 'Could not move the held funds to the broker wallet. Please try again.');
+      }
+
+      const viewers = property.allowedViewers || [];
+      viewers[viewerIndex] = { ...viewer, fundsReleased: true, fundsReleasedAt: new Date().toISOString() };
+      property.allowedViewers = viewers;
+      await this.propertyRepo.save(property);
+
+      // Let the broker side know their held funds became withdrawable.
+      this.redis.publish(
+        'broker_booking_funds_released',
+        JSON.stringify({
+          brokerCode: property.brokersUniqueCode,
+          propertyId: property.id,
+          propertyTitle: property.title,
+          customerName: viewer.customerName,
+          customerPhone: viewer.customerPhone,
+          amount: escrowAmount,
+          bookingCode: dto.bookingCode,
+          transactionCode: viewer.transactionCode,
+          timestamp: new Date().toISOString(),
+        }),
+      );
+
+      if (viewer.customerId) {
+        try {
+          await lastValueFrom(
+            this.customerClient
+              .getService('CustomerService')
+              .createNotification({
+                customerId: viewer.customerId,
+                title: 'Booking funds released',
+                body: `You approved the booking for "${property.title}". UGX ${escrowAmount.toLocaleString()} was released to the broker.`,
+                type: 'booking',
+                dataJson: JSON.stringify({
+                  propertyId: property.id,
+                  bookingCode: dto.bookingCode,
+                  transactionCode: viewer.transactionCode,
+                }),
+              })
+              .pipe(timeout(5000)),
+          );
+        } catch (notifErr) {
+          this.logger.warn(
+            `Failed to create funds-released notification for booking ${dto.bookingCode}: ${(notifErr as Error).message}`,
+          );
+        }
+      }
+
+      this.logger.log(`Released booking escrow for bookingCode=${dto.bookingCode} amount=${escrowAmount}`);
+
+      return {
+        success: true,
+        message: 'Funds released. The broker can now withdraw the booking payment.',
+      };
+    } catch (err) {
+      this.logger.error(`Failed to release booking funds for ${dto.bookingCode}:`, err);
+      throw err;
+    }
+  }
+
+  /**
+   * Reverses every booking whose escrow countdown has expired: the funds are
+   * paid back to the customer's mobile money number, removed from the
+   * broker's held balance, and the property is re-listed when no other
+   * active booking remains. Failed disbursements are retried on the next
+   * sweep. Never throws — safe to call from read paths and the periodic timer.
+   */
+  async sweepExpiredEscrows(): Promise<{ success: boolean; message: string; reversedCount: number }> {
+    try {
+      const now = Date.now();
+      let reversedCount = 0;
+      let touchedProperties = 0;
+
+      const properties = await this.propertyRepo.find({ where: {} });
+      for (const property of properties) {
+        const viewers = property.allowedViewers || [];
+
+        // Any escrow-era booking whose countdown expired gets its funds
+        // reversed — including ones the broker revoked/declined before the
+        // countdown ran out (only paid bookings carry escrow fields, so
+        // legacy viewers without them are skipped naturally).
+        const hasExpired = viewers.some(
+          (v: any) =>
+            v &&
+            v.escrowEnabled &&
+            v.escrowEndsAt &&
+            Number.isFinite(new Date(v.escrowEndsAt).getTime()) &&
+            new Date(v.escrowEndsAt).getTime() <= now &&
+            !v.fundsReleased &&
+            !v.fundsReversed,
+        );
+        if (!hasExpired) continue;
+
+        let changed = false;
+
+        for (let i = 0; i < viewers.length; i++) {
+          const viewer = viewers[i];
+          if (!viewer || !viewer.escrowEnabled || !viewer.escrowEndsAt) continue;
+          if (viewer.fundsReleased || viewer.fundsReversed) continue;
+
+          const endsAt = new Date(viewer.escrowEndsAt).getTime();
+          if (!Number.isFinite(endsAt) || endsAt > now) continue;
+
+          const escrowAmount = Number(viewer.escrowAmount) || 0;
+
+          if (escrowAmount <= 0) {
+            // Nothing was held for this booking — close it out so the sweep
+            // stops re-processing it.
+            viewers[i] = {
+              ...viewer,
+              status: 'reversed',
+              fundsReversed: true,
+              fundsReversedAt: new Date().toISOString(),
+              reversalReason: 'Escrow countdown expired (no held funds recorded)',
+            };
+            changed = true;
+            continue;
+          }
+
+          // Step 1: pay the money back to the customer's mobile money number.
+          let reversal: any = null;
+          try {
+            reversal = await firstValueFrom(
+              this.paymentClient
+                .getService('PaymentService')
+                .reverseEscrowToCustomer({
+                  customerPhone: viewer.customerPhone,
+                  customerName: viewer.customerName,
+                  customerEmail: viewer.customerEmail,
+                  customerId: viewer.customerId,
+                  amount: escrowAmount,
+                  propertyId: property.id,
+                  brokerCode: property.brokersUniqueCode,
+                  bookingCode: viewer.bookingCode || '',
+                  reason: 'Escrow countdown expired without customer approval',
+                })
+                .pipe(timeout(120000)),
+            );
+          } catch (payErr) {
+            this.logger.error(
+              `[escrow-sweep] reversal call failed for booking=${viewer.bookingCode}: ${(payErr as Error).message}`,
+            );
+          }
+
+          if (!reversal || reversal.success !== true) {
+            // Disbursement failed — leave the booking untouched so the next
+            // sweep retries it.
+            this.logger.warn(
+              `[escrow-sweep] reversal unsuccessful for booking=${viewer.bookingCode}; will retry on next sweep`,
+            );
+            continue;
+          }
+
+          // Step 2: take the funds off the broker's held balance (best
+          // effort — the broker side clamps at zero).
+          try {
+            await lastValueFrom(
+              this.brokerClient
+                .getService('BrokerService')
+                .reverseBookingEscrow({
+                  brokerCode: property.brokersUniqueCode,
+                  amount: escrowAmount,
+                  bookingReference: viewer.bookingCode || '',
+                })
+                .pipe(timeout(10000)),
+            );
+          } catch (brokerErr) {
+            this.logger.error(
+              `[escrow-sweep] failed to adjust broker held balance for booking=${viewer.bookingCode}: ${(brokerErr as Error).message}`,
+            );
+          }
+
+          viewers[i] = {
+            ...viewer,
+            status: 'reversed',
+            fundsReversed: true,
+            fundsReversedAt: new Date().toISOString(),
+            reversalReason: reversal.message || 'Escrow countdown expired',
+          };
+          changed = true;
+          reversedCount++;
+
+          // Notify the customer that their funds were returned.
+          if (viewer.customerId) {
+            try {
+              await lastValueFrom(
+                this.customerClient
+                  .getService('CustomerService')
+                  .createNotification({
+                    customerId: viewer.customerId,
+                    title: 'Booking funds returned',
+                    body: `The escrow period for your booking of "${property.title}" expired. UGX ${escrowAmount.toLocaleString()} was sent back to ${viewer.customerPhone}.`,
+                    type: 'booking',
+                    dataJson: JSON.stringify({
+                      propertyId: property.id,
+                      bookingCode: viewer.bookingCode || '',
+                      transactionCode: viewer.transactionCode,
+                    }),
+                  })
+                  .pipe(timeout(5000)),
+              );
+            } catch (notifErr) {
+              this.logger.warn(
+                `[escrow-sweep] failed to notify customer for booking=${viewer.bookingCode}: ${(notifErr as Error).message}`,
+              );
+            }
+          }
+        }
+
+        if (changed) {
+          // Re-list the property when no active booking claim remains.
+          const stillActive = viewers.some((v: any) => v && v.status === 'booked');
+          if (!stillActive) {
+            property.isAvailable = true;
+          }
+          property.allowedViewers = viewers;
+          await this.propertyRepo.save(property);
+          touchedProperties++;
+        }
+      }
+
+      if (reversedCount > 0) {
+        this.logger.log(
+          `[escrow-sweep] reversed ${reversedCount} expired booking(s) across ${touchedProperties} propert(y/ies)`,
+        );
+      }
+
+      return {
+        success: true,
+        message: `Escrow sweep complete: ${reversedCount} booking(s) reversed`,
+        reversedCount,
+      };
+    } catch (err) {
+      this.logger.error(`[escrow-sweep] failed: ${(err as Error).message}`);
+      return {
+        success: false,
+        message: `Escrow sweep failed: ${(err as Error).message}`,
+        reversedCount: 0,
+      };
     }
   }
 
@@ -1415,7 +1842,10 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
       }
 
       // Payment succeeded - create the booking
-      const viewer = {
+      const DEFAULT_ESCROW_DAYS = 7;
+      const escrowAmount = Number(paymentResult?.netAmount ?? dto.amount ?? 0);
+      const escrowEndsAt = new Date(Date.now() + DEFAULT_ESCROW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+      const viewer: AllowedViewer = {
         customerId: dto.customerId,
         customerPhone: dto.customerPhone,
         customerName: dto.customerName,
@@ -1427,6 +1857,14 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         reason: dto.reason,
         status: 'booked',
         bookingCode,
+        // Booking funds sit in the broker's held (escrow) balance until the
+        // customer releases them or the countdown expires.
+        escrowEnabled: true,
+        escrowDays: DEFAULT_ESCROW_DAYS,
+        escrowEndsAt,
+        escrowAmount,
+        fundsReleased: false,
+        fundsReversed: false,
       };
 
       property.allowedViewers = [...(property.allowedViewers ?? []), viewer];
@@ -1667,10 +2105,14 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     }
   }
 
-  async getCustomerBookings(dto: { customerId: string; customerEmail?: string; page: number; limit: number }): Promise<{ bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string }>; total: number }> {
+  async getCustomerBookings(dto: { customerId: string; customerEmail?: string; page: number; limit: number }): Promise<{ bookings: CustomerBookingView[]; total: number }> {
     try {
       const page = Number(dto.page) || 1;
     const limit = Number(dto.limit) || 10;
+
+    // Reverse any booking escrows whose countdown already expired so the
+    // list below always reflects the current state of held funds.
+    await this.sweepExpiredEscrows();
 
     // Bookings live inside each property's allowedViewers JSON, so they cannot be
     // filtered or paged in SQL. Previously this paged over *properties* and then
@@ -1679,7 +2121,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     // the caller's bookings, then page the resulting list.
     const properties = await this.propertyRepo.find({ where: {} });
 
-    const allBookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string }> = [];
+    const allBookings: CustomerBookingView[] = [];
 
     for (const property of properties) {
       const viewers = property.allowedViewers || [];
@@ -1710,6 +2152,13 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
             reason: viewer.reason,
             status: viewer.status || 'booked',
             location: property.location,
+            bookingCode: viewer.bookingCode || '',
+            escrowEnabled: !!viewer.escrowEnabled,
+            escrowDays: viewer.escrowDays || 0,
+            escrowEndsAt: viewer.escrowEndsAt || '',
+            escrowAmount: viewer.escrowAmount || 0,
+            fundsReleased: !!viewer.fundsReleased,
+            fundsReversed: !!viewer.fundsReversed,
           });
         }
       }
@@ -1730,7 +2179,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     }
   }
 
-  async getBookingByCode(dto: { transactionCode: string }): Promise<{ booking: { id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string } | null }> {
+  async getBookingByCode(dto: { transactionCode: string }): Promise<{ booking: CustomerBookingView | null }> {
     try {
       const [properties] = await this.propertyRepo.findAndCount({
         where: {},
@@ -1755,6 +2204,13 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
               reason: viewer.reason,
               status: viewer.status || 'booked',
               location: property.location,
+              bookingCode: viewer.bookingCode || '',
+              escrowEnabled: !!viewer.escrowEnabled,
+              escrowDays: viewer.escrowDays || 0,
+              escrowEndsAt: viewer.escrowEndsAt || '',
+              escrowAmount: viewer.escrowAmount || 0,
+              fundsReleased: !!viewer.fundsReleased,
+              fundsReversed: !!viewer.fundsReversed,
             },
           };
         }
@@ -1767,7 +2223,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     }
   }
 
-  async getBookingByBookingCode(dto: { bookingCode: string; customerPhone?: string }): Promise<{ booking: { id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; bookingCode: string; reason?: string; status?: string; location: string } | null }> {
+  async getBookingByBookingCode(dto: { bookingCode: string; customerPhone?: string }): Promise<{ booking: CustomerBookingView | null }> {
     try {
       const [properties] = await this.propertyRepo.findAndCount({
         where: {},
@@ -1793,6 +2249,12 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
               reason: viewer.reason,
               status: viewer.status || 'booked',
               location: property.location,
+              escrowEnabled: !!viewer.escrowEnabled,
+              escrowDays: viewer.escrowDays || 0,
+              escrowEndsAt: viewer.escrowEndsAt || '',
+              escrowAmount: viewer.escrowAmount || 0,
+              fundsReleased: !!viewer.fundsReleased,
+              fundsReversed: !!viewer.fundsReversed,
             },
           };
         }
@@ -1805,10 +2267,14 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
     }
   }
 
-  async getBookingsByPhone(dto: { customerPhone: string; page: number; limit: number }): Promise<{ bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string }>; total: number }> {
+  async getBookingsByPhone(dto: { customerPhone: string; page: number; limit: number }): Promise<{ bookings: CustomerBookingView[]; total: number }> {
     try {
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 10;
+
+      // Reverse any booking escrows whose countdown already expired so the
+      // list below always reflects the current state of held funds.
+      await this.sweepExpiredEscrows();
 
       const [properties] = await this.propertyRepo.findAndCount({
         where: {},
@@ -1816,7 +2282,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         take: limit,
       });
 
-      const bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail?: string; date: string; amount: number; transactionCode: string; reason?: string; status?: string; location: string }> = [];
+      const bookings: CustomerBookingView[] = [];
 
       for (const property of properties) {
         const viewers = property.allowedViewers || [];
@@ -1835,6 +2301,13 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
               reason: viewer.reason,
               status: viewer.status || 'booked',
               location: property.location,
+              bookingCode: viewer.bookingCode || '',
+              escrowEnabled: !!viewer.escrowEnabled,
+              escrowDays: viewer.escrowDays || 0,
+              escrowEndsAt: viewer.escrowEndsAt || '',
+              escrowAmount: viewer.escrowAmount || 0,
+              fundsReleased: !!viewer.fundsReleased,
+              fundsReversed: !!viewer.fundsReversed,
             });
           }
         }

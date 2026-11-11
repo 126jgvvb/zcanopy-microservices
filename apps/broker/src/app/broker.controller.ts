@@ -94,6 +94,60 @@ export class BrokerController {
     return this.brokerService.submitVerificationDocuments(dto);
   }
 
+  @GrpcMethod('BrokerService','SubmitLandlordDetails')
+  async submitLandlordDetails(dto: any) {
+    this.logger.log(`SubmitLandlordDetails called for broker=${dto.brokerCode}`);
+    return this.brokerService.submitLandlordDetails(dto);
+  }
+
+  @GrpcMethod('BrokerService','GetLandlordDetailsStatus')
+  async getLandlordDetailsStatus(dto: { brokerCode: string }) {
+    this.logger.log(`GetLandlordDetailsStatus called for broker=${dto.brokerCode}`);
+    return this.brokerService.getLandlordDetailsStatus(dto);
+  }
+
+  @GrpcMethod('BrokerService','SendLandlordBrokerOtps')
+  async sendLandlordBrokerOtps(dto: { brokerCode: string; fullName: string; nin: string; phoneNumber: string }) {
+    this.logger.log(`SendLandlordBrokerOtps called for broker=${dto.brokerCode}`);
+    return this.brokerService.sendLandlordBrokerOtps(dto);
+  }
+
+  @GrpcMethod('BrokerService','GetLandlordVerifications')
+  async getLandlordVerifications(dto: { page: number; limit: number; status?: string; brokerCode?: string }) {
+    this.logger.log(`GetLandlordVerifications called page=${dto.page} limit=${dto.limit} status=${dto.status || 'all'}`);
+    return this.brokerService.getLandlordVerifications(dto);
+  }
+
+  @GrpcMethod('BrokerService','ApproveLandlordVerification')
+  async approveLandlordVerification(dto: { verificationId: string; adminId: string; instrumentNumber: string }) {
+    this.logger.log(`ApproveLandlordVerification called for verification=${dto.verificationId} by admin=${dto.adminId}`);
+    return this.brokerService.approveLandlordVerification(dto);
+  }
+
+  @GrpcMethod('BrokerService','RejectLandlordVerification')
+  async rejectLandlordVerification(dto: { verificationId: string; adminId: string; reason: string }) {
+    this.logger.log(`RejectLandlordVerification called for verification=${dto.verificationId} by admin=${dto.adminId}`);
+    return this.brokerService.rejectLandlordVerification(dto);
+  }
+
+  @GrpcMethod('BrokerService','RequestLandlordWithdrawalOtp')
+  async requestLandlordWithdrawalOtp(dto: { brokerCode: string }) {
+    this.logger.log(`RequestLandlordWithdrawalOtp called for broker=${dto.brokerCode}`);
+    return this.brokerService.requestLandlordWithdrawalOtp(dto);
+  }
+
+  @GrpcMethod('BrokerService','ReleaseBookingEscrow')
+  async releaseBookingEscrow(dto: { brokerCode: string; amount: number; bookingReference?: string }) {
+    this.logger.log(`ReleaseBookingEscrow called for broker=${dto.brokerCode} amount=${dto.amount} booking=${dto.bookingReference}`);
+    return this.brokerService.releaseBookingEscrow(dto);
+  }
+
+  @GrpcMethod('BrokerService','ReverseBookingEscrow')
+  async reverseBookingEscrow(dto: { brokerCode: string; amount: number; bookingReference?: string }) {
+    this.logger.log(`ReverseBookingEscrow called for broker=${dto.brokerCode} amount=${dto.amount} booking=${dto.bookingReference}`);
+    return this.brokerService.reverseBookingEscrow(dto);
+  }
+
   @GrpcMethod('BrokerService','SaveBrokerFcmToken')
   async saveBrokerFcmToken(dto: { brokerCode: string; fcmToken: string; deviceId?: string }) {
     this.logger.log(`SaveBrokerFcmToken called for ${dto.brokerCode}`);

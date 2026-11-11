@@ -643,11 +643,15 @@ const commissions: any = await lastValueFrom(
 
       if (Number.isFinite(netAmount) && netAmount >= 0 && isSuccess) {
         this.logger.log(`[Payment] processPropertyPayment UPDATING BROKER WALLET brokerCode=${dto.brokerCode} amount=${netAmount} externalId=${externalId}`);
-        
+
+        // Booking funds are credited to the broker's held (escrow) balance —
+        // they only become withdrawable after the customer releases them or
+        // the escrow countdown reverses them back to the customer.
         this.redisClient.emit('update_broker_wallet', {
           brokerCode: dto.brokerCode,
           amount: netAmount,
           externalId,
+          escrow: dto.reasonForPayment === 'booking',
         });
       }
 
@@ -876,6 +880,104 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
         netAmount: withdrawalAmount,
       };
     }
+  }
+
+  /**
+   * Reverses booking escrow funds back to the customer's mobile money phone
+   * number. Called by the property service when a booking's escrow countdown
+   * expires without the customer approving the funds.
+   */
+  async reverseEscrowToCustomer(dto: {
+    customerPhone: string;
+    customerName?: string;
+    customerEmail?: string;
+    customerId?: string;
+    amount: number;
+    propertyId?: string;
+    brokerCode?: string;
+    bookingCode?: string;
+    reason?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    transactionId?: string;
+    referenceNumber?: string;
+    status?: string;
+    netAmount?: number;
+  }> {
+    const reversalAmount = Number(dto.amount) || 0;
+    const externalId = `escrow-reversal-${dto.bookingCode || dto.propertyId || 'booking'}-${Date.now()}`;
+    let reversalReference = `ESC-REV-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    let reversalStatus = 'FAILED';
+
+    this.logger.log(
+      `[escrow-reversal] start: booking=${dto.bookingCode} property=${dto.propertyId} broker=${dto.brokerCode} amount=${reversalAmount} phone=${dto.customerPhone}`,
+    );
+
+    if (reversalAmount <= 0) {
+      return { success: false, message: 'Reversal amount must be greater than zero', status: 'Failed', netAmount: 0 };
+    }
+    if (!dto.customerPhone) {
+      return { success: false, message: 'Customer phone number is required to reverse escrow funds', status: 'Failed', netAmount: 0 };
+    }
+
+    try {
+      const reversalResult = await firstValueFrom(
+        this.httpService
+          .post(`${IOTEC_BASE_URL}/iotec/mobile-money`, {
+            amount: reversalAmount,
+            phoneNumber: dto.customerPhone,
+            provider: 'MTN',
+            reference: reversalReference,
+            externalId,
+            payeeName: dto.customerName || 'Customer',
+            payeeEmail: dto.customerEmail || null,
+            payerNote: 'Booking escrow reversal - countdown expired',
+            payeeNote: `Refund for booking ${dto.bookingCode || dto.propertyId || ''}`,
+            currency: 'UGX',
+            payee: dto.customerPhone,
+            sendAt: new Date().toISOString(),
+          })
+          .pipe(timeout(120000)),
+      );
+      reversalStatus = reversalResult.data?.status || reversalStatus;
+      reversalReference = reversalResult.data?.reference || reversalResult.data?.externalId || reversalReference;
+      this.logger.log(`[escrow-reversal] disbursement status=${reversalStatus} reference=${reversalReference}`);
+    } catch (err) {
+      this.logger.error(`[escrow-reversal] disbursement failed for booking=${dto.bookingCode}: ${(err as Error).message}`);
+    }
+
+    const isSuccess = reversalStatus === 'Success' || reversalStatus === 'success';
+
+    const reversalTransaction = this.transactionRepo.create({
+      propertyID: dto.brokerCode || dto.propertyId || '',
+      clientPhone: dto.customerPhone,
+      provider: 'iotec-mobile-money-reversal',
+      referenceNumber: reversalReference,
+      amount: reversalAmount,
+      platformCommission: 0,
+      createdAt: new Date(),
+      paymentStatus: isSuccess ? 'REVERSED' : 'REVERSAL_FAILED',
+      reasonForPayment:
+        dto.reason ||
+        `Escrow reversal: booking countdown expired (booking ${dto.bookingCode || dto.propertyId || 'n/a'})`,
+      customerName: dto.customerName,
+      customerEmail: dto.customerEmail,
+      transactionCode: dto.bookingCode || '',
+      customerId: dto.customerId || '',
+    });
+    const saved = await this.transactionRepo.save(reversalTransaction);
+
+    return {
+      success: isSuccess,
+      message: isSuccess
+        ? 'Escrow funds reversed to the customer mobile money number'
+        : 'Escrow reversal disbursement failed; it will be retried on the next sweep',
+      transactionId: saved.id,
+      referenceNumber: reversalReference,
+      status: reversalStatus,
+      netAmount: reversalAmount,
+    };
   }
 
   async getWallet(dto: GetWalletDto): Promise<{

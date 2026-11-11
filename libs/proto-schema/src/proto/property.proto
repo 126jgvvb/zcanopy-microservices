@@ -27,6 +27,9 @@ service PropertyService {
   rpc GetBookingsByPhone (GetBookingsByPhoneRequest) returns (GetBookingsByPhoneResponse);
   rpc GetPropertyClients (GetPropertyClientsRequest) returns (GetPropertyClientsResponse);
   rpc DeclineBooking (DeclineBookingRequest) returns (DeclineBookingResponse);
+  rpc SetBookingEscrow (SetBookingEscrowRequest) returns (SetBookingEscrowResponse);
+  rpc ReleaseBookingFunds (ReleaseBookingFundsRequest) returns (ReleaseBookingFundsResponse);
+  rpc SweepExpiredEscrows (SweepExpiredEscrowsRequest) returns (SweepExpiredEscrowsResponse);
   rpc SearchPropertiesByBrokerTitle (SearchPropertiesByBrokerTitleRequest) returns (SearchPropertiesByBrokerTitleResponse);
   rpc DeletePropertiesByBrokerCode (DeletePropertiesByBrokerCodeRequest) returns (DeletePropertiesByBrokerCodeResponse);
   rpc GetFeaturedProperties (GetFeaturedPropertiesRequest) returns (GetFeaturedPropertiesResponse);
@@ -35,7 +38,6 @@ service PropertyService {
   rpc GetAllCustomerSearches (GetAllCustomerSearchesRequest) returns (GetAllCustomerSearchesResponse);
   rpc DeleteCustomerSearch (DeleteCustomerSearchRequest) returns (DeleteCustomerSearchResponse);
   rpc DeleteCustomerSearches (DeleteCustomerSearchesRequest) returns (DeleteCustomerSearchesResponse);
-  rpc GetCustomerSearchById (GetCustomerSearchByIdRequest) returns (GetCustomerSearchByIdResponse);
   rpc ToggleFavorite (ToggleFavoriteRequest) returns (ToggleFavoriteResponse);
   rpc GetCustomerFavorites (GetCustomerFavoritesRequest) returns (GetCustomerFavoritesResponse);
   rpc GetAllCustomerFavorites (GetAllCustomerFavoritesRequest) returns (GetAllCustomerFavoritesResponse);
@@ -546,6 +548,52 @@ message CustomerBooking {
   string reason = 10;
   string status = 11;
   string location = 12;
+  string bookingCode = 13;
+  bool escrowEnabled = 14;
+  int32 escrowDays = 15;
+  string escrowEndsAt = 16;
+  double escrowAmount = 17;
+  bool fundsReleased = 18;
+  bool fundsReversed = 19;
+}
+
+message SetBookingEscrowRequest {
+  string bookingCode = 1;
+  string customerPhone = 2;
+  string customerId = 3;
+  string customerEmail = 4;
+  int32 escrowDays = 5;
+  bool escrowEnabled = 6;
+}
+
+message SetBookingEscrowResponse {
+  bool success = 1;
+  string message = 2;
+  string bookingCode = 3;
+  bool escrowEnabled = 4;
+  int32 escrowDays = 5;
+  string escrowEndsAt = 6;
+}
+
+message ReleaseBookingFundsRequest {
+  string bookingCode = 1;
+  string customerPhone = 2;
+  string customerId = 3;
+  string customerEmail = 4;
+}
+
+message ReleaseBookingFundsResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message SweepExpiredEscrowsRequest {
+}
+
+message SweepExpiredEscrowsResponse {
+  bool success = 1;
+  string message = 2;
+  int32 reversedCount = 3;
 }
 
 message RecordCustomerSearchRequest {
@@ -636,27 +684,6 @@ message DeleteCustomerSearchesRequest {
 message DeleteCustomerSearchesResponse {
   bool success = 1;
   int32 deletedCount = 2;
-}
-
-message GetCustomerSearchByIdRequest {
-  string id = 1;
-}
-
-message GetCustomerSearchByIdResponse {
-  string id = 1;
-  string customerId = 2;
-  string query = 3;
-  string location = 4;
-  double radius = 5;
-  string propertyType = 6;
-  string filtersJson = 7;
-  int32 resultCount = 8;
-  repeated string resultPropertyIds = 9;
-  double minPrice = 10;
-  double maxPrice = 11;
-  string subCounty = 12;
-  string district = 13;
-  string createdAt = 14;
 }
 
 message ToggleFavoriteRequest {

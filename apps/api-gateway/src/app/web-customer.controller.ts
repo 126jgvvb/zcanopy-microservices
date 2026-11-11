@@ -201,6 +201,34 @@ export class WebCustomerController {
     });
   }
 
+  @Post('bookings/:bookingCode/escrow')
+  @ApiOperation({ summary: 'Update the escrow countdown settings for a customer booking' })
+  async setBookingEscrow(@Param('bookingCode') bookingCode: string, @Req() req: any, @Body() body: any) {
+    const customerId = await this.getCustomerId(req);
+    this.logger.log(`Web customer set booking escrow customerId=${customerId} bookingCode=${bookingCode} days=${body?.escrowDays} enabled=${body?.escrowEnabled}`);
+    return this.proxyService.forwardToProperty('SetBookingEscrow', {
+      bookingCode,
+      customerId,
+      customerPhone: body?.customerPhone,
+      customerEmail: req?.user?.email || undefined,
+      escrowDays: Number(body?.escrowDays) || 7,
+      escrowEnabled: body?.escrowEnabled !== false,
+    });
+  }
+
+  @Post('bookings/:bookingCode/release')
+  @ApiOperation({ summary: 'Approve a booking and release the held (escrow) funds to the broker' })
+  async releaseBookingFunds(@Param('bookingCode') bookingCode: string, @Req() req: any, @Body() body: any) {
+    const customerId = await this.getCustomerId(req);
+    this.logger.log(`Web customer release booking funds customerId=${customerId} bookingCode=${bookingCode}`);
+    return this.proxyService.forwardToProperty('ReleaseBookingFunds', {
+      bookingCode,
+      customerId,
+      customerPhone: body?.customerPhone,
+      customerEmail: req?.user?.email || undefined,
+    });
+  }
+
   @Get('profile')
   @ApiOperation({ summary: 'Get customer profile for web dashboard' })
   async getProfile(@Req() req: any) {

@@ -55,4 +55,10 @@ export class PaymentController {
     const result = await this.paymentService.processCustomerPayment(dto);
     return result;
   }
+
+  @GrpcMethod('PaymentService', 'ReverseEscrowToCustomer')
+  async reverseEscrowToCustomer(dto: any) {
+    this.logger.log(`Received reverse-escrow-to-customer request for booking ${dto.bookingCode} amount=${dto.amount}`);
+    return this.paymentService.reverseEscrowToCustomer(dto);
+  }
 }
