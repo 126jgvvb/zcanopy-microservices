@@ -217,8 +217,8 @@ export class PropertyController {
   }
 
   @GrpcMethod('PropertyService', 'SetBookingEscrow')
-  async setBookingEscrow(dto: { bookingCode: string; customerId?: string; customerPhone?: string; customerEmail?: string; escrowDays?: number; escrowEnabled?: boolean }) {
-    this.logger.log(`Received set-booking-escrow request for bookingCode=${dto.bookingCode} days=${dto.escrowDays} enabled=${dto.escrowEnabled}`);
+  async setBookingEscrow(dto: { bookingCode: string; customerId?: string; customerPhone?: string; customerEmail?: string; escrowDays?: number; escrowMinutes?: number; escrowEnabled?: boolean }) {
+    this.logger.log(`Received set-booking-escrow request for bookingCode=${dto.bookingCode} days=${dto.escrowDays} minutes=${dto.escrowMinutes} enabled=${dto.escrowEnabled}`);
     return this.propertyService.setBookingEscrow(dto);
   }
 

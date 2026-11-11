@@ -23,6 +23,12 @@ export interface AllowedViewer {
   escrowEnabled?: boolean;
   /** Timeframe in days set by the customer. */
   escrowDays?: number;
+  /**
+   * Testing helper: when set, the countdown ends this many minutes from now
+   * instead of `escrowDays` days. Lets the countdown be exercised in minutes
+   * rather than days. 0 (or absent) means the day-based timeframe is used.
+   */
+  escrowMinutes?: number;
   /** ISO timestamp when the countdown hits zero. */
   escrowEndsAt?: string;
   /** Net amount held in the broker's held (escrow) balance for this booking. */

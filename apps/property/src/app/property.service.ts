@@ -79,6 +79,7 @@ export interface CustomerBookingView {
   bookingCode?: string;
   escrowEnabled?: boolean;
   escrowDays?: number;
+  escrowMinutes?: number;
   escrowEndsAt?: string;
   escrowAmount?: number;
   fundsReleased?: boolean;
@@ -458,8 +459,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
    * releases them (no automatic reversal).
    */
   async setBookingEscrow(
-    dto: { bookingCode: string; customerId?: string; customerPhone?: string; customerEmail?: string; escrowDays?: number; escrowEnabled?: boolean },
-  ): Promise<{ success: boolean; message: string; bookingCode?: string; escrowEnabled?: boolean; escrowDays?: number; escrowEndsAt?: string }> {
+    dto: { bookingCode: string; customerId?: string; customerPhone?: string; customerEmail?: string; escrowDays?: number; escrowMinutes?: number; escrowEnabled?: boolean },
+  ): Promise<{ success: boolean; message: string; bookingCode?: string; escrowEnabled?: boolean; escrowDays?: number; escrowMinutes?: number; escrowEndsAt?: string }> {
     try {
       if (!dto.bookingCode) {
         throw new BadRequestException('Booking code is required');
@@ -484,27 +485,41 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
       const escrowEnabled = dto.escrowEnabled !== false;
       const escrowDays = Math.max(1, Math.min(365, Math.floor(Number(dto.escrowDays) || 7)));
+
+      // A minute-granular countdown is a testing helper: it lets the expiry
+      // (and therefore the automatic reversal) be exercised within minutes
+      // instead of waiting for whole days. It only ever shortens the window.
+      const requestedMinutes = Math.floor(Number(dto.escrowMinutes) || 0);
+      const escrowMinutes = escrowEnabled
+        ? Math.max(1, Math.min(365 * 24 * 60, requestedMinutes))
+        : 0;
+
       const escrowEndsAt = escrowEnabled
-        ? new Date(Date.now() + escrowDays * 24 * 60 * 60 * 1000).toISOString()
+        ? escrowMinutes > 0
+          ? new Date(Date.now() + escrowMinutes * 60 * 1000).toISOString()
+          : new Date(Date.now() + escrowDays * 24 * 60 * 60 * 1000).toISOString()
         : viewer.escrowEndsAt || '';
 
       const viewers = property.allowedViewers || [];
-      viewers[viewerIndex] = { ...viewer, escrowEnabled, escrowDays, escrowEndsAt };
+      viewers[viewerIndex] = { ...viewer, escrowEnabled, escrowDays, escrowMinutes, escrowEndsAt };
       property.allowedViewers = viewers;
       await this.propertyRepo.save(property);
 
       this.logger.log(
-        `Set booking escrow for bookingCode=${dto.bookingCode}: enabled=${escrowEnabled} days=${escrowDays} endsAt=${escrowEndsAt}`,
+        `Set booking escrow for bookingCode=${dto.bookingCode}: enabled=${escrowEnabled} days=${escrowDays} minutes=${escrowMinutes} endsAt=${escrowEndsAt}`,
       );
 
       return {
         success: true,
         message: escrowEnabled
-          ? `Escrow countdown set to ${escrowDays} day(s). The held funds return to you automatically if it expires.`
+          ? escrowMinutes > 0
+            ? `Escrow countdown set to ${escrowMinutes} minute(s). The held funds return to you automatically if it expires.`
+            : `Escrow countdown set to ${escrowDays} day(s). The held funds return to you automatically if it expires.`
           : 'Escrow countdown disabled. The funds stay held until you release them.',
         bookingCode: dto.bookingCode,
         escrowEnabled,
         escrowDays,
+        escrowMinutes,
         escrowEndsAt,
       };
     } catch (err) {
@@ -2155,6 +2170,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
             bookingCode: viewer.bookingCode || '',
             escrowEnabled: !!viewer.escrowEnabled,
             escrowDays: viewer.escrowDays || 0,
+            escrowMinutes: viewer.escrowMinutes || 0,
             escrowEndsAt: viewer.escrowEndsAt || '',
             escrowAmount: viewer.escrowAmount || 0,
             fundsReleased: !!viewer.fundsReleased,
@@ -2207,6 +2223,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
               bookingCode: viewer.bookingCode || '',
               escrowEnabled: !!viewer.escrowEnabled,
               escrowDays: viewer.escrowDays || 0,
+            escrowMinutes: viewer.escrowMinutes || 0,
               escrowEndsAt: viewer.escrowEndsAt || '',
               escrowAmount: viewer.escrowAmount || 0,
               fundsReleased: !!viewer.fundsReleased,
@@ -2251,6 +2268,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
               location: property.location,
               escrowEnabled: !!viewer.escrowEnabled,
               escrowDays: viewer.escrowDays || 0,
+            escrowMinutes: viewer.escrowMinutes || 0,
               escrowEndsAt: viewer.escrowEndsAt || '',
               escrowAmount: viewer.escrowAmount || 0,
               fundsReleased: !!viewer.fundsReleased,
@@ -2304,6 +2322,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
               bookingCode: viewer.bookingCode || '',
               escrowEnabled: !!viewer.escrowEnabled,
               escrowDays: viewer.escrowDays || 0,
+            escrowMinutes: viewer.escrowMinutes || 0,
               escrowEndsAt: viewer.escrowEndsAt || '',
               escrowAmount: viewer.escrowAmount || 0,
               fundsReleased: !!viewer.fundsReleased,

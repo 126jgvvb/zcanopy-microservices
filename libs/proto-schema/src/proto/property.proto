@@ -555,6 +555,7 @@ message CustomerBooking {
   double escrowAmount = 17;
   bool fundsReleased = 18;
   bool fundsReversed = 19;
+  int32 escrowMinutes = 20;
 }
 
 message SetBookingEscrowRequest {
@@ -564,6 +565,7 @@ message SetBookingEscrowRequest {
   string customerEmail = 4;
   int32 escrowDays = 5;
   bool escrowEnabled = 6;
+  int32 escrowMinutes = 7;
 }
 
 message SetBookingEscrowResponse {
@@ -573,6 +575,7 @@ message SetBookingEscrowResponse {
   bool escrowEnabled = 4;
   int32 escrowDays = 5;
   string escrowEndsAt = 6;
+  int32 escrowMinutes = 7;
 }
 
 message ReleaseBookingFundsRequest {

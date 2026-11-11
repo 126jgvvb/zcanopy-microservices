@@ -205,13 +205,14 @@ export class WebCustomerController {
   @ApiOperation({ summary: 'Update the escrow countdown settings for a customer booking' })
   async setBookingEscrow(@Param('bookingCode') bookingCode: string, @Req() req: any, @Body() body: any) {
     const customerId = await this.getCustomerId(req);
-    this.logger.log(`Web customer set booking escrow customerId=${customerId} bookingCode=${bookingCode} days=${body?.escrowDays} enabled=${body?.escrowEnabled}`);
+    this.logger.log(`Web customer set booking escrow customerId=${customerId} bookingCode=${bookingCode} days=${body?.escrowDays} minutes=${body?.escrowMinutes} enabled=${body?.escrowEnabled}`);
     return this.proxyService.forwardToProperty('SetBookingEscrow', {
       bookingCode,
       customerId,
       customerPhone: body?.customerPhone,
       customerEmail: req?.user?.email || undefined,
       escrowDays: Number(body?.escrowDays) || 7,
+      escrowMinutes: Number(body?.escrowMinutes) || 0,
       escrowEnabled: body?.escrowEnabled !== false,
     });
   }
