@@ -9,6 +9,7 @@ service PaymentService {
   rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
   rpc GetWallet (GetWalletRequest) returns (GetWalletResponse);
   rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse);
+  rpc ReverseEscrowToCustomer (ReverseEscrowToCustomerRequest) returns (ReverseEscrowToCustomerResponse);
 }
 
 message ProcessCustomerPaymentRequest {
@@ -131,4 +132,25 @@ message Transaction {
   string transactionCode = 10;
   string customerName = 11;
   string customerEmail = 12;
+}
+
+message ReverseEscrowToCustomerRequest {
+  string customerPhone = 1;
+  string customerName = 2;
+  string customerEmail = 3;
+  string customerId = 4;
+  double amount = 5;
+  string propertyId = 6;
+  string brokerCode = 7;
+  string bookingCode = 8;
+  string reason = 9;
+}
+
+message ReverseEscrowToCustomerResponse {
+  bool success = 1;
+  string message = 2;
+  string transactionId = 3;
+  string referenceNumber = 4;
+  string status = 5;
+  double netAmount = 6;
 }

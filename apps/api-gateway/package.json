@@ -11,7 +11,7 @@
             "apps/api-gateway/src/assets",
             {
               "glob": "*.proto",
-              "input": "proto",
+              "input": "libs/proto-schema/src/proto",
               "output": "proto"
             }
           ],

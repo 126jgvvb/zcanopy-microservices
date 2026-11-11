@@ -49,6 +49,15 @@ service BrokerService{
   rpc VerifyForgotPasswordOtp (VerifyForgotPasswordOtpRequest) returns (VerifyForgotPasswordOtpResponse);
   rpc ResetBrokerPassword (ResetBrokerPasswordRequest) returns (ResetBrokerPasswordResponse);
   rpc SubmitVerificationDocuments (SubmitVerificationDocumentsRequest) returns (SubmitVerificationDocumentsResponse);
+  rpc SubmitLandlordDetails (SubmitLandlordDetailsRequest) returns (SubmitLandlordDetailsResponse);
+  rpc GetLandlordDetailsStatus (GetLandlordDetailsStatusRequest) returns (GetLandlordDetailsStatusResponse);
+  rpc SendLandlordBrokerOtps (SendLandlordBrokerOtpsRequest) returns (SendLandlordBrokerOtpsResponse);
+  rpc GetLandlordVerifications (GetLandlordVerificationsRequest) returns (GetLandlordVerificationsResponse);
+  rpc ApproveLandlordVerification (ApproveLandlordVerificationRequest) returns (ApproveLandlordVerificationResponse);
+  rpc RejectLandlordVerification (RejectLandlordVerificationRequest) returns (RejectLandlordVerificationResponse);
+  rpc RequestLandlordWithdrawalOtp (RequestLandlordWithdrawalOtpRequest) returns (RequestLandlordWithdrawalOtpResponse);
+  rpc ReleaseBookingEscrow (ReleaseBookingEscrowRequest) returns (ReleaseBookingEscrowResponse);
+  rpc ReverseBookingEscrow (ReverseBookingEscrowRequest) returns (ReverseBookingEscrowResponse);
 }
 
 message SaveBrokerFcmTokenRequest {
@@ -285,6 +294,7 @@ message WithdrawRequest {
   string bankTransferType = 12;
   string sendAt = 13;
   string brokerCode = 14;
+  string otp = 15;
 }
 
 message WithdrawResponse {
@@ -305,6 +315,36 @@ message GetWalletResponse {
   string currency = 2;
   string walletId = 3;
   string name = 4;
+  double heldBalance = 5;
+}
+
+/* ------------------------------------------------------------------ */
+/* Booking fund escrow                                                 */
+/* ------------------------------------------------------------------ */
+
+message ReleaseBookingEscrowRequest {
+  string brokerCode = 1;
+  double amount = 2;
+  string bookingReference = 3;
+}
+
+message ReleaseBookingEscrowResponse {
+  bool success = 1;
+  string message = 2;
+  double heldBalance = 3;
+  double walletBalance = 4;
+}
+
+message ReverseBookingEscrowRequest {
+  string brokerCode = 1;
+  double amount = 2;
+  string bookingReference = 3;
+}
+
+message ReverseBookingEscrowResponse {
+  bool success = 1;
+  string message = 2;
+  double heldBalance = 3;
 }
 
 message RequestOtpRequest {
@@ -693,4 +733,150 @@ message ProcessPropertyPaymentResponse {
   string transactionCode = 5;
   double netAmount = 6;
   string date = 7;
+}
+
+/* ------------------------------------------------------------------ */
+/* Landlord & title (UgNLIS) verification                             */
+/* ------------------------------------------------------------------ */
+
+message BrokerConfirmation {
+  string brokerCode = 1;
+  string otp = 2;
+}
+
+message MatchedBroker {
+  string brokerId = 1;
+  string brokerCode = 2;
+  string brokerName = 3;
+  string channel = 4;
+}
+
+message SubmitLandlordDetailsRequest {
+  string brokerCode = 1;
+  string fullName = 2;
+  string nin = 3;
+  string phoneNumber = 4;
+  string email = 5;
+  string mzoDistrict = 6;
+  string tenureType = 7;
+  string countyDivision = 8;
+  string blockNumber = 9;
+  string plotNumber = 10;
+  string volumeNumber = 11;
+  string folioNumber = 12;
+  string leaseExpiryDate = 13;
+  string subCountyVillage = 14;
+  string ccoRefNumber = 15;
+  repeated BrokerConfirmation brokerConfirmations = 16;
+}
+
+message SubmitLandlordDetailsResponse {
+  bool success = 1;
+  string message = 2;
+  bool needsBrokerConfirmation = 3;
+  repeated MatchedBroker matchedBrokers = 4;
+  string verificationId = 5;
+  string status = 6;
+}
+
+message GetLandlordDetailsStatusRequest {
+  string brokerCode = 1;
+}
+
+message GetLandlordDetailsStatusResponse {
+  string status = 1;
+  string instrumentNumber = 2;
+  string rejectionReason = 3;
+  string submittedAt = 4;
+  string fullName = 5;
+  string nin = 6;
+  string mzoDistrict = 7;
+  string tenureType = 8;
+}
+
+message SendLandlordBrokerOtpsRequest {
+  string brokerCode = 1;
+  string fullName = 2;
+  string nin = 3;
+  string phoneNumber = 4;
+}
+
+message SendLandlordBrokerOtpsResponse {
+  bool success = 1;
+  string message = 2;
+  repeated MatchedBroker matchedBrokers = 3;
+}
+
+message LandlordVerification {
+  string id = 1;
+  string brokerId = 2;
+  string brokerCode = 3;
+  string brokerName = 4;
+  string brokerEmail = 5;
+  string landlordFullName = 6;
+  string landlordNin = 7;
+  string landlordPhoneNumber = 8;
+  string landlordEmail = 9;
+  string mzoDistrict = 10;
+  string tenureType = 11;
+  string countyDivision = 12;
+  string blockNumber = 13;
+  string plotNumber = 14;
+  string volumeNumber = 15;
+  string folioNumber = 16;
+  string leaseExpiryDate = 17;
+  string subCountyVillage = 18;
+  string ccoRefNumber = 19;
+  string instrumentNumber = 20;
+  string rejectionReason = 21;
+  string status = 22;
+  string createdAt = 23;
+  string updatedAt = 24;
+}
+
+message GetLandlordVerificationsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string status = 3;
+  string brokerCode = 4;
+}
+
+message GetLandlordVerificationsResponse {
+  repeated LandlordVerification verifications = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message ApproveLandlordVerificationRequest {
+  string verificationId = 1;
+  string adminId = 2;
+  string instrumentNumber = 3;
+}
+
+message ApproveLandlordVerificationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message RejectLandlordVerificationRequest {
+  string verificationId = 1;
+  string adminId = 2;
+  string reason = 3;
+}
+
+message RejectLandlordVerificationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message RequestLandlordWithdrawalOtpRequest {
+  string brokerCode = 1;
+}
+
+message RequestLandlordWithdrawalOtpResponse {
+  bool success = 1;
+  string message = 2;
+  string channel = 3;
+  string destination = 4;
 }

@@ -10,7 +10,7 @@
           "assets": [
             {
               "glob": "*.proto",
-              "input": "proto",
+              "input": "apps/admin/src/proto",
               "output": "proto"
             }
           ],

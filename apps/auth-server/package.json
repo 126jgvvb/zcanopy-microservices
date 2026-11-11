@@ -11,7 +11,7 @@
             "apps/auth-server/src/assets",
             {
               "glob": "*.proto",
-              "input": "proto",
+              "input": "apps/auth-server/src/proto",
               "output": "proto"
             }
           ],

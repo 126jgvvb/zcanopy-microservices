@@ -10,7 +10,7 @@
           "assets": [
             {
               "glob": "*.proto",
-              "input": "proto",
+              "input": "apps/broker/src/proto",
               "output": "proto"
             }
           ],
