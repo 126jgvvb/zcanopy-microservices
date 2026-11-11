@@ -112,6 +112,23 @@ export class BrokerController {
     return this.brokerService.sendLandlordBrokerOtps(dto);
   }
 
+  @GrpcMethod('BrokerService','SendLandlordAuthorizationOtp')
+  async sendLandlordAuthorizationOtp(dto: { brokerCode: string; verificationId?: string }) {
+    this.logger.log(`SendLandlordAuthorizationOtp called for broker=${dto.brokerCode}`);
+    return this.brokerService.sendLandlordAuthorizationOtp(dto);
+  }
+
+  @GrpcMethod('BrokerService','VerifyLandlordAuthorization')
+  async verifyLandlordAuthorization(dto: {
+    brokerCode: string;
+    verificationId: string;
+    otp: string;
+    landlordNin: string;
+  }) {
+    this.logger.log(`VerifyLandlordAuthorization called for broker=${dto.brokerCode}`);
+    return this.brokerService.verifyLandlordAuthorization(dto);
+  }
+
   @GrpcMethod('BrokerService','GetLandlordVerifications')
   async getLandlordVerifications(dto: { page: number; limit: number; status?: string; brokerCode?: string }) {
     this.logger.log(`GetLandlordVerifications called page=${dto.page} limit=${dto.limit} status=${dto.status || 'all'}`);

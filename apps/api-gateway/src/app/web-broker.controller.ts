@@ -247,6 +247,30 @@ export class WebBrokerController {
     });
   }
 
+  @Post('landlord-details/authorization-otp')
+  @ApiOperation({ summary: 'Send an authorisation OTP to a landlord already verified for another broker' })
+  async sendLandlordAuthorizationOtp(@Req() req: any, @Body() body: any) {
+    this.logger.log(`Web broker send landlord authorisation OTP for ${this.getBrokerCode(req)}`);
+    return this.proxyService.forwardToBroker('SendLandlordAuthorizationOtp', {
+      brokerCode: this.getBrokerCode(req),
+      verificationId: body.verificationId || '',
+    });
+  }
+
+  @Post('landlord-details/verify-authorization')
+  @ApiOperation({
+    summary: 'Confirm the landlord authorisation OTP and the landlord NIN for the requesting broker',
+  })
+  async verifyLandlordAuthorization(@Req() req: any, @Body() body: any) {
+    this.logger.log(`Web broker verify landlord authorisation for ${this.getBrokerCode(req)}`);
+    return this.proxyService.forwardToBroker('VerifyLandlordAuthorization', {
+      brokerCode: this.getBrokerCode(req),
+      verificationId: body.verificationId || '',
+      otp: body.otp || '',
+      landlordNin: body.landlordNin ?? body.brokerNin ?? '',
+    });
+  }
+
   @Get('landlord-details/status')
   @ApiOperation({ summary: 'Get the landlord & title verification status for the authenticated broker' })
   async getLandlordDetailsStatus(@Req() req: any) {

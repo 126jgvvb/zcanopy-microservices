@@ -6,6 +6,7 @@ import { BrokerWalletTransactionEntity } from '../entity/broker-wallet-transacti
 import { BrokerFeedbackEntity } from '../entity/broker-feedback.entity';
 import { BrokerFcmTokenEntity } from '../entity/broker-fcm-token.entity';
 import { LandlordVerificationEntity } from '../entity/landlord-verification.entity';
+import { LandlordRegistryEntity } from '../entity/landlord-registry.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientGrpc } from '@nestjs/microservices';
@@ -73,6 +74,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             private readonly fcmTokenRepo:Repository<BrokerFcmTokenEntity>,
             @InjectRepository(LandlordVerificationEntity)
             private readonly landlordVerificationRepo:Repository<LandlordVerificationEntity>,
+            @InjectRepository(LandlordRegistryEntity)
+            private readonly landlordRegistryRepo:Repository<LandlordRegistryEntity>,
 @Inject('REDIS_CLIENT') private readonly redisClient:ClientProxy,
              @Inject('PROPERTY_CLIENT') private readonly propertyClient: ClientGrpc,
              @Inject('PAYMENT_CLIENT') private readonly paymentClient: ClientGrpc,
@@ -2413,6 +2416,7 @@ private getEmptyBroker(): any {
 
     private static readonly LANDLORD_WITHDRAWAL_OTP_TTL_SECONDS = 300;
     private static readonly LANDLORD_BROKER_OTP_TTL_SECONDS = 600;
+    private static readonly LANDLORD_AUTHORIZATION_OTP_TTL_SECONDS = 600;
 
     private landlordWithdrawalOtpKey(brokerCode: string): string {
         return `landlord:withdraw-otp:${brokerCode}`;
@@ -2420,6 +2424,88 @@ private getEmptyBroker(): any {
 
     private landlordBrokerOtpKey(requestingBrokerCode: string, targetBrokerCode: string): string {
         return `landlord:broker-otp:${requestingBrokerCode}:${targetBrokerCode}`;
+    }
+
+    private landlordAuthorizationOtpKey(brokerCode: string, verificationId: string): string {
+        return `landlord:auth-otp:${brokerCode}:${verificationId}`;
+    }
+
+    private normalizeLandlordNin(nin?: string): string {
+        return (nin || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    }
+
+    private maskContact(destination: string): string {
+        if (!destination) return '****';
+        return destination.length > 4
+            ? `${destination.slice(0, 3)}****${destination.slice(-3)}`
+            : '****';
+    }
+
+    private buildLandlordVerification(
+        broker: BrokerEntity,
+        dto: any,
+        fullName: string,
+        nin: string,
+        phoneNumber: string,
+        requiresLandlordAuthorization = false,
+    ) {
+        return this.landlordVerificationRepo.create({
+            brokerId: broker.id,
+            brokerCode: broker.brokerCode,
+            landlordFullName: fullName,
+            landlordNin: nin,
+            landlordPhoneNumber: phoneNumber,
+            landlordEmail: dto.email || undefined,
+            mzoDistrict: dto.mzoDistrict,
+            tenureType: dto.tenureType,
+            countyDivision: dto.countyDivision || undefined,
+            blockNumber: dto.blockNumber || undefined,
+            plotNumber: dto.plotNumber || undefined,
+            volumeNumber: dto.volumeNumber || undefined,
+            folioNumber: dto.folioNumber || undefined,
+            leaseExpiryDate: dto.leaseExpiryDate || undefined,
+            subCountyVillage: dto.subCountyVillage || undefined,
+            ccoRefNumber: dto.ccoRefNumber || undefined,
+            status: 'pending',
+            requiresLandlordAuthorization,
+        });
+    }
+
+    /**
+     * Persists (or refreshes) the canonical, admin-approved landlord record.
+     * Matching future submissions by NIN against this registry is what lets a
+     * second broker be asked for landlord authorisation.
+     */
+    private async saveApprovedLandlordRegistry(
+        verification: LandlordVerificationEntity,
+        adminId: string,
+    ): Promise<LandlordRegistryEntity> {
+        const nin = this.normalizeLandlordNin(verification.landlordNin);
+        let registry = await this.landlordRegistryRepo.findOne({ where: { landlordNin: nin } });
+        if (!registry) {
+            registry = this.landlordRegistryRepo.create({ landlordNin: nin });
+        }
+
+        registry.landlordFullName = verification.landlordFullName;
+        registry.landlordPhoneNumber = verification.landlordPhoneNumber;
+        registry.landlordEmail = verification.landlordEmail || registry.landlordEmail;
+        registry.mzoDistrict = verification.mzoDistrict;
+        registry.tenureType = verification.tenureType;
+        registry.countyDivision = verification.countyDivision || registry.countyDivision;
+        registry.blockNumber = verification.blockNumber || registry.blockNumber;
+        registry.plotNumber = verification.plotNumber || registry.plotNumber;
+        registry.volumeNumber = verification.volumeNumber || registry.volumeNumber;
+        registry.folioNumber = verification.folioNumber || registry.folioNumber;
+        registry.leaseExpiryDate = verification.leaseExpiryDate || registry.leaseExpiryDate;
+        registry.subCountyVillage = verification.subCountyVillage || registry.subCountyVillage;
+        registry.ccoRefNumber = verification.ccoRefNumber || registry.ccoRefNumber;
+        registry.instrumentNumber = verification.instrumentNumber || registry.instrumentNumber;
+        registry.sourceVerificationId = verification.id;
+        registry.sourceBrokerId = verification.brokerId;
+        registry.sourceBrokerCode = verification.brokerCode;
+        registry.approvedByAdminId = adminId || registry.approvedByAdminId || '';
+
+        return this.landlordRegistryRepo.save(registry);
     }
 
     /**
@@ -2526,6 +2612,57 @@ private getEmptyBroker(): any {
                 return { success: false, message: 'Invalid Ugandan NIN format. Expected 14 characters starting with CF or CM.' };
             }
 
+            // Mark any earlier submissions by this same broker as superseded.
+            await this.landlordVerificationRepo.update(
+                { brokerCode: broker.brokerCode, status: 'pending' },
+                { status: 'rejected', rejectionReason: 'Superseded by a newer submission', updatedAt: new Date() },
+            );
+
+            // If an admin has already verified this landlord (matched by NIN),
+            // the landlord must prove they also authorised this broker before
+            // the new submission can be auto-verified.
+            const registryMatch = await this.landlordRegistryRepo.findOne({
+                where: { landlordNin: this.normalizeLandlordNin(nin) },
+            });
+            if (registryMatch) {
+                const alreadyApproved = await this.landlordVerificationRepo.findOne({
+                    where: { brokerCode: broker.brokerCode, landlordNin: nin, status: 'approved' },
+                    order: { createdAt: 'DESC' },
+                });
+
+                if (alreadyApproved) {
+                    return {
+                        success: true,
+                        alreadyVerified: true,
+                        status: 'approved',
+                        verificationId: alreadyApproved.id,
+                        message:
+                            'You are already verified to represent this landlord. No further action is required.',
+                    };
+                }
+
+                const saved = await this.landlordVerificationRepo.save(
+                    this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber, true),
+                );
+
+                this.logger.log(
+                    `Broker ${broker.brokerCode} submitted landlord details for already-verified NIN ${nin} ` +
+                    `(verification ${saved.id}); landlord authorisation required`,
+                );
+
+                return {
+                    success: false,
+                    needsLandlordAuthorization: true,
+                    verificationId: saved.id,
+                    status: 'pending',
+                    landlordPhoneMasked: this.maskContact(registryMatch.landlordPhoneNumber),
+                    message:
+                        'These landlord details are already verified for another broker. ' +
+                        'Send an OTP to the landlord to confirm they also authorised you, then enter the OTP ' +
+                        'together with the landlord\'s NIN.',
+                };
+            }
+
             const matches = await this.findMatchingLandlordRecords(broker, fullName, nin, phoneNumber);
 
             if (matches.length > 0) {
@@ -2565,32 +2702,7 @@ private getEmptyBroker(): any {
                 }
             }
 
-            // Mark any earlier submissions by this same broker as superseded.
-            await this.landlordVerificationRepo.update(
-                { brokerCode: broker.brokerCode, status: 'pending' },
-                { status: 'rejected', rejectionReason: 'Superseded by a newer submission', updatedAt: new Date() },
-            );
-
-            const verification = this.landlordVerificationRepo.create({
-                brokerId: broker.id,
-                brokerCode: broker.brokerCode,
-                landlordFullName: fullName,
-                landlordNin: nin,
-                landlordPhoneNumber: phoneNumber,
-                landlordEmail: dto.email || undefined,
-                mzoDistrict: dto.mzoDistrict,
-                tenureType: dto.tenureType,
-                countyDivision: dto.countyDivision || undefined,
-                blockNumber: dto.blockNumber || undefined,
-                plotNumber: dto.plotNumber || undefined,
-                volumeNumber: dto.volumeNumber || undefined,
-                folioNumber: dto.folioNumber || undefined,
-                leaseExpiryDate: dto.leaseExpiryDate || undefined,
-                subCountyVillage: dto.subCountyVillage || undefined,
-                ccoRefNumber: dto.ccoRefNumber || undefined,
-                status: 'pending',
-            });
-
+            const verification = this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber);
             const saved = await this.landlordVerificationRepo.save(verification);
 
             this.logger.log(
@@ -2688,6 +2800,201 @@ private getEmptyBroker(): any {
         }
     }
 
+    /**
+     * Sends an authorisation OTP to the landlord's phone when a broker submits
+     * details for a landlord that an admin has already verified for someone
+     * else. The broker must obtain the code from the landlord, then confirm it
+     * together with their own NIN.
+     */
+    async sendLandlordAuthorizationOtp(dto: { brokerCode: string; verificationId?: string }) {
+        try {
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
+            if (!broker) {
+                throw new NotFoundException(`Broker not found for name or code ${dto.brokerCode}`);
+            }
+
+            const verification = dto.verificationId
+                ? await this.landlordVerificationRepo.findOne({
+                      where: { id: dto.verificationId, brokerCode: broker.brokerCode },
+                  })
+                : await this.landlordVerificationRepo.findOne({
+                      where: { brokerCode: broker.brokerCode, status: 'pending' },
+                      order: { createdAt: 'DESC' },
+                  });
+
+            if (!verification) {
+                return { success: false, message: 'No pending landlord submission was found to authorise.' };
+            }
+
+            if (verification.status === 'approved') {
+                return { success: false, message: 'This landlord verification is already approved.' };
+            }
+
+            const registry = await this.landlordRegistryRepo.findOne({
+                where: { landlordNin: this.normalizeLandlordNin(verification.landlordNin) },
+            });
+            if (!registry) {
+                return {
+                    success: false,
+                    message:
+                        'These landlord details have not been verified yet, so landlord authorisation is not required.',
+                };
+            }
+
+            const destination = registry.landlordPhoneNumber || verification.landlordPhoneNumber;
+            if (!destination) {
+                return { success: false, message: 'The verified landlord record has no phone number on file.' };
+            }
+
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            await this.redis.setex(
+                this.landlordAuthorizationOtpKey(broker.brokerCode, verification.id),
+                BrokerService.LANDLORD_AUTHORIZATION_OTP_TTL_SECONDS,
+                otp,
+            );
+
+            this.redisClient.emit('send_sms_otp', {
+                otp,
+                phoneNumber: destination,
+                username: registry.landlordFullName || verification.landlordFullName,
+                ttlSeconds: BrokerService.LANDLORD_AUTHORIZATION_OTP_TTL_SECONDS,
+                purpose: 'landlord-broker-authorization',
+            });
+
+            const masked = this.maskContact(destination);
+            this.logger.log(
+                `Sent landlord authorisation OTP to ${masked} for broker ${broker.brokerCode} ` +
+                `(verification ${verification.id})`,
+            );
+
+            return {
+                success: true,
+                message:
+                    `An authorisation OTP was sent by SMS to the landlord (${masked}). ` +
+                    'Obtain it from the landlord, then enter it together with the landlord\'s NIN.',
+                channel: 'phone',
+                destination: masked,
+            };
+        } catch (err) {
+            this.logger.error(`Failed to send landlord authorisation OTP for ${dto.brokerCode}:`, err);
+            throw err;
+        }
+    }
+
+    /**
+     * Confirms a landlord authorisation OTP together with the landlord's NIN.
+     *
+     * The OTP is delivered to the landlord's phone number on the verified
+     * registry, and the NIN must match the landlord identity the registry was
+     * created from. Possession of both — which only the landlord can supply —
+     * is what identifies the landlord's consent for this broker. A successful
+     * check auto-approves the submission using the instrument number recorded
+     * on the verified landlord registry.
+     */
+    async verifyLandlordAuthorization(dto: {
+        brokerCode: string;
+        verificationId: string;
+        otp: string;
+        landlordNin: string;
+    }) {
+        try {
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
+            if (!broker) {
+                throw new NotFoundException(`Broker not found for name or code ${dto.brokerCode}`);
+            }
+
+            const verification = await this.landlordVerificationRepo.findOne({
+                where: { id: dto.verificationId, brokerCode: broker.brokerCode },
+            });
+            if (!verification) {
+                return { success: false, message: 'The landlord submission to authorise was not found.' };
+            }
+            if (verification.status === 'approved') {
+                return { success: true, status: 'approved', message: 'You are already verified for this landlord.' };
+            }
+
+            const key = this.landlordAuthorizationOtpKey(broker.brokerCode, verification.id);
+            const stored = await this.redis.get(key);
+            if (!stored || stored !== String(dto.otp || '').trim()) {
+                return {
+                    success: false,
+                    message: 'The landlord authorisation OTP is invalid or has expired. Request a new OTP and try again.',
+                };
+            }
+
+            const landlordNin = this.normalizeLandlordNin(dto.landlordNin);
+            if (!/^C[FM][0-9A-Z]{12}$/.test(landlordNin)) {
+                return {
+                    success: false,
+                    message: 'Enter the landlord\'s valid 14-character Ugandan NIN starting with CF or CM.',
+                };
+            }
+
+            const registry = await this.landlordRegistryRepo.findOne({
+                where: { landlordNin: this.normalizeLandlordNin(verification.landlordNin) },
+            });
+            if (!registry) {
+                return { success: false, message: 'The verified landlord record could not be found.' };
+            }
+
+            // The NIN must match the landlord the registry was built from, and
+            // the phone number that received the OTP is the one on that same
+            // registry entry.
+            if (this.normalizeLandlordNin(registry.landlordNin) !== landlordNin) {
+                return {
+                    success: false,
+                    message:
+                        'The NIN you entered does not match the verified landlord details. Ask the landlord ' +
+                        'for the NIN printed on their National ID.',
+                };
+            }
+
+            await this.redis.del(key);
+
+            verification.status = 'approved';
+            verification.instrumentNumber = registry.instrumentNumber || verification.instrumentNumber || '';
+            verification.rejectionReason = null;
+            verification.reviewedAt = new Date();
+            verification.reviewedByAdminId = 'system:landlord-authorization';
+            await this.landlordVerificationRepo.save(verification);
+
+            this.redisClient.emit('broker_approved', {
+                brokerId: verification.brokerId,
+                instrumentNumber: verification.instrumentNumber,
+                source: 'landlord-authorization',
+            });
+
+            this.redisClient.emit('send_admin_message_email', {
+                recipientEmail: broker.email,
+                recipientName: broker.username,
+                subject: 'Landlord authorisation confirmed — you are verified',
+                body:
+                    `Dear ${broker.username}, the landlord ${registry.landlordFullName} confirmed that they ` +
+                    `authorised you as their broker. Their NIN and the OTP sent to their phone number ` +
+                    `${this.maskContact(registry.landlordPhoneNumber)} were both confirmed. Your landlord & title ` +
+                    `details for NIN ${registry.landlordNin} are now approved. You may withdraw your funds — each ` +
+                    `withdrawal will require an OTP sent to the landlord.`,
+            });
+
+            this.logger.log(
+                `Broker ${broker.brokerCode} auto-verified via landlord authorisation ` +
+                `(verification ${verification.id}, landlord NIN ${landlordNin})`,
+            );
+
+            return {
+                success: true,
+                status: 'approved',
+                verificationId: verification.id,
+                message:
+                    'Landlord authorisation confirmed. The landlord\'s NIN and the OTP sent to their phone ' +
+                    'number both matched, so you are now verified and can withdraw your funds.',
+            };
+        } catch (err) {
+            this.logger.error(`Failed to verify landlord authorisation for ${dto.brokerCode}:`, err);
+            throw err;
+        }
+    }
+
     async getLandlordDetailsStatus(dto: { brokerCode: string }) {
         try {
             const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
@@ -2704,6 +3011,12 @@ private getEmptyBroker(): any {
                 return { status: 'unsubmitted' };
             }
 
+            // Surface a landlord-authorisation requirement so the broker can
+            // resume the OTP + NIN flow even after a page reload.
+            const registry = await this.landlordRegistryRepo.findOne({
+                where: { landlordNin: this.normalizeLandlordNin(latest.landlordNin) },
+            });
+
             return {
                 status: latest.status,
                 instrumentNumber: latest.instrumentNumber || '',
@@ -2713,6 +3026,10 @@ private getEmptyBroker(): any {
                 nin: latest.landlordNin,
                 mzoDistrict: latest.mzoDistrict,
                 tenureType: latest.tenureType,
+                verificationId: latest.id,
+                needsLandlordAuthorization:
+                    latest.status === 'pending' && !!latest.requiresLandlordAuthorization && !!registry,
+                landlordPhoneMasked: registry ? this.maskContact(registry.landlordPhoneNumber) : '',
             };
         } catch (err) {
             this.logger.error(`Failed to get landlord details status for ${dto.brokerCode}:`, err);
@@ -2766,6 +3083,7 @@ private getEmptyBroker(): any {
                         instrumentNumber: v.instrumentNumber || '',
                         rejectionReason: v.rejectionReason || '',
                         status: v.status,
+                        requiresLandlordAuthorization: !!v.requiresLandlordAuthorization,
                         createdAt: v.createdAt ? v.createdAt.toISOString() : '',
                         updatedAt: v.updatedAt ? v.updatedAt.toISOString() : '',
                     };
@@ -2805,6 +3123,11 @@ private getEmptyBroker(): any {
             verification.reviewedByAdminId = dto.adminId || '';
             await this.landlordVerificationRepo.save(verification);
 
+            // Persist the verified identity/title details in the canonical
+            // landlord registry (keyed by NIN) so future submissions by other
+            // brokers can be matched against them.
+            await this.saveApprovedLandlordRegistry(verification, dto.adminId || '');
+
             // Approval unlocks withdrawals for the broker: reuse the existing
             // broker_approved flow so the broker is marked verified + notified.
             this.redisClient.emit('broker_approved', {
@@ -2827,7 +3150,7 @@ private getEmptyBroker(): any {
             }
 
             this.logger.log(`Approved landlord verification ${verification.id} with instrument number ${instrumentNumber}`);
-            return { success: true, message: 'Landlord verification approved and broker notified' };
+            return { success: true, message: 'Landlord verification approved, saved for cross-broker matching, and broker notified' };
         } catch (err) {
             this.logger.error(`Failed to approve landlord verification ${dto.verificationId}:`, err);
             throw err;
@@ -2902,7 +3225,20 @@ private getEmptyBroker(): any {
 
             let channel = 'phone';
             let destination = verification.landlordPhoneNumber;
-            if (verification.landlordEmail) {
+            let recipientName = verification.landlordFullName;
+
+            // When the landlord is on the approved registry, the OTP must go
+            // to the contact details recorded there — a second broker must not
+            // be able to redirect the landlord's OTP to their own number.
+            const registry = await this.landlordRegistryRepo.findOne({
+                where: { landlordNin: this.normalizeLandlordNin(verification.landlordNin) },
+            });
+            if (registry?.landlordPhoneNumber) {
+                destination = registry.landlordPhoneNumber;
+                recipientName = registry.landlordFullName || recipientName;
+            }
+
+            if (verification.landlordEmail && !registry?.landlordPhoneNumber) {
                 channel = 'email';
                 destination = verification.landlordEmail;
                 this.redisClient.emit('send_email_otp', {
@@ -2916,8 +3252,8 @@ private getEmptyBroker(): any {
             } else {
                 this.redisClient.emit('send_sms_otp', {
                     otp,
-                    phoneNumber: verification.landlordPhoneNumber,
-                    username: verification.landlordFullName,
+                    phoneNumber: destination,
+                    username: recipientName,
                     ttlSeconds: BrokerService.LANDLORD_WITHDRAWAL_OTP_TTL_SECONDS,
                     purpose: 'landlord-withdrawal-authorization',
                 });

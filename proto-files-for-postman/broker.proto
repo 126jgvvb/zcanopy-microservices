@@ -52,6 +52,8 @@ service BrokerService{
   rpc SubmitLandlordDetails (SubmitLandlordDetailsRequest) returns (SubmitLandlordDetailsResponse);
   rpc GetLandlordDetailsStatus (GetLandlordDetailsStatusRequest) returns (GetLandlordDetailsStatusResponse);
   rpc SendLandlordBrokerOtps (SendLandlordBrokerOtpsRequest) returns (SendLandlordBrokerOtpsResponse);
+  rpc SendLandlordAuthorizationOtp (SendLandlordAuthorizationOtpRequest) returns (SendLandlordAuthorizationOtpResponse);
+  rpc VerifyLandlordAuthorization (VerifyLandlordAuthorizationRequest) returns (VerifyLandlordAuthorizationResponse);
   rpc GetLandlordVerifications (GetLandlordVerificationsRequest) returns (GetLandlordVerificationsResponse);
   rpc ApproveLandlordVerification (ApproveLandlordVerificationRequest) returns (ApproveLandlordVerificationResponse);
   rpc RejectLandlordVerification (RejectLandlordVerificationRequest) returns (RejectLandlordVerificationResponse);
@@ -777,6 +779,9 @@ message SubmitLandlordDetailsResponse {
   repeated MatchedBroker matchedBrokers = 4;
   string verificationId = 5;
   string status = 6;
+  bool needsLandlordAuthorization = 7;
+  string landlordPhoneMasked = 8;
+  bool alreadyVerified = 9;
 }
 
 message GetLandlordDetailsStatusRequest {
@@ -792,6 +797,9 @@ message GetLandlordDetailsStatusResponse {
   string nin = 6;
   string mzoDistrict = 7;
   string tenureType = 8;
+  string verificationId = 9;
+  bool needsLandlordAuthorization = 10;
+  string landlordPhoneMasked = 11;
 }
 
 message SendLandlordBrokerOtpsRequest {
@@ -805,6 +813,32 @@ message SendLandlordBrokerOtpsResponse {
   bool success = 1;
   string message = 2;
   repeated MatchedBroker matchedBrokers = 3;
+}
+
+message SendLandlordAuthorizationOtpRequest {
+  string brokerCode = 1;
+  string verificationId = 2;
+}
+
+message SendLandlordAuthorizationOtpResponse {
+  bool success = 1;
+  string message = 2;
+  string channel = 3;
+  string destination = 4;
+}
+
+message VerifyLandlordAuthorizationRequest {
+  string brokerCode = 1;
+  string verificationId = 2;
+  string otp = 3;
+  string landlordNin = 4;
+}
+
+message VerifyLandlordAuthorizationResponse {
+  bool success = 1;
+  string message = 2;
+  string status = 3;
+  string verificationId = 4;
 }
 
 message LandlordVerification {
@@ -832,6 +866,7 @@ message LandlordVerification {
   string status = 22;
   string createdAt = 23;
   string updatedAt = 24;
+  bool requiresLandlordAuthorization = 25;
 }
 
 message GetLandlordVerificationsRequest {

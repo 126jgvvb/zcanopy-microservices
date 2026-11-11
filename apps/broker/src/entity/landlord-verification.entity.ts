@@ -81,6 +81,14 @@ export class LandlordVerificationEntity {
   @Column({ default: 'pending' })
   status!: string;
 
+  /**
+   * True when the landlord's NIN was already verified for another broker, so
+   * this broker must obtain the landlord's OTP authorisation and confirm
+   * their own NIN before the submission can be approved.
+   */
+  @Column({ default: false })
+  requiresLandlordAuthorization!: boolean;
+
   @Column({ type: 'timestamp', nullable: true })
   reviewedAt?: Date;
 

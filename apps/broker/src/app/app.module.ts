@@ -9,6 +9,7 @@ import { BrokerWalletTransactionEntity } from '../entity/broker-wallet-transacti
 import { BrokerFeedbackEntity } from '../entity/broker-feedback.entity';
 import { BrokerFcmTokenEntity } from '../entity/broker-fcm-token.entity';
 import { LandlordVerificationEntity } from '../entity/landlord-verification.entity';
+import { LandlordRegistryEntity } from '../entity/landlord-registry.entity';
 import {TypeOrmModule} from "@nestjs/typeorm";
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule,Transport } from '@nestjs/microservices';
@@ -30,12 +31,12 @@ const projectRoot = resolve(__dirname, '../..', '..', '..', '..');
         username: config.get<string>('DB_USERNAME') || 'postgres',
         password: config.get<string>('DB_PASSWORD') || 'password',
         database: config.get<string>('DB_DATABASE') || 'broker_db',
-        entities: [BrokerEntity, PayoutsEntity, BrokerWalletTransactionEntity, BrokerFeedbackEntity, BrokerFcmTokenEntity, LandlordVerificationEntity],
+        entities: [BrokerEntity, PayoutsEntity, BrokerWalletTransactionEntity, BrokerFeedbackEntity, BrokerFcmTokenEntity, LandlordVerificationEntity, LandlordRegistryEntity],
         synchronize: config.get<string>('DB_SYNCHRONIZE') !== 'false',
         logging: config.get<string>('DB_LOGGING') === 'true',
       }),
     }),
-    TypeOrmModule.forFeature([BrokerEntity, PayoutsEntity, BrokerWalletTransactionEntity, BrokerFeedbackEntity, BrokerFcmTokenEntity, LandlordVerificationEntity]),
+    TypeOrmModule.forFeature([BrokerEntity, PayoutsEntity, BrokerWalletTransactionEntity, BrokerFeedbackEntity, BrokerFcmTokenEntity, LandlordVerificationEntity, LandlordRegistryEntity]),
     ClientsModule.registerAsync([
       {
         name: 'REDIS_CLIENT',
