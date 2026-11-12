@@ -278,8 +278,14 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         throw new BadRequestException(`Your ${subscriptionTier} subscription has expired. Please renew to continue.`);
       }
 
-      const geoField: GeoSpatialField | null = dto.coordinates
-        ? { lat: dto.coordinates.lat, lng: dto.coordinates.lng }
+      // A 0,0 point is how a caller says "I have no coordinates for this
+      // property" (the broker confirmed they are not on site and only the
+      // location name should be used), so store NULL rather than placing the
+      // property in the ocean off West Africa.
+      const hasCoordinates =
+        dto.coordinates != null && dto.coordinates.lat !== 0 && dto.coordinates.lng !== 0;
+      const geoField: GeoSpatialField | null = hasCoordinates
+        ? { lat: dto.coordinates!.lat, lng: dto.coordinates!.lng }
         : null;
 
       const property = this.propertyRepo.create({
@@ -942,7 +948,10 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         updateData.videoCount = dto.videoUrl.length;
       }
       if (dto.lat != null || dto.lng != null) {
-        const geoField: GeoSpatialField | null = dto.lat != null && dto.lng != null
+        // Same convention as createProperty: 0,0 means "no coordinates".
+        const hasCoordinates =
+          dto.lat != null && dto.lng != null && dto.lat !== 0 && dto.lng !== 0;
+        const geoField: GeoSpatialField | null = hasCoordinates
           ? { lat: dto.lat, lng: dto.lng }
           : null;
         updateData.postgis_spatial_field = geoField;
