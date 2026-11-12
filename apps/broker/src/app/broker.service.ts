@@ -2441,6 +2441,18 @@ private getEmptyBroker(): any {
             : '****';
     }
 
+    /**
+     * Masks a landlord contact down to its last two digits only. Used for the
+     * contact details of a landlord who is already linked to another broker:
+     * the requesting broker only needs to recognise the number, not read it.
+     */
+    private maskContactTail(destination: string): string {
+        if (!destination) return '****';
+        const digits = destination.replace(/\D/g, '');
+        if (digits.length <= 2) return '****';
+        return `****${digits.slice(-2)}`;
+    }
+
     private buildLandlordVerification(
         broker: BrokerEntity,
         dto: any,
@@ -2619,11 +2631,14 @@ private getEmptyBroker(): any {
             );
 
             // If an admin has already verified this landlord (matched by NIN),
-            // the landlord must prove they also authorised this broker before
-            // the new submission can be auto-verified.
+            // the landlord is already linked to another broker. The new broker
+            // must prove they were authorised too — either by collecting a
+            // confirmation OTP from the brokers that already hold the landlord,
+            // or by getting the landlord to confirm the authorisation directly.
             const registryMatch = await this.landlordRegistryRepo.findOne({
                 where: { landlordNin: this.normalizeLandlordNin(nin) },
             });
+
             if (registryMatch) {
                 const alreadyApproved = await this.landlordVerificationRepo.findOne({
                     where: { brokerCode: broker.brokerCode, landlordNin: nin, status: 'approved' },
@@ -2640,7 +2655,16 @@ private getEmptyBroker(): any {
                             'You are already verified to represent this landlord. No further action is required.',
                     };
                 }
+            }
 
+            const matches = await this.findMatchingLandlordRecords(broker, fullName, nin, phoneNumber);
+            const matchedBrokers = await this.findBrokersForLandlordMatches(matches);
+            const confirmations = dto.brokerConfirmations || [];
+
+            // A landlord that is already verified for another broker always
+            // needs a confirmation. When there are no other brokers holding
+            // records for the landlord, the landlord has to confirm directly.
+            if (registryMatch && matchedBrokers.length === 0) {
                 const saved = await this.landlordVerificationRepo.save(
                     this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber, true),
                 );
@@ -2655,7 +2679,7 @@ private getEmptyBroker(): any {
                     needsLandlordAuthorization: true,
                     verificationId: saved.id,
                     status: 'pending',
-                    landlordPhoneMasked: this.maskContact(registryMatch.landlordPhoneNumber),
+                    landlordPhoneMasked: this.maskContactTail(registryMatch.landlordPhoneNumber),
                     message:
                         'These landlord details are already verified for another broker. ' +
                         'Send an OTP to the landlord to confirm they also authorised you, then enter the OTP ' +
@@ -2663,47 +2687,98 @@ private getEmptyBroker(): any {
                 };
             }
 
-            const matches = await this.findMatchingLandlordRecords(broker, fullName, nin, phoneNumber);
+            if (matchedBrokers.length > 0) {
+                // Keep a pending verification around while the broker collects
+                // the confirmation OTPs. When the landlord is already verified
+                // for another broker this record also carries the landlord
+                // authorisation (OTP + NIN) alternative.
+                const pending = registryMatch
+                    ? await this.landlordVerificationRepo.save(
+                          this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber, true),
+                      )
+                    : null;
 
-            if (matches.length > 0) {
-                const confirmations = dto.brokerConfirmations || [];
                 if (confirmations.length === 0) {
                     // Step 1: tell the broker which other brokers hold records for
                     // this landlord so they can agree to send them OTPs first.
-                    const matchedBrokers = await this.findBrokersForLandlordMatches(matches);
                     return {
                         success: false,
                         needsBrokerConfirmation: true,
-                        message:
-                            'These landlord details match records submitted by other brokers. ' +
-                            'You must agree to send confirmation OTPs to those brokers and enter them before submitting.',
+                        message: registryMatch
+                            ? 'These landlord details are already verified for another broker. ' +
+                              'You must either obtain a confirmation OTP from the brokers connected to this landlord ' +
+                              'or confirm the landlord directly with an OTP sent to the phone number on record.'
+                            : 'These landlord details match records submitted by other brokers. ' +
+                              'You must agree to send confirmation OTPs to those brokers and enter them before submitting.',
                         matchedBrokers,
+                        verificationId: pending?.id,
+                        needsLandlordAuthorization: !!registryMatch,
+                        landlordPhoneMasked: registryMatch
+                            ? this.maskContactTail(registryMatch.landlordPhoneNumber)
+                            : '',
                     };
                 }
 
                 // Step 2: validate each provided broker OTP.
+                let invalidOtp = false;
                 for (const confirmation of confirmations) {
                     const key = this.landlordBrokerOtpKey(broker.brokerCode, confirmation.brokerCode);
                     const stored = await this.redis.get(key);
                     if (!stored || stored !== String(confirmation.otp || '').trim()) {
-                        // Resend fresh OTPs so the flow can be retried.
-                        const matchedBrokers = await this.findBrokersForLandlordMatches(matches);
-                        for (const matched of matchedBrokers) {
-                            await this.sendLandlordBrokerOtp(broker, matched.brokerCode);
-                        }
-                        return {
-                            success: false,
-                            needsBrokerConfirmation: true,
-                            message: 'One or more broker confirmation OTPs were invalid or expired. New OTPs have been sent.',
-                            matchedBrokers,
-                        };
+                        invalidOtp = true;
+                        break;
                     }
-                    await this.redis.del(key);
+                }
+
+                if (invalidOtp) {
+                    // Resend fresh OTPs so the flow can be retried.
+                    for (const matched of matchedBrokers) {
+                        await this.sendLandlordBrokerOtp(broker, matched.brokerCode);
+                    }
+                    return {
+                        success: false,
+                        needsBrokerConfirmation: true,
+                        message: 'One or more broker confirmation OTPs were invalid or expired. New OTPs have been sent.',
+                        matchedBrokers,
+                        verificationId: pending?.id,
+                        needsLandlordAuthorization: !!registryMatch,
+                        landlordPhoneMasked: registryMatch
+                            ? this.maskContactTail(registryMatch.landlordPhoneNumber)
+                            : '',
+                    };
+                }
+
+                for (const confirmation of confirmations) {
+                    await this.redis.del(this.landlordBrokerOtpKey(broker.brokerCode, confirmation.brokerCode));
+                }
+
+                if (pending) {
+                    // The landlord was confirmed by the brokers connected to
+                    // them, so this submission no longer depends on the
+                    // landlord's own authorisation.
+                    pending.requiresLandlordAuthorization = false;
+                    await this.landlordVerificationRepo.save(pending);
                 }
             }
 
-            const verification = this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber);
-            const saved = await this.landlordVerificationRepo.save(verification);
+            let saved: LandlordVerificationEntity;
+            if (matchedBrokers.length > 0) {
+                // Reuse the pending record created above so the submission keeps
+                // a single identity across the confirmation steps.
+                saved = await this.landlordVerificationRepo.findOne({
+                    where: { brokerCode: broker.brokerCode, landlordNin: nin, status: 'pending' },
+                    order: { createdAt: 'DESC' },
+                });
+                if (!saved) {
+                    saved = await this.landlordVerificationRepo.save(
+                        this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber),
+                    );
+                }
+            } else {
+                saved = await this.landlordVerificationRepo.save(
+                    this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber),
+                );
+            }
 
             this.logger.log(
                 `Broker ${broker.brokerCode} submitted landlord details for ${fullName} (verification ${saved.id})`,

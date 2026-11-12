@@ -853,7 +853,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (query.propertyType) {
-        qb.andWhere('property.propertyType = :propertyType', { propertyType: query.propertyType });
+        qb.andWhere('property.propertyType ILIKE :propertyType', { propertyType: query.propertyType });
       }
 
       if (query.fromDate) {
@@ -1275,7 +1275,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         .where('property.isAvailable = :isAvailable', { isAvailable: true });
 
       if (dto.propertyType) {
-        query.andWhere('property.propertyType = :propertyType', { propertyType: dto.propertyType });
+        query.andWhere('property.propertyType ILIKE :propertyType', { propertyType: dto.propertyType });
       }
 
       query.andWhere(
@@ -1357,7 +1357,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (dto.propertyType) {
-        qb.andWhere('property.propertyType = :propertyType', { propertyType: dto.propertyType });
+        qb.andWhere('property.propertyType ILIKE :propertyType', { propertyType: dto.propertyType });
       }
 
       if (dto.subCounty) {
@@ -1506,7 +1506,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       let query = this.propertyRepo.createQueryBuilder('property').where('property.isAvailable = :isAvailable', { isAvailable: true });
 
       if (dto.propertyType) {
-        query = query.andWhere('property.propertyType = :propertyType', { propertyType: dto.propertyType });
+        query = query.andWhere('property.propertyType ILIKE :propertyType', { propertyType: dto.propertyType });
       }
 
       if (dto.location) {
@@ -2059,7 +2059,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
       let query = this.propertyRepo.createQueryBuilder('property')
         .where('property.isAvailable = :isAvailable', { isAvailable: true })
         .andWhere('property.id != :id', { id: dto.propertyId })
-        .andWhere('property.propertyType = :propertyType', { propertyType: property.propertyType });
+        .andWhere('property.propertyType ILIKE :propertyType', { propertyType: property.propertyType });
 
       if (property.subCounty) {
         query = query.andWhere('property.subCounty = :subCounty', { subCounty: property.subCounty });
@@ -2673,7 +2673,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
         where.query = ILike(`%${dto.query}%`);
       }
       if (dto.propertyType) {
-        where.propertyType = dto.propertyType;
+        where.propertyType = ILike(dto.propertyType);
       }
       if (dto.location) {
         where.location = ILike(`%${dto.location}%`);
