@@ -222,6 +222,22 @@ export class PropertyController {
     return this.propertyService.setBookingEscrow(dto);
   }
 
+  @GrpcMethod('PropertyService', 'StopBookingEscrowReversal')
+  async stopBookingEscrowReversal(dto: { bookingCode: string; reason?: string; adminUsername?: string }) {
+    this.logger.log(
+      `Received stop-booking-escrow-reversal request for bookingCode=${dto.bookingCode} by=${dto.adminUsername || 'admin'}`,
+    );
+    return this.propertyService.stopBookingEscrowReversal(dto);
+  }
+
+  @GrpcMethod('PropertyService', 'ResumeBookingEscrowReversal')
+  async resumeBookingEscrowReversal(dto: { bookingCode: string; adminUsername?: string }) {
+    this.logger.log(
+      `Received resume-booking-escrow-reversal request for bookingCode=${dto.bookingCode} by=${dto.adminUsername || 'admin'}`,
+    );
+    return this.propertyService.resumeBookingEscrowReversal(dto);
+  }
+
   @GrpcMethod('PropertyService', 'ReleaseBookingFunds')
   async releaseBookingFunds(dto: { bookingCode: string; customerId?: string; customerPhone?: string; customerEmail?: string }) {
     this.logger.log(`Received release-booking-funds request for bookingCode=${dto.bookingCode}`);

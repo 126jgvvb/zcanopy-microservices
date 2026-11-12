@@ -1363,6 +1363,9 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         emailStatus: 'sent',
         referenceNumber: t.referenceNumber,
         transactionCode: t.transactionCode,
+        provider: t.provider,
+        isEscrowReversal: t.isEscrowReversal,
+        reversalFailureCount: t.reversalFailureCount || 0,
       }));
 
       return {

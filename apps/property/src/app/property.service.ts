@@ -541,6 +541,167 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Stops the escrow sweep from retrying a reversal that keeps failing.
+   *
+   * The payment provider rejects the disbursement (an invalid amount, a
+   * closed mobile money account, ...), so every sweep burns a provider call
+   * and writes another failed transaction row for a booking that will never
+   * succeed. An admin can stop those retries and deal with the booking by
+   * hand instead.
+   */
+  async stopBookingEscrowReversal(
+    dto: { bookingCode: string; reason?: string; adminUsername?: string },
+  ): Promise<{ success: boolean; message: string; bookingCode?: string }> {
+    try {
+      if (!dto.bookingCode) {
+        throw new BadRequestException('Booking code is required');
+      }
+
+      const found = await this.findBookingByCode(dto.bookingCode);
+      if (!found) {
+        throw new BadRequestException('Booking not found');
+      }
+      const { property, viewer, viewerIndex } = found;
+
+      if (viewer.fundsReversed) {
+        throw new BadRequestException(
+          'The funds for this booking were already reversed - there is nothing to retry',
+        );
+      }
+      if (viewer.reversalAbandoned) {
+        return {
+          success: true,
+          message: 'The retries for this reversal were already stopped',
+          bookingCode: dto.bookingCode,
+        };
+      }
+
+      const viewers = property.allowedViewers || [];
+      const reason = (dto.reason || '').trim() || 'Stopped by an administrator';
+      viewers[viewerIndex] = {
+        ...viewer,
+        reversalAbandoned: true,
+        reversalAbandonedAt: new Date().toISOString(),
+        reversalAbandonedReason: dto.adminUsername
+          ? `${reason} (by ${dto.adminUsername})`
+          : reason,
+      };
+      await this.propertyRepo.save(property);
+
+      // Record the decision on the transaction row so the admin console can
+      // show that the retries are stopped.
+      try {
+        await firstValueFrom(
+          this.paymentClient
+            .getService('PaymentService')
+            .setReversalRetriesStopped({
+              bookingCode: dto.bookingCode,
+              stopped: true,
+              adminUsername: dto.adminUsername || '',
+              reason,
+            })
+            .pipe(timeout(10000)),
+        );
+      } catch (markErr) {
+        this.logger.warn(
+          `[escrow-sweep] could not mark the reversal transaction as stopped for booking=${dto.bookingCode}: ${(markErr as Error).message}`,
+        );
+      }
+
+      this.logger.log(
+        `[escrow-sweep] retries stopped for booking=${dto.bookingCode} by=${dto.adminUsername || 'admin'} reason=${reason}`,
+      );
+
+      return {
+        success: true,
+        message: 'The reversal retries for this booking have been stopped',
+        bookingCode: dto.bookingCode,
+      };
+    } catch (err) {
+      this.logger.error(
+        `Failed to stop the escrow reversal retries for ${dto.bookingCode}:`,
+        err,
+      );
+      throw err;
+    }
+  }
+
+  /**
+   * Starts the escrow sweep retrying a booking again after an admin stopped
+   * the retries.
+   */
+  async resumeBookingEscrowReversal(
+    dto: { bookingCode: string; adminUsername?: string },
+  ): Promise<{ success: boolean; message: string; bookingCode?: string }> {
+    try {
+      if (!dto.bookingCode) {
+        throw new BadRequestException('Booking code is required');
+      }
+
+      const found = await this.findBookingByCode(dto.bookingCode);
+      if (!found) {
+        throw new BadRequestException('Booking not found');
+      }
+      const { property, viewer, viewerIndex } = found;
+
+      if (viewer.fundsReversed) {
+        throw new BadRequestException(
+          'The funds for this booking were already reversed - there is nothing to retry',
+        );
+      }
+      if (!viewer.reversalAbandoned) {
+        return {
+          success: true,
+          message: 'The retries for this reversal are already running',
+          bookingCode: dto.bookingCode,
+        };
+      }
+
+      const viewers = property.allowedViewers || [];
+      viewers[viewerIndex] = {
+        ...viewer,
+        reversalAbandoned: false,
+        reversalAbandonedAt: undefined,
+        reversalAbandonedReason: undefined,
+      };
+      await this.propertyRepo.save(property);
+
+      try {
+        await firstValueFrom(
+          this.paymentClient
+            .getService('PaymentService')
+            .setReversalRetriesStopped({
+              bookingCode: dto.bookingCode,
+              stopped: false,
+              adminUsername: dto.adminUsername || '',
+            })
+            .pipe(timeout(10000)),
+        );
+      } catch (markErr) {
+        this.logger.warn(
+          `[escrow-sweep] could not mark the reversal transaction as retrying for booking=${dto.bookingCode}: ${(markErr as Error).message}`,
+        );
+      }
+
+      this.logger.log(
+        `[escrow-sweep] retries resumed for booking=${dto.bookingCode} by=${dto.adminUsername || 'admin'}`,
+      );
+
+      return {
+        success: true,
+        message: 'The reversal retries for this booking have resumed',
+        bookingCode: dto.bookingCode,
+      };
+    } catch (err) {
+      this.logger.error(
+        `Failed to resume the escrow reversal retries for ${dto.bookingCode}:`,
+        err,
+      );
+      throw err;
+    }
+  }
+
+  /**
    * Customer approves the booking: the held (escrow) funds are moved from the
    * broker's held balance into their withdrawable wallet balance.
    */
@@ -670,6 +831,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       const now = Date.now();
       let reversedCount = 0;
       let touchedProperties = 0;
+      let skippedCount = 0;
 
       const properties = await this.propertyRepo.find({ where: {} });
       for (const property of properties) {
@@ -697,6 +859,14 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
           const viewer = viewers[i];
           if (!viewer || !viewer.escrowEnabled || !viewer.escrowEndsAt) continue;
           if (viewer.fundsReleased || viewer.fundsReversed) continue;
+
+          // An admin stopped the retries for this booking: the reversal keeps
+          // being rejected, so it is left for manual handling instead of
+          // burning a provider call on every sweep.
+          if (viewer.reversalAbandoned) {
+            skippedCount++;
+            continue;
+          }
 
           const endsAt = new Date(viewer.escrowEndsAt).getTime();
           if (!Number.isFinite(endsAt) || endsAt > now) continue;
@@ -824,10 +994,15 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
           `[escrow-sweep] reversed ${reversedCount} expired booking(s) across ${touchedProperties} propert(y/ies)`,
         );
       }
+      if (skippedCount > 0) {
+        this.logger.log(
+          `[escrow-sweep] skipped ${skippedCount} booking(s) whose reversal retries were stopped by an admin`,
+        );
+      }
 
       return {
         success: true,
-        message: `Escrow sweep complete: ${reversedCount} booking(s) reversed`,
+        message: `Escrow sweep complete: ${reversedCount} booking(s) reversed${skippedCount > 0 ? `, ${skippedCount} skipped (retries stopped)` : ''}`,
         reversedCount,
       };
     } catch (err) {

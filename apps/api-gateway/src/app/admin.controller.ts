@@ -391,6 +391,56 @@ export class AdminController {
     });
   }
 
+  /**
+   * Stops the escrow sweep from retrying a reversal that keeps failing.
+   *
+   * The provider rejects the disbursement, so every sweep burns a provider
+   * call and writes another failed transaction row for a booking that will
+   * never succeed. An admin can stop the retries from the transactions table
+   * and deal with the booking by hand.
+   */
+  @Post('bookings/:bookingCode/stop-reversal')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Stop the escrow sweep from retrying a failed reversal' })
+  async stopBookingEscrowReversal(
+    @Param('bookingCode') bookingCode: string,
+    @Body() body: any,
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.sub || req.user?.id;
+    const adminUsername = req.user?.username || req.user?.email || '';
+    this.logger.log(
+      `Stop escrow reversal retries for booking ${bookingCode} by admin ${adminId}`,
+    );
+    return this.proxyService.forwardToProperty('StopBookingEscrowReversal', {
+      bookingCode,
+      reason: body?.reason || '',
+      adminUsername,
+    });
+  }
+
+  /**
+   * Starts the escrow sweep retrying a booking again after an admin stopped
+   * the retries.
+   */
+  @Post('bookings/:bookingCode/resume-reversal')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Resume the escrow sweep retries for a stopped reversal' })
+  async resumeBookingEscrowReversal(
+    @Param('bookingCode') bookingCode: string,
+    @Req() req: any,
+  ) {
+    const adminId = req.user?.sub || req.user?.id;
+    const adminUsername = req.user?.username || req.user?.email || '';
+    this.logger.log(
+      `Resume escrow reversal retries for booking ${bookingCode} by admin ${adminId}`,
+    );
+    return this.proxyService.forwardToProperty('ResumeBookingEscrowReversal', {
+      bookingCode,
+      adminUsername,
+    });
+  }
+
   @Post('landlord-verifications/:verificationId/approve')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Approve a landlord verification with the Ministry instrument number' })

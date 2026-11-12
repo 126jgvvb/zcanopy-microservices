@@ -62,6 +62,13 @@ const MIN_WITHDRAWAL = 100;
 const PLATFORM_COMMISSION_WALLET_USER_ID = process.env.PLATFORM_COMMISSION_WALLET_USER_ID || 'platform-commission';
 
 @Injectable()
+/** Provider recorded on the escrow reversal transaction rows. */
+const REVERSAL_PROVIDER = 'iotec-mobile-money-reversal';
+/** Status of a reversal the payment provider rejected. */
+const REVERSAL_FAILED_STATUS = 'REVERSAL_FAILED';
+/** A failed reversal whose retries an admin has stopped. */
+const REVERSAL_STOPPED_STATUS = 'REVERSAL_STOPPED';
+
 export class PaymentService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PaymentService.name);
   private subscriber!: Redis;
@@ -1048,7 +1055,61 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
     }
   }
 
-   async getTransactions(query: { page: number; limit: number; brokerId?: string; customerId?: string; reason?: string }): Promise<{
+   /**
+   * Marks the latest failed escrow reversal of a booking as stopped (or puts
+   * it back to failed so the retries resume).
+   *
+   * The sweep stops retrying the booking because of the flag the property
+   * service keeps on the booking itself; this only records the decision on the
+   * transaction row so the admin console can show it.
+   */
+  async setReversalRetriesStopped(dto: {
+    bookingCode: string;
+    stopped?: boolean;
+    adminUsername?: string;
+    reason?: string;
+  }): Promise<{ success: boolean; message: string; transactionId?: string }> {
+    try {
+      const bookingCode = (dto.bookingCode || '').trim();
+      if (!bookingCode) {
+        throw new BadRequestException('Booking code is required');
+      }
+
+      const row = await this.transactionRepo.findOne({
+        where: { provider: REVERSAL_PROVIDER, transactionCode: bookingCode },
+        order: { createdAt: 'DESC' },
+      });
+      if (!row) {
+        throw new BadRequestException(
+          'No escrow reversal transaction found for this booking',
+        );
+      }
+
+      const stopped = dto.stopped !== false;
+      row.paymentStatus = stopped ? REVERSAL_STOPPED_STATUS : REVERSAL_FAILED_STATUS;
+      await this.transactionRepo.save(row);
+
+      this.logger.log(
+        `[escrow-reversal] retries ${stopped ? 'stopped' : 'resumed'} for booking=${bookingCode} by=${dto.adminUsername || 'admin'} transaction=${row.id}`,
+      );
+
+      return {
+        success: true,
+        message: stopped
+          ? 'The reversal transaction was marked as stopped'
+          : 'The reversal transaction was marked as retrying again',
+        transactionId: row.id,
+      };
+    } catch (err) {
+      this.logger.error(
+        `Failed to update the reversal retries for ${dto.bookingCode}:`,
+        err,
+      );
+      throw err;
+    }
+  }
+
+  async getTransactions(query: { page: number; limit: number; brokerId?: string; customerId?: string; reason?: string }): Promise<{
     transactions: any[];
     total: number;
   }> {
@@ -1074,6 +1135,36 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
         take: limit,
       });
 
+      // How many times each failed reversal has been attempted. The admin
+      // needs this to decide whether it is worth stopping the retries.
+      const reversalCodes = Array.from(
+        new Set(
+          transactions
+            .filter(
+              (t: any) =>
+                t.provider === REVERSAL_PROVIDER &&
+                t.paymentStatus === REVERSAL_FAILED_STATUS &&
+                t.transactionCode,
+            )
+            .map((t: any) => t.transactionCode),
+        ),
+      ) as string[];
+      const failureCounts = new Map<string, number>();
+      if (reversalCodes.length > 0) {
+        const rows = await this.transactionRepo
+          .createQueryBuilder('t')
+          .select('t.transactionCode', 'code')
+          .addSelect('COUNT(*)', 'attempts')
+          .where('t.provider = :provider', { provider: REVERSAL_PROVIDER })
+          .andWhere('t.paymentStatus = :status', { status: REVERSAL_FAILED_STATUS })
+          .andWhere('t.transactionCode IN (:...codes)', { codes: reversalCodes })
+          .groupBy('t.transactionCode')
+          .getRawMany();
+        for (const row of rows) {
+          failureCounts.set(String(row.code), Number(row.attempts) || 0);
+        }
+      }
+
       return {
         transactions: transactions.map(t => ({
           id: t.id,
@@ -1088,6 +1179,12 @@ iotecEndpoint = `${IOTEC_BASE_URL}/iotec/admin-mobile-money`;
           transactionCode: t.transactionCode,
           customerName: t.customerName,
           customerEmail: t.customerEmail,
+          provider: t.provider,
+          isEscrowReversal: t.provider === REVERSAL_PROVIDER,
+          reversalFailureCount:
+            t.provider === REVERSAL_PROVIDER
+              ? failureCounts.get(t.transactionCode) || 0
+              : 0,
         })),
         total,
       };

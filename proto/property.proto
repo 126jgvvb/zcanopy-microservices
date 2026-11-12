@@ -28,6 +28,11 @@ service PropertyService {
   rpc GetPropertyClients (GetPropertyClientsRequest) returns (GetPropertyClientsResponse);
   rpc DeclineBooking (DeclineBookingRequest) returns (DeclineBookingResponse);
   rpc SetBookingEscrow (SetBookingEscrowRequest) returns (SetBookingEscrowResponse);
+  // Admin controls for an escrow reversal that keeps failing: the sweep stops
+  // retrying it (saving gateway and payment-provider resources) until an
+  // admin resumes it.
+  rpc StopBookingEscrowReversal (StopBookingEscrowReversalRequest) returns (StopBookingEscrowReversalResponse);
+  rpc ResumeBookingEscrowReversal (ResumeBookingEscrowReversalRequest) returns (ResumeBookingEscrowReversalResponse);
   rpc ReleaseBookingFunds (ReleaseBookingFundsRequest) returns (ReleaseBookingFundsResponse);
   rpc SweepExpiredEscrows (SweepExpiredEscrowsRequest) returns (SweepExpiredEscrowsResponse);
   rpc SearchPropertiesByBrokerTitle (SearchPropertiesByBrokerTitleRequest) returns (SearchPropertiesByBrokerTitleResponse);
@@ -568,6 +573,25 @@ message SetBookingEscrowRequest {
   int32 escrowMinutes = 7;
 }
 
+message StopBookingEscrowReversalRequest {
+  string bookingCode = 1;
+  string reason = 2;
+  string adminUsername = 3;
+}
+message StopBookingEscrowReversalResponse {
+  bool success = 1;
+  string message = 2;
+  string bookingCode = 3;
+}
+message ResumeBookingEscrowReversalRequest {
+  string bookingCode = 1;
+  string adminUsername = 2;
+}
+message ResumeBookingEscrowReversalResponse {
+  bool success = 1;
+  string message = 2;
+  string bookingCode = 3;
+}
 message SetBookingEscrowResponse {
   bool success = 1;
   string message = 2;

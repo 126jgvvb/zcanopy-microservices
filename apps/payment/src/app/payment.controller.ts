@@ -43,6 +43,19 @@ export class PaymentController {
     return result;
   }
 
+  @GrpcMethod('PaymentService', 'SetReversalRetriesStopped')
+  async setReversalRetriesStopped(dto: {
+    bookingCode: string;
+    stopped?: boolean;
+    adminUsername?: string;
+    reason?: string;
+  }) {
+    this.logger.log(
+      `Received set-reversal-retries-stopped request for bookingCode=${dto.bookingCode} stopped=${dto.stopped}`,
+    );
+    return this.paymentService.setReversalRetriesStopped(dto);
+  }
+
   @GrpcMethod('PaymentService', 'GetTransactions')
   async getTransactions(dto: any) {
     this.logger.log(`Received get-transactions request`);

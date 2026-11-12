@@ -40,6 +40,15 @@ export interface AllowedViewer {
   fundsReversed?: boolean;
   fundsReversedAt?: string;
   reversalReason?: string;
+  /**
+   * An admin stopped the retries for this booking. The reversal keeps being
+   * rejected by the payment provider, and retrying it on every sweep burns
+   * gateway and provider resources for no benefit. The booking is left for
+   * manual handling instead of being retried.
+   */
+  reversalAbandoned?: boolean;
+  reversalAbandonedAt?: string;
+  reversalAbandonedReason?: string;
 }
 
 export interface BookingState {
