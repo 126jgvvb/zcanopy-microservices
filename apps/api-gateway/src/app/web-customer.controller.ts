@@ -4,6 +4,9 @@ import { ProxyService } from './proxy.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from './public.decorator';
 
+/** Default escrow window (in days) when the customer does not set one. */
+const DEFAULT_ESCROW_DAYS = 3;
+
 @ApiTags('web-customer')
 @Controller('web/customer')
 @UseGuards(JwtAuthGuard)
@@ -211,7 +214,7 @@ export class WebCustomerController {
       customerId,
       customerPhone: body?.customerPhone,
       customerEmail: req?.user?.email || undefined,
-      escrowDays: Number(body?.escrowDays) || 7,
+      escrowDays: Number(body?.escrowDays) || DEFAULT_ESCROW_DAYS,
       escrowMinutes: Number(body?.escrowMinutes) || 0,
       escrowEnabled: body?.escrowEnabled !== false,
     });

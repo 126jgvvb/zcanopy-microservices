@@ -13,6 +13,12 @@ import { CustomerFavoriteEntity } from './entity/customer-favorite.entity';
 import { CustomerCommentEntity } from './entity/customer-comment.entity';
 import { CustomerRatingEntity } from './entity/customer-rating.entity';
 
+/**
+ * Default escrow window (in days) for a booking. The customer can change it
+ * from their dashboard; this is what a booking gets when no timeframe is set.
+ */
+const DEFAULT_ESCROW_DAYS = 3;
+
 export interface CreatePropertyDto {
   brokersUniqueCode: string;
   title?: string;
@@ -490,7 +496,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       }
 
       const escrowEnabled = dto.escrowEnabled !== false;
-      const escrowDays = Math.max(1, Math.min(365, Math.floor(Number(dto.escrowDays) || 7)));
+      const escrowDays = Math.max(1, Math.min(365, Math.floor(Number(dto.escrowDays) || DEFAULT_ESCROW_DAYS)));
 
       // A minute-granular countdown is a testing helper: it lets the expiry
       // (and therefore the automatic reversal) be exercised within minutes
@@ -1866,7 +1872,6 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
       }
 
       // Payment succeeded - create the booking
-      const DEFAULT_ESCROW_DAYS = 7;
       const escrowAmount = Number(paymentResult?.netAmount ?? dto.amount ?? 0);
       const escrowEndsAt = new Date(Date.now() + DEFAULT_ESCROW_DAYS * 24 * 60 * 60 * 1000).toISOString();
       const viewer: AllowedViewer = {
