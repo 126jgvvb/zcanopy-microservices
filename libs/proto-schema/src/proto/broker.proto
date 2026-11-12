@@ -55,6 +55,10 @@ service BrokerService{
   rpc SendLandlordAuthorizationOtp (SendLandlordAuthorizationOtpRequest) returns (SendLandlordAuthorizationOtpResponse);
   rpc VerifyLandlordAuthorization (VerifyLandlordAuthorizationRequest) returns (VerifyLandlordAuthorizationResponse);
   rpc GetLandlordVerifications (GetLandlordVerificationsRequest) returns (GetLandlordVerificationsResponse);
+  rpc GetLandlordRegistryPhones (GetLandlordRegistryPhonesRequest) returns (GetLandlordRegistryPhonesResponse);
+  rpc AddLandlordRegistryPhone (AddLandlordRegistryPhoneRequest) returns (AddLandlordRegistryPhoneResponse);
+  rpc RemoveLandlordRegistryPhone (RemoveLandlordRegistryPhoneRequest) returns (RemoveLandlordRegistryPhoneResponse);
+  rpc SelectLandlordRegistryPhone (SelectLandlordRegistryPhoneRequest) returns (SelectLandlordRegistryPhoneResponse);
   rpc ApproveLandlordVerification (ApproveLandlordVerificationRequest) returns (ApproveLandlordVerificationResponse);
   rpc RejectLandlordVerification (RejectLandlordVerificationRequest) returns (RejectLandlordVerificationResponse);
   rpc RequestLandlordWithdrawalOtp (RequestLandlordWithdrawalOtpRequest) returns (RequestLandlordWithdrawalOtpResponse);
@@ -867,6 +871,71 @@ message LandlordVerification {
   string createdAt = 23;
   string updatedAt = 24;
   bool requiresLandlordAuthorization = 25;
+  repeated LandlordPhone landlordPhones = 26;
+  string selectedPhoneNumber = 27;
+}
+
+/* A phone number registered against a landlord on the landlord registry. */
+message LandlordPhone {
+  string phoneNumber = 1;
+  bool isPrimary = 2;
+  string label = 3;
+}
+
+message GetLandlordRegistryPhonesRequest {
+  string landlordNin = 1;
+}
+
+message GetLandlordRegistryPhonesResponse {
+  bool success = 1;
+  string message = 2;
+  string landlordNin = 3;
+  string landlordFullName = 4;
+  repeated LandlordPhone phones = 5;
+  string selectedPhoneNumber = 6;
+}
+
+message AddLandlordRegistryPhoneRequest {
+  string landlordNin = 1;
+  string phoneNumber = 2;
+  string label = 3;
+}
+
+message AddLandlordRegistryPhoneResponse {
+  bool success = 1;
+  string message = 2;
+  string landlordNin = 3;
+  string landlordFullName = 4;
+  repeated LandlordPhone phones = 5;
+  string selectedPhoneNumber = 6;
+}
+
+message RemoveLandlordRegistryPhoneRequest {
+  string landlordNin = 1;
+  string phoneNumber = 2;
+}
+
+message RemoveLandlordRegistryPhoneResponse {
+  bool success = 1;
+  string message = 2;
+  string landlordNin = 3;
+  string landlordFullName = 4;
+  repeated LandlordPhone phones = 5;
+  string selectedPhoneNumber = 6;
+}
+
+message SelectLandlordRegistryPhoneRequest {
+  string landlordNin = 1;
+  string phoneNumber = 2;
+}
+
+message SelectLandlordRegistryPhoneResponse {
+  bool success = 1;
+  string message = 2;
+  string landlordNin = 3;
+  string landlordFullName = 4;
+  repeated LandlordPhone phones = 5;
+  string selectedPhoneNumber = 6;
 }
 
 message GetLandlordVerificationsRequest {

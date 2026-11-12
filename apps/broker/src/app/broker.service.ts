@@ -7,7 +7,8 @@ import { BrokerFeedbackEntity } from '../entity/broker-feedback.entity';
 import { BrokerFcmTokenEntity } from '../entity/broker-fcm-token.entity';
 import { LandlordVerificationEntity } from '../entity/landlord-verification.entity';
 import { LandlordRegistryEntity } from '../entity/landlord-registry.entity';
-import { Repository } from 'typeorm';
+import { LandlordRegistryPhoneEntity } from '../entity/landlord-registry-phone.entity';
+import { Repository, In } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ClientGrpc } from '@nestjs/microservices';
 import { OtpStoreService } from './otp/otp-store.service';
@@ -76,6 +77,8 @@ export class BrokerService implements OnModuleInit, OnModuleDestroy {
             private readonly landlordVerificationRepo:Repository<LandlordVerificationEntity>,
             @InjectRepository(LandlordRegistryEntity)
             private readonly landlordRegistryRepo:Repository<LandlordRegistryEntity>,
+            @InjectRepository(LandlordRegistryPhoneEntity)
+            private readonly landlordRegistryPhoneRepo:Repository<LandlordRegistryPhoneEntity>,
 @Inject('REDIS_CLIENT') private readonly redisClient:ClientProxy,
              @Inject('PROPERTY_CLIENT') private readonly propertyClient: ClientGrpc,
              @Inject('PAYMENT_CLIENT') private readonly paymentClient: ClientGrpc,
@@ -2499,7 +2502,6 @@ private getEmptyBroker(): any {
         }
 
         registry.landlordFullName = verification.landlordFullName;
-        registry.landlordPhoneNumber = verification.landlordPhoneNumber;
         registry.landlordEmail = verification.landlordEmail || registry.landlordEmail;
         registry.mzoDistrict = verification.mzoDistrict;
         registry.tenureType = verification.tenureType;
@@ -2517,7 +2519,339 @@ private getEmptyBroker(): any {
         registry.sourceBrokerCode = verification.brokerCode;
         registry.approvedByAdminId = adminId || registry.approvedByAdminId || '';
 
-        return this.landlordRegistryRepo.save(registry);
+        const saved = await this.landlordRegistryRepo.save(registry);
+
+        // Keep the phone list in sync. The number an admin selected for this
+        // landlord always wins — approving another broker's submission for
+        // the same landlord must not silently redirect the landlord's SMS.
+        // The number the broker submitted is only adopted when this landlord
+        // does not have a selected number yet.
+        const submitted = this.normalizeLandlordPhone(verification.landlordPhoneNumber);
+        await this.upsertLandlordRegistryPhone(nin, submitted, false);
+
+        let selected = await this.landlordRegistryPhoneRepo.findOne({
+            where: { landlordNin: nin, isPrimary: true },
+        });
+
+        if (!selected) {
+            // First number registered for this landlord — it takes the SMS.
+            const promoted = await this.landlordRegistryPhoneRepo.findOne({
+                where: { landlordNin: nin, phoneNumber: submitted },
+            });
+            if (promoted) {
+                promoted.isPrimary = true;
+                await this.landlordRegistryPhoneRepo.save(promoted);
+            }
+            selected = promoted || null;
+            saved.landlordPhoneNumber = submitted;
+        } else if (!saved.landlordPhoneNumber) {
+            saved.landlordPhoneNumber = selected.phoneNumber;
+        }
+
+        await this.landlordRegistryRepo.save(saved);
+
+        return saved;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Landlord phone numbers (landlord registry)                          */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Normalises a Ugandan contact number to +2567XXXXXXXX.
+     * Returns an empty string when the number cannot be understood.
+     */
+    private normalizeLandlordPhone(phone?: string): string {
+        let digits = (phone || '').replace(/\D/g, '');
+        if (digits.startsWith('256')) {
+            digits = digits.slice(3);
+        } else if (digits.startsWith('0')) {
+            digits = digits.slice(1);
+        }
+        if (digits.length === 9 && digits.startsWith('7')) {
+            return `+256${digits}`;
+        }
+        return '';
+    }
+
+    /**
+     * Adds (or updates) a phone number on a landlord's registry record.
+     * Returns null when the number could not be parsed.
+     */
+    private async upsertLandlordRegistryPhone(
+        landlordNin: string,
+        phoneNumber?: string,
+        isPrimary = false,
+        label?: string,
+    ): Promise<LandlordRegistryPhoneEntity | null> {
+        const normalized = this.normalizeLandlordPhone(phoneNumber);
+        if (!landlordNin || !normalized) {
+            return null;
+        }
+
+        let existing = await this.landlordRegistryPhoneRepo.findOne({
+            where: { landlordNin, phoneNumber: normalized },
+        });
+
+        if (!existing) {
+            existing = this.landlordRegistryPhoneRepo.create({
+                landlordNin,
+                phoneNumber: normalized,
+                isPrimary,
+                label: label || undefined,
+            });
+        } else {
+            if (label) existing.label = label;
+            // Never demote an already selected number implicitly — only an
+            // explicit selection changes which number receives the SMS.
+            if (isPrimary) existing.isPrimary = true;
+        }
+
+        return this.landlordRegistryPhoneRepo.save(existing);
+    }
+
+    /**
+     * The number every landlord SMS is delivered to: the admin-selected
+     * number when there is one, otherwise whatever the registry holds.
+     */
+    private async resolveLandlordSmsDestination(
+        registry?: LandlordRegistryEntity | null,
+        fallback?: string,
+    ): Promise<string> {
+        if (registry) {
+            const selected = await this.landlordRegistryPhoneRepo.findOne({
+                where: { landlordNin: registry.landlordNin, isPrimary: true },
+            });
+            if (selected?.phoneNumber) {
+                return selected.phoneNumber;
+            }
+            if (registry.landlordPhoneNumber) {
+                return registry.landlordPhoneNumber;
+            }
+        }
+        return this.normalizeLandlordPhone(fallback) || fallback || '';
+    }
+
+    /** Lists every number registered against a landlord, selected one first. */
+    async getLandlordRegistryPhones(dto: { landlordNin: string }) {
+        try {
+            const nin = this.normalizeLandlordNin(dto.landlordNin);
+            if (!nin) {
+                return { success: false, message: 'A valid landlord NIN is required.' };
+            }
+
+            const registry = await this.landlordRegistryRepo.findOne({ where: { landlordNin: nin } });
+            const phones = await this.landlordRegistryPhoneRepo.find({
+                where: { landlordNin: nin },
+                order: { createdAt: 'ASC' },
+            });
+
+            const rows = phones.map((p) => ({
+                phoneNumber: p.phoneNumber,
+                isPrimary: p.isPrimary,
+                label: p.label || '',
+            }));
+
+            const selected =
+                rows.find((p) => p.isPrimary)?.phoneNumber ||
+                registry?.landlordPhoneNumber ||
+                '';
+
+            return {
+                success: true,
+                landlordNin: nin,
+                landlordFullName: registry?.landlordFullName || '',
+                phones: rows,
+                selectedPhoneNumber: selected,
+            };
+        } catch (err) {
+            this.logger.error(`Failed to list landlord registry phones for ${dto.landlordNin}:`, err);
+            throw err;
+        }
+    }
+
+    /**
+     * Registers an extra contact number for a landlord so a single
+     * unreachable number cannot block the landlord's OTPs.
+     */
+    async addLandlordRegistryPhone(dto: {
+        landlordNin: string;
+        phoneNumber: string;
+        label?: string;
+    }) {
+        try {
+            const nin = this.normalizeLandlordNin(dto.landlordNin);
+            if (!nin) {
+                return { success: false, message: 'A valid landlord NIN is required.' };
+            }
+
+            const phoneNumber = this.normalizeLandlordPhone(dto.phoneNumber);
+            if (!phoneNumber) {
+                return {
+                    success: false,
+                    message: 'Enter a valid Ugandan phone number (e.g. +2567XXXXXXXX).',
+                };
+            }
+
+            const registry = await this.landlordRegistryRepo.findOne({ where: { landlordNin: nin } });
+            if (!registry) {
+                return {
+                    success: false,
+                    message: 'This landlord has not been approved yet, so there is no record to add a number to.',
+                };
+            }
+
+            const existing = await this.landlordRegistryPhoneRepo.findOne({
+                where: { landlordNin: nin, phoneNumber },
+            });
+
+            const hasSelected = await this.landlordRegistryPhoneRepo.findOne({
+                where: { landlordNin: nin, isPrimary: true },
+            });
+
+            // The first number for a landlord becomes the one that receives SMS.
+            const becomesPrimary = !hasSelected;
+
+            await this.upsertLandlordRegistryPhone(nin, phoneNumber, becomesPrimary, dto.label);
+
+            if (becomesPrimary) {
+                registry.landlordPhoneNumber = phoneNumber;
+                await this.landlordRegistryRepo.save(registry);
+            }
+
+            this.logger.log(
+                `Added phone ${phoneNumber} for landlord ${nin}${becomesPrimary ? ' (selected for SMS)' : ''}`,
+            );
+
+            return {
+                success: true,
+                message: existing
+                    ? 'That number was already registered for this landlord.'
+                    : becomesPrimary
+                      ? 'Phone number added and selected to receive the landlord\'s SMS.'
+                      : 'Phone number added. It can be selected to receive the landlord\'s SMS.',
+                ...(await this.getLandlordRegistryPhones({ landlordNin: nin })),
+            };
+        } catch (err) {
+            this.logger.error(`Failed to add landlord registry phone for ${dto.landlordNin}:`, err);
+            throw err;
+        }
+    }
+
+    /**
+     * Removes a contact number from a landlord. When the selected number is
+     * removed another registered number is promoted so the landlord stays
+     * reachable.
+     */
+    async removeLandlordRegistryPhone(dto: { landlordNin: string; phoneNumber: string }) {
+        try {
+            const nin = this.normalizeLandlordNin(dto.landlordNin);
+            if (!nin) {
+                return { success: false, message: 'A valid landlord NIN is required.' };
+            }
+
+            const phoneNumber = this.normalizeLandlordPhone(dto.phoneNumber);
+            const existing = await this.landlordRegistryPhoneRepo.findOne({
+                where: { landlordNin: nin, phoneNumber },
+            });
+
+            if (!existing) {
+                return { success: false, message: 'That number is not registered for this landlord.' };
+            }
+
+            await this.landlordRegistryPhoneRepo.delete({ id: existing.id });
+
+            const registry = await this.landlordRegistryRepo.findOne({ where: { landlordNin: nin } });
+
+            if (existing.isPrimary && registry) {
+                // Promote another number so the landlord remains reachable.
+                const replacement = await this.landlordRegistryPhoneRepo.findOne({
+                    where: { landlordNin: nin },
+                    order: { createdAt: 'ASC' },
+                });
+
+                if (replacement) {
+                    replacement.isPrimary = true;
+                    await this.landlordRegistryPhoneRepo.save(replacement);
+                    registry.landlordPhoneNumber = replacement.phoneNumber;
+                } else {
+                    registry.landlordPhoneNumber = '';
+                }
+                await this.landlordRegistryRepo.save(registry);
+            }
+
+            this.logger.log(`Removed phone ${phoneNumber} for landlord ${nin}`);
+
+            return {
+                success: true,
+                message: 'Phone number removed.',
+                ...(await this.getLandlordRegistryPhones({ landlordNin: nin })),
+            };
+        } catch (err) {
+            this.logger.error(`Failed to remove landlord registry phone for ${dto.landlordNin}:`, err);
+            throw err;
+        }
+    }
+
+    /**
+     * Chooses which of a landlord's numbers receives their SMS OTPs.
+     */
+    async selectLandlordRegistryPhone(dto: { landlordNin: string; phoneNumber: string }) {
+        try {
+            const nin = this.normalizeLandlordNin(dto.landlordNin);
+            if (!nin) {
+                return { success: false, message: 'A valid landlord NIN is required.' };
+            }
+
+            const phoneNumber = this.normalizeLandlordPhone(dto.phoneNumber);
+            if (!phoneNumber) {
+                return {
+                    success: false,
+                    message: 'Enter a valid Ugandan phone number (e.g. +2567XXXXXXXX).',
+                };
+            }
+
+            const registry = await this.landlordRegistryRepo.findOne({ where: { landlordNin: nin } });
+            if (!registry) {
+                return {
+                    success: false,
+                    message: 'This landlord has not been approved yet, so there is no record to update.',
+                };
+            }
+
+            // Only one number may be selected at a time.
+            await this.landlordRegistryPhoneRepo.update(
+                { landlordNin: nin, isPrimary: true },
+                { isPrimary: false },
+            );
+
+            const target = await this.landlordRegistryPhoneRepo.findOne({
+                where: { landlordNin: nin, phoneNumber },
+            });
+
+            if (target) {
+                target.isPrimary = true;
+                await this.landlordRegistryPhoneRepo.save(target);
+            } else {
+                // Register it on the fly — an admin can select a number that
+                // was never added before.
+                await this.upsertLandlordRegistryPhone(nin, phoneNumber, true);
+            }
+
+            registry.landlordPhoneNumber = phoneNumber;
+            await this.landlordRegistryRepo.save(registry);
+
+            this.logger.log(`Selected phone ${phoneNumber} for landlord ${nin} SMS delivery`);
+
+            return {
+                success: true,
+                message: 'This number will now receive the landlord\'s SMS.',
+                ...(await this.getLandlordRegistryPhones({ landlordNin: nin })),
+            };
+        } catch (err) {
+            this.logger.error(`Failed to select landlord registry phone for ${dto.landlordNin}:`, err);
+            throw err;
+        }
     }
 
     /**
@@ -2916,7 +3250,13 @@ private getEmptyBroker(): any {
                 };
             }
 
-            const destination = registry.landlordPhoneNumber || verification.landlordPhoneNumber;
+            // The OTP always goes to the number an admin has selected for
+            // this landlord on the registry — never to a number the
+            // requesting broker supplied.
+            const destination = await this.resolveLandlordSmsDestination(
+                registry,
+                verification.landlordPhoneNumber,
+            );
             if (!destination) {
                 return { success: false, message: 'The verified landlord record has no phone number on file.' };
             }
@@ -3137,9 +3477,38 @@ private getEmptyBroker(): any {
                 take: limit,
             });
 
+            // Load every registered number for the landlords on this page so
+            // the admin can see which one the landlord's SMS goes to.
+            const nins = Array.from(
+                new Set(verifications.map((v) => this.normalizeLandlordNin(v.landlordNin)).filter(Boolean)),
+            );
+            const phoneRows = nins.length
+                ? await this.landlordRegistryPhoneRepo.find({ where: { landlordNin: In(nins) } })
+                : [];
+
+            const phonesByNin = new Map<string, LandlordRegistryPhoneEntity[]>();
+            for (const row of phoneRows) {
+                const list = phonesByNin.get(row.landlordNin) || [];
+                list.push(row);
+                phonesByNin.set(row.landlordNin, list);
+            }
+
             const rows = await Promise.all(
                 verifications.map(async (v) => {
                     const broker = await this.brokerRepo.findOne({ where: { brokerCode: v.brokerCode } });
+                    const nin = this.normalizeLandlordNin(v.landlordNin);
+                    const phones = (phonesByNin.get(nin) || [])
+                        .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary))
+                        .map((p) => ({
+                            phoneNumber: p.phoneNumber,
+                            isPrimary: p.isPrimary,
+                            label: p.label || '',
+                        }));
+                    const selectedPhoneNumber =
+                        phones.find((p) => p.isPrimary)?.phoneNumber ||
+                        phones[0]?.phoneNumber ||
+                        v.landlordPhoneNumber ||
+                        '';
                     return {
                         id: v.id,
                         brokerId: v.brokerId,
@@ -3149,6 +3518,8 @@ private getEmptyBroker(): any {
                         landlordFullName: v.landlordFullName,
                         landlordNin: v.landlordNin,
                         landlordPhoneNumber: v.landlordPhoneNumber,
+                        landlordPhones: phones,
+                        selectedPhoneNumber,
                         landlordEmail: v.landlordEmail || '',
                         mzoDistrict: v.mzoDistrict,
                         tenureType: v.tenureType,
@@ -3310,15 +3681,21 @@ private getEmptyBroker(): any {
             // When the landlord is on the approved registry, the OTP must go
             // to the contact details recorded there — a second broker must not
             // be able to redirect the landlord's OTP to their own number.
+            // The number used is the one an admin selected for that landlord,
+            // so an unreachable number can be swapped for another one.
             const registry = await this.landlordRegistryRepo.findOne({
                 where: { landlordNin: this.normalizeLandlordNin(verification.landlordNin) },
             });
-            if (registry?.landlordPhoneNumber) {
-                destination = registry.landlordPhoneNumber;
-                recipientName = registry.landlordFullName || recipientName;
+            const selectedDestination = await this.resolveLandlordSmsDestination(
+                registry,
+                verification.landlordPhoneNumber,
+            );
+            if (selectedDestination) {
+                destination = selectedDestination;
+                recipientName = registry?.landlordFullName || recipientName;
             }
 
-            if (verification.landlordEmail && !registry?.landlordPhoneNumber) {
+            if (verification.landlordEmail && !selectedDestination) {
                 channel = 'email';
                 destination = verification.landlordEmail;
                 this.redisClient.emit('send_email_otp', {

@@ -135,6 +135,30 @@ export class BrokerController {
     return this.brokerService.getLandlordVerifications(dto);
   }
 
+  @GrpcMethod('BrokerService','GetLandlordRegistryPhones')
+  async getLandlordRegistryPhones(dto: { landlordNin: string }) {
+    this.logger.log(`GetLandlordRegistryPhones called for nin=${dto.landlordNin}`);
+    return this.brokerService.getLandlordRegistryPhones(dto);
+  }
+
+  @GrpcMethod('BrokerService','AddLandlordRegistryPhone')
+  async addLandlordRegistryPhone(dto: { landlordNin: string; phoneNumber: string; label?: string }) {
+    this.logger.log(`AddLandlordRegistryPhone called for nin=${dto.landlordNin} phone=${dto.phoneNumber}`);
+    return this.brokerService.addLandlordRegistryPhone(dto);
+  }
+
+  @GrpcMethod('BrokerService','RemoveLandlordRegistryPhone')
+  async removeLandlordRegistryPhone(dto: { landlordNin: string; phoneNumber: string }) {
+    this.logger.log(`RemoveLandlordRegistryPhone called for nin=${dto.landlordNin} phone=${dto.phoneNumber}`);
+    return this.brokerService.removeLandlordRegistryPhone(dto);
+  }
+
+  @GrpcMethod('BrokerService','SelectLandlordRegistryPhone')
+  async selectLandlordRegistryPhone(dto: { landlordNin: string; phoneNumber: string }) {
+    this.logger.log(`SelectLandlordRegistryPhone called for nin=${dto.landlordNin} phone=${dto.phoneNumber}`);
+    return this.brokerService.selectLandlordRegistryPhone(dto);
+  }
+
   @GrpcMethod('BrokerService','ApproveLandlordVerification')
   async approveLandlordVerification(dto: { verificationId: string; adminId: string; instrumentNumber: string }) {
     this.logger.log(`ApproveLandlordVerification called for verification=${dto.verificationId} by admin=${dto.adminId}`);

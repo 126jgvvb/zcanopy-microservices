@@ -425,6 +425,59 @@ export class AdminController {
     });
   }
 
+  /* ---- Landlord phone numbers (landlord registry) ---- */
+
+  @Get('landlord-registry/:landlordNin/phones')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'List the phone numbers registered against a landlord and the one selected for SMS' })
+  async getLandlordRegistryPhones(@Param('landlordNin') landlordNin: string) {
+    this.logger.log(`Get landlord registry phones for ${landlordNin}`);
+    return this.proxyService.forwardToBroker('GetLandlordRegistryPhones', { landlordNin });
+  }
+
+  @Post('landlord-registry/:landlordNin/phones')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Register an additional phone number for a landlord' })
+  async addLandlordRegistryPhone(
+    @Param('landlordNin') landlordNin: string,
+    @Body() body: any,
+  ) {
+    this.logger.log(`Add landlord registry phone for ${landlordNin}: ${body?.phoneNumber}`);
+    return this.proxyService.forwardToBroker('AddLandlordRegistryPhone', {
+      landlordNin,
+      phoneNumber: body?.phoneNumber || '',
+      label: body?.label || '',
+    });
+  }
+
+  @Post('landlord-registry/:landlordNin/phones/select')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Choose which of a landlord\u2019s numbers receives their SMS OTPs' })
+  async selectLandlordRegistryPhone(
+    @Param('landlordNin') landlordNin: string,
+    @Body() body: any,
+  ) {
+    this.logger.log(`Select landlord registry phone for ${landlordNin}: ${body?.phoneNumber}`);
+    return this.proxyService.forwardToBroker('SelectLandlordRegistryPhone', {
+      landlordNin,
+      phoneNumber: body?.phoneNumber || '',
+    });
+  }
+
+  @Post('landlord-registry/:landlordNin/phones/remove')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Remove one of a landlord\u2019s registered phone numbers' })
+  async removeLandlordRegistryPhone(
+    @Param('landlordNin') landlordNin: string,
+    @Body() body: any,
+  ) {
+    this.logger.log(`Remove landlord registry phone for ${landlordNin}: ${body?.phoneNumber}`);
+    return this.proxyService.forwardToBroker('RemoveLandlordRegistryPhone', {
+      landlordNin,
+      phoneNumber: body?.phoneNumber || '',
+    });
+  }
+
   @Post('brokers/:brokerId/approve-document')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Approve/reject a broker document' })
