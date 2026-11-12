@@ -3033,6 +3033,11 @@ private getEmptyBroker(): any {
             verification.reviewedByAdminId = 'system:landlord-authorization';
             await this.landlordVerificationRepo.save(verification);
 
+            // Persist the approved landlord details in the canonical registry
+            // (keyed by NIN) so future submissions by other brokers can be
+            // matched against them and asked to prove authorisation.
+            await this.saveApprovedLandlordRegistry(verification, '');
+
             this.redisClient.emit('broker_approved', {
                 brokerId: verification.brokerId,
                 instrumentNumber: verification.instrumentNumber,
