@@ -5,7 +5,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from './public.decorator';
 
 /** Default escrow window (in days) when the customer does not set one. */
-const DEFAULT_ESCROW_DAYS = 3;
+const DEFAULT_ESCROW_DAYS = 1;
 
 @ApiTags('web-customer')
 @Controller('web/customer')

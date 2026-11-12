@@ -17,7 +17,7 @@ import { CustomerRatingEntity } from './entity/customer-rating.entity';
  * Default escrow window (in days) for a booking. The customer can change it
  * from their dashboard; this is what a booking gets when no timeframe is set.
  */
-const DEFAULT_ESCROW_DAYS = 3;
+const DEFAULT_ESCROW_DAYS = 1;
 
 export interface CreatePropertyDto {
   brokersUniqueCode: string;
