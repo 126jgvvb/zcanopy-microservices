@@ -204,20 +204,33 @@ export class AdminController {
 
   @Post('messages/send-to-audience')
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Send message to all brokers, all customers, or both' })
+  @ApiOperation({ summary: 'Send message to all brokers, all customers, or both — email only. SMS is single-recipient only.' })
   async sendMessageToAudience(@Body() body: any, @Req() req: any) {
     const adminId = req.user?.sub || req.user?.id;
     const adminUsername = req.user?.username || req.user?.email || '';
+    const channel = String(body?.channel || 'email').toLowerCase().trim();
 
     if (!adminId) {
       this.logger.warn('sendMessageToAudience called without adminId in JWT');
     }
-    this.logger.log(`Send broadcast request from admin ${adminId} to ${body?.audience} via ${body?.channel}`);
+
+    // SMS broadcasts are not allowed: the carrier meters each message, so SMS
+    // is only sent to one selected broker or customer at a time via the
+    // single-recipient send endpoint.
+    if (channel === 'sms') {
+      this.logger.warn(`Admin ${adminId} blocked from sending an SMS broadcast`);
+      return {
+        success: false,
+        message: 'SMS can only be sent to a single selected broker or customer. Use email to broadcast to many.',
+      };
+    }
+
+    this.logger.log(`Send broadcast request from admin ${adminId} to ${body?.audience} via ${channel}`);
     return this.proxyService.forwardToAdmin('SendMessageToAudience', {
       adminId,
       adminUsername,
       audience: body.audience,
-      channel: body.channel,
+      channel,
       subject: body.subject,
       body: body.body,
       messageType: body.messageType,

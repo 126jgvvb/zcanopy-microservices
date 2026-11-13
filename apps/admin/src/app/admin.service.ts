@@ -1794,6 +1794,12 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       if (!['email', 'sms'].includes(channel)) {
         throw new BadRequestException("Channel must be 'email' or 'sms'");
       }
+      // SMS delivery is metered by the carrier and must never fan out to
+      // thousands at once — it is only allowed for one selected broker or
+      // customer. Broadcasting is email only.
+      if (channel === 'sms') {
+        throw new BadRequestException('SMS messages can only be sent to a single selected broker or customer at a time, not to many recipients');
+      }
       const body = String(dto.body || '').trim();
       if (!body) {
         throw new BadRequestException('Message body is required');
