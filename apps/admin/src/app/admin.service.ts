@@ -828,6 +828,24 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * The broker record itself carries no bookings - they live on the property
+   * documents. Without this call the admin broker page always reported zero
+   * booked properties.
+   */
+  private async getBrokerBookingsSafe(brokerCode?: string): Promise<any[]> {
+    if (!brokerCode) return [];
+    try {
+      const response: any = await lastValueFrom(
+        this.propertyClient.getService('PropertyService').getBrokerBookings({ brokerCode }),
+      );
+      return response?.bookings || [];
+    } catch (err) {
+      this.logger.error(`Failed to fetch bookings for broker ${brokerCode}:`, err);
+      return [];
+    }
+  }
+
   async getBrokerDetails(dto: { brokerId: string }) {
     try {
       const cached = await this.getCachedBroker(dto.brokerId);
@@ -837,13 +855,14 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         );
 
         const walletBalance = cached.walletBalance || 0;
+        const bookings = await this.getBrokerBookingsSafe(cached.brokerCode);
 
         return {
           broker: cached,
           walletBalance,
           transactions: transactions.transactions || [],
           messages: cached.messages || [],
-          bookings: cached.bookings || [],
+          bookings,
         };
       }
 
@@ -862,6 +881,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       );
 
       const walletBalance = broker.walletBalance || 0;
+      const bookings = await this.getBrokerBookingsSafe(broker.brokerCode);
 
       const normalizedBroker = {
         ...broker,
@@ -876,7 +896,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         walletBalance,
         transactions: transactions.transactions || [],
         messages: normalizedBroker.messages || [],
-        bookings: normalizedBroker.bookings || [],
+        bookings,
       };
     } catch (err) {
       this.logger.error(`Failed to get broker details for ${dto.brokerId}:`, err);
@@ -897,12 +917,14 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
         idBackUrl: cached.idBackUrl || cached.ninImages?.[1] || null,
       };
 
+      const bookings = await this.getBrokerBookingsSafe(normalizedBroker.brokerCode);
+
       return {
         broker: normalizedBroker,
         walletBalance: normalizedBroker.walletBalance || 0,
         transactions: [],
         messages: normalizedBroker.messages || [],
-        bookings: normalizedBroker.bookings || [],
+        bookings,
       };
     } catch (err) {
       this.logger.error(`Failed to get broker details from cache for ${dto.brokerId}:`, err);
