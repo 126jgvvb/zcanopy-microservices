@@ -454,6 +454,18 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     return null;
   }
 
+  /**
+   * True when a booking still has customer money sitting in escrow: the
+   * countdown is running and neither the customer nor the sweep has moved the
+   * money yet.
+   */
+  private viewerHoldsEscrow(viewer: any): boolean {
+    if (!viewer) return false;
+    if (viewer.fundsReleased || viewer.fundsReversed) return false;
+    if (!viewer.escrowEnabled) return false;
+    return Number(viewer.escrowAmount) > 0;
+  }
+
   private ownsBooking(
     viewer: AllowedViewer,
     dto: { customerId?: string; customerPhone?: string; customerEmail?: string },
@@ -491,7 +503,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       if (viewer.fundsReleased || viewer.fundsReversed) {
         throw new BadRequestException('Escrow settings can no longer be changed for this booking');
       }
-      if (viewer.status !== 'booked') {
+      if (viewer.status !== 'booked' && !this.viewerHoldsEscrow(viewer)) {
         throw new BadRequestException('This booking is no longer active');
       }
 
@@ -1150,9 +1162,15 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
         if (dto.isAvailable && !wasAvailable) {
           const viewers = property.allowedViewers ?? [];
-          const released = viewers.map((v: any) =>
-            v && v.status === 'booked' ? { ...v, status: 'released', releasedAt: new Date().toISOString() } : v,
-          );
+          const released = viewers.map((v: any) => {
+            if (!v || v.status !== 'booked') return v;
+            // A booking whose money is still escrowed stays open: the customer
+            // has not released it, so it is still theirs. Closing it here
+            // would strand the funds - the customer could no longer approve
+            // them and the held balance would never come back down.
+            if (this.viewerHoldsEscrow(v)) return v;
+            return { ...v, status: 'released', releasedAt: new Date().toISOString() };
+          });
           if (released.length !== viewers.length || viewers.some((v: any, i: number) => v !== released[i])) {
             updateData.allowedViewers = released;
           }
@@ -1400,7 +1418,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         where: { brokersUniqueCode: brokerCode },
       });
 
-      const bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail: string; date: Date | string; status: string; amount: number; transactionCode: string }> = [];
+            bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail: string; date: Date | string; status: string; amount: number; transactionCode: string; bookingCode: string; escrowEnabled: boolean; escrowAmount: number; fundsReleased: boolean; fundsReversed: boolean; escrowEndsAt: string }>;
       for (const property of properties) {
         const viewers = property.allowedViewers || [];
         for (const viewer of viewers) {
@@ -1413,9 +1431,15 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
               customerPhone: viewer.customerPhone,
               customerEmail: viewer.customerEmail || '',
               date: viewer.date || property.createdAt.toISOString(),
-              status: 'booked',
+              status: viewer.status || 'booked',
               amount: viewer.amount || 0,
               transactionCode: viewer.transactionCode || '',
+              bookingCode: viewer.bookingCode || '',
+              escrowEnabled: !!viewer.escrowEnabled,
+              escrowAmount: Number(viewer.escrowAmount) || 0,
+              fundsReleased: !!viewer.fundsReleased,
+              fundsReversed: !!viewer.fundsReversed,
+              escrowEndsAt: viewer.escrowEndsAt || '',
             });
           }
         }

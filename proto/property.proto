@@ -332,6 +332,13 @@ message Booking {
   string status = 8;
   double amount = 9;
   string transactionCode = 10;
+  // Escrow state, so the console can show what the held balance is made of.
+  string bookingCode = 11;
+  bool escrowEnabled = 12;
+  double escrowAmount = 13;
+  bool fundsReleased = 14;
+  bool fundsReversed = 15;
+  string escrowEndsAt = 16;
 }
 
 message GetCustomerPropertiesRequest {
