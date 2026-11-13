@@ -493,6 +493,55 @@ export class CustomerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Records a message the customer sent to the ZCanopy team. It lands in the
+   * customer's own message thread so they can see what they asked, and the
+   * gateway mirrors it into the support queue the admin console reads.
+   */
+  async sendMessage(dto: {
+    customerId: string;
+    subject: string;
+    body: string;
+    email?: string;
+  }): Promise<{ success: boolean; message: string; id?: string }> {
+    this.logger.log(`[Customer] sendMessage customerId=${dto.customerId} subject=${dto.subject}`);
+
+    if (!dto.customerId) {
+      return { success: false, message: 'customerId is required' };
+    }
+
+    const subject = (dto.subject || '').trim();
+    const body = (dto.body || '').trim();
+
+    if (!subject) {
+      return { success: false, message: 'Please add a subject so the team knows what your message is about.' };
+    }
+    if (!body) {
+      return { success: false, message: 'Please write your message before sending it.' };
+    }
+
+    try {
+      const saved = await this.messageRepo.save(
+        this.messageRepo.create({
+          customerId: dto.customerId,
+          subject,
+          body,
+          source: 'customer',
+        }),
+      );
+
+      this.logger.log(`[Customer] sendMessage stored id=${saved.id} for customer ${dto.customerId}`);
+      return {
+        success: true,
+        message: 'Your message has been sent to the ZCanopy team.',
+        id: saved.id,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to send message for customer ${dto.customerId}: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
   async getNotifications(customerId: string, page = 1, limit = 20): Promise<{ notifications: any[]; total: number; unreadCount: number }> {
     this.logger.log(`[Customer] getNotifications customerId=${customerId} page=${page} limit=${limit}`);
     try {

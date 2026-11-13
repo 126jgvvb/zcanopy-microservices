@@ -62,6 +62,13 @@ export interface GetMessagesDto {
   limit: number;
 }
 
+export interface SendMessageDto {
+  customerId: string;
+  subject: string;
+  body: string;
+  email?: string;
+}
+
 export interface GetNotificationsDto {
   customerId: string;
   page: number;

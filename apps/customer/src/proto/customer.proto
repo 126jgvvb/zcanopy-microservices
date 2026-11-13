@@ -16,6 +16,7 @@ service CustomerService {
   rpc GetInvoices (GetInvoicesRequest) returns (GetInvoicesResponse);
   rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse);
   rpc GetMessages (GetMessagesRequest) returns (GetMessagesResponse);
+  rpc SendMessage (SendMessageRequest) returns (SendMessageResponse);
   rpc GetNotifications (GetNotificationsRequest) returns (GetNotificationsResponse);
   rpc InitiateTransaction (InitiateTransactionRequest) returns (InitiateTransactionResponse);
   rpc RecordSearch (RecordSearchRequest) returns (RecordSearchResponse);
@@ -178,6 +179,19 @@ message GetMessagesRequest {
 message GetMessagesResponse {
   repeated Message messages = 1;
   int32 total = 2;
+}
+
+message SendMessageRequest {
+  string customerId = 1;
+  string subject = 2;
+  string body = 3;
+  string email = 4;
+}
+
+message SendMessageResponse {
+  bool success = 1;
+  string message = 2;
+  string id = 3;
 }
 
 message GetNotificationsRequest {

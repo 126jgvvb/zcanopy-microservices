@@ -783,8 +783,12 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       if (!messages.length) {
         try {
           const notificationUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3001';
+          // The notification service serves everything under its global
+          // "api" prefix, so the path has to include it. Without it this
+          // request 404s and the console silently falls back to the stale
+          // dashboard copy instead of the real support messages.
           const response = await lastValueFrom(
-            this.httpService.get(`${notificationUrl}/support-messages`, {
+            this.httpService.get(`${notificationUrl}/api/support-messages`, {
               params: { page, limit },
             }).pipe(timeout(5000)),
           );

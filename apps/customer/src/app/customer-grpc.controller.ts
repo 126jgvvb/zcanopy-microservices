@@ -14,6 +14,7 @@ import type {
   GetInvoicesDto,
   GetTransactionsDto,
   GetMessagesDto,
+  SendMessageDto,
   GetNotificationsDto,
   InitiateTransactionDto,
   RecordSearchDto,
@@ -116,6 +117,12 @@ export class CustomerGrpcController {
   async getMessages(dto: GetMessagesDto) {
     this.logger.log(`gRPC GetMessages for customer=${dto.customerId}`);
     return this.customerService.getMessages(dto.customerId, dto.page, dto.limit);
+  }
+
+  @GrpcMethod('CustomerService', 'SendMessage')
+  async sendMessage(dto: SendMessageDto) {
+    this.logger.log(`gRPC SendMessage for customer=${dto.customerId}`);
+    return this.customerService.sendMessage(dto);
   }
 
   @GrpcMethod('CustomerService', 'GetNotifications')

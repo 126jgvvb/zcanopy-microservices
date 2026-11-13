@@ -1,5 +1,8 @@
 import { Controller, Logger, Get, Post, Put, Body, Query, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { HttpService } from '@nestjs/axios';
+import { lastValueFrom } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import { ProxyService } from './proxy.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Public } from './public.decorator';
@@ -10,7 +13,10 @@ import { Public } from './public.decorator';
 export class CustomerWebController {
   private readonly logger = new Logger(CustomerWebController.name);
 
-  constructor(private readonly proxyService: ProxyService) {}
+  constructor(
+    private readonly proxyService: ProxyService,
+    private readonly httpService: HttpService,
+  ) {}
 
   private getCustomerId(req: any): string {
     return req.user?.customerId;
@@ -181,6 +187,57 @@ export class CustomerWebController {
     });
     this.logger.log(`[Gateway] getMessages response received for customerId=${customerId}`);
     return result;
+  }
+
+  @Post('messages')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Send a message to the ZCanopy team from the customer dashboard' })
+  async sendMessage(@Req() req: any, @Body() body: any) {
+    const customerId = this.getCustomerId(req);
+    const email = (req.user?.email || body?.email || '').trim();
+    const subject = (body?.subject || '').trim();
+    const text = (body?.body || '').trim();
+
+    if (!subject) {
+      return { success: false, message: 'Please add a subject so the team knows what your message is about.' };
+    }
+    if (!text) {
+      return { success: false, message: 'Please write your message before sending it.' };
+    }
+    if (!email) {
+      return { success: false, message: 'We could not find the email address on your account.' };
+    }
+
+    this.logger.log(`Web customer send message customerId=${customerId} subject=${subject}`);
+
+    // The customer's own copy, so the message shows up in their message thread.
+    const stored = await this.proxyService.forwardToCustomer('SendMessage', {
+      customerId,
+      subject,
+      body: text,
+      email,
+    });
+
+    // And the admin's support queue. A failure here must not lose the message:
+    // the customer already has their copy, so log it and carry on.
+    try {
+      const notificationUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3001';
+      await lastValueFrom(
+        this.httpService
+          .post(`${notificationUrl}/api/support-messages`, {
+            customerEmail: email,
+            subject,
+            textContent: text,
+            recipientInbox: 'support@zcanopy.com',
+          })
+          .pipe(timeout(5000)),
+      );
+      this.logger.log(`Queued customer message from ${email} for the admin support inbox`);
+    } catch (err) {
+      this.logger.warn(`Failed to queue customer message for the admin: ${(err as Error).message}`);
+    }
+
+    return stored;
   }
 
   @Post('transactions/initiate')

@@ -1196,7 +1196,7 @@ private getEmptyBroker(): any {
                     currency: 'UGX',
                     expiryDays: 0,
                     advantages: [
-                        'Up to 5 properties',
+                        'Up to 3 properties',
                         '15 photos per property',
                         '1 video per property',
                         '500MB max video size',
@@ -1210,7 +1210,7 @@ private getEmptyBroker(): any {
                     currency: 'UGX',
                     expiryDays: 30,
                     advantages: [
-                        'Up to 16 properties',
+                        'Up to 12 properties',
                         '50 photos per property',
                         '4 videos per property',
                         '4GB max video size',
@@ -1225,7 +1225,7 @@ private getEmptyBroker(): any {
                     currency: 'UGX',
                     expiryDays: 30,
                     advantages: [
-                        'Up to 12 properties',
+                        'Up to 8 properties',
                         '25 photos per property',
                         '2 videos per property',
                         '12GB max video size',
