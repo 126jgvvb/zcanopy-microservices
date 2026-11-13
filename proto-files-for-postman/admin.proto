@@ -34,6 +34,7 @@ service AdminService {
   rpc DeleteAdmin (DeleteAdminRequest) returns (DeleteAdminResponse);
   rpc FreezeAdmin (FreezeAdminRequest) returns (FreezeAdminResponse);
   rpc SendMessage (SendMessageRequest) returns (SendMessageResponse);
+  rpc SendMessageToAudience (SendMessageToAudienceRequest) returns (SendMessageToAudienceResponse);
   rpc Withdraw (WithdrawRequest) returns (WithdrawResponse);
   rpc SendWithdrawalOtp (SendWithdrawalOtpRequest) returns (SendWithdrawalOtpResponse);
   rpc VerifyWithdrawalOtp (VerifyWithdrawalOtpRequest) returns (VerifyWithdrawalOtpResponse);
@@ -387,6 +388,26 @@ message SendMessageResponse {
   bool success = 1;
   string message = 2;
   string messageId = 3;
+}
+
+// Broadcast one message to every broker, every customer, or both.
+message SendMessageToAudienceRequest {
+  string adminId = 1;
+  string adminUsername = 2;
+  // brokers | customers | both
+  string audience = 3;
+  // email | sms
+  string channel = 4;
+  string subject = 5;
+  string body = 6;
+  string messageType = 7;
+}
+
+message SendMessageToAudienceResponse {
+  bool success = 1;
+  int32 sent = 2;
+  int32 failed = 3;
+  string message = 4;
 }
 
 message WithdrawRequest {

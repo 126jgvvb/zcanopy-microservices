@@ -1762,6 +1762,152 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Broadcast one message to every broker, every customer, or both.
+   *
+   * The single-send endpoint only covers one recipient, so this pages through
+   * the full recipient lists and applies the same queue (admin message row +
+   * redis notification event) to each. Per-recipient rows are kept so every
+   * individual send appears in the admin log; failures are counted, not
+   * silently dropped.
+   */
+  async sendMessageToAudience(dto: {
+    adminId: string;
+    adminUsername: string;
+    audience: string;
+    channel: string;
+    subject?: string;
+    body: string;
+    messageType?: string;
+  }) {
+    try {
+      const admin = await this.adminRepo.findOne({ where: { id: dto.adminId } });
+      if (!admin) {
+        throw new NotFoundException('Admin not found');
+      }
+
+      const audience = String(dto.audience || '').toLowerCase().trim();
+      if (!['brokers', 'customers', 'both'].includes(audience)) {
+        throw new BadRequestException("Audience must be 'brokers', 'customers' or 'both'");
+      }
+      const channel = String(dto.channel || '').toLowerCase().trim();
+      if (!['email', 'sms'].includes(channel)) {
+        throw new BadRequestException("Channel must be 'email' or 'sms'");
+      }
+      const body = String(dto.body || '').trim();
+      if (!body) {
+        throw new BadRequestException('Message body is required');
+      }
+
+      const PAGE = 200;
+      const CAP = 10000; // hard ceiling to bound an accidental mass send
+      const recipients: Array<{ name: string; email?: string; phone?: string; recipientType: 'broker' | 'customer' }> = [];
+
+      if (audience === 'brokers' || audience === 'both') {
+        for (let page = 1; ; page++) {
+          const res: any = await lastValueFrom(
+            this.brokerClient.getService('BrokerService').getAllBrokers({ page, limit: PAGE }),
+          );
+          const brokers = res?.brokers || [];
+          for (const b of brokers) {
+            recipients.push({
+              name: b.username || b.email || 'Broker',
+              email: b.email,
+              phone: b.phoneNumber,
+              recipientType: 'broker',
+            });
+          }
+          if (brokers.length < PAGE || recipients.length >= CAP) break;
+        }
+      }
+
+      if (audience === 'customers' || audience === 'both') {
+        for (let page = 1; ; page++) {
+          const res: any = await lastValueFrom(
+            this.customerClient
+              .getService('CustomerService')
+              .getAllCustomers({ page, limit: PAGE, search: '' })
+              .pipe(timeout(10000)),
+          );
+          const customers = res?.customers || [];
+          for (const c of customers) {
+            const name = [c.firstName, c.lastName].filter(Boolean).join(' ').trim() || c.email || 'Customer';
+            recipients.push({ name, email: c.email, phone: c.phoneNumber, recipientType: 'customer' });
+          }
+          if (customers.length < PAGE || recipients.length >= CAP) break;
+        }
+      }
+
+      const batches = [];
+      for (let i = 0; i < recipients.length; i += 50) {
+        batches.push(recipients.slice(i, i + 50));
+      }
+
+      let sent = 0;
+      let failed = 0;
+      for (const batch of batches) {
+        const results = await Promise.allSettled(
+          batch.map(async (r) => {
+            if (channel === 'email' && !r.email) throw new Error('no email');
+            if (channel === 'sms' && !r.phone) throw new Error('no phone');
+
+            const adminMessage = this.adminMessageRepo.create({
+              adminId: dto.adminId,
+              adminUsername: dto.adminUsername,
+              recipientType: r.recipientType,
+              recipientPhone: r.phone,
+              recipientEmail: r.email,
+              recipientName: r.name,
+              messageType: dto.messageType || 'broadcast',
+              subject: dto.subject,
+              body,
+              channel,
+              status: 'pending',
+            });
+            await this.adminMessageRepo.save(adminMessage);
+            if (channel === 'email') {
+              this.redisClient.emit('send_admin_message_email', {
+                recipientEmail: r.email,
+                recipientName: r.name,
+                subject: dto.subject,
+                body,
+              });
+            } else {
+              this.redisClient.emit('send_admin_message_sms', {
+                recipientPhone: r.phone,
+                recipientName: r.name,
+                body,
+              });
+            }
+          }),
+        );
+        for (const result of results) {
+          if (result.status === 'fulfilled') sent++;
+          else failed++;
+        }
+      }
+
+      if (channel === 'email') admin.sentEmails = (admin.sentEmails || 0) + sent;
+      else admin.sentSms = (admin.sentSms || 0) + sent;
+      admin.handledMessages = (admin.handledMessages || 0) + sent;
+      await this.adminRepo.save(admin);
+
+      this.logger.log(
+        `Broadcast by admin ${dto.adminUsername} to ${audience} via ${channel}: sent=${sent} failed=${failed}`,
+      );
+
+      return {
+        success: failed === 0,
+        sent,
+        failed,
+        message: `Broadcast queued: ${sent} sent, ${failed} failed`,
+      };
+    } catch (err) {
+      this.logger.error(`Failed to send broadcast message: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
   async getAllCustomerSearches(dto: {
     page: number; limit: number; customerId?: string; query?: string;
     propertyType?: string; location?: string; brokerCode?: string; brokerBrandName?: string;

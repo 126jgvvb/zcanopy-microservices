@@ -202,6 +202,28 @@ export class AdminController {
     });
   }
 
+  @Post('messages/send-to-audience')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Send message to all brokers, all customers, or both' })
+  async sendMessageToAudience(@Body() body: any, @Req() req: any) {
+    const adminId = req.user?.sub || req.user?.id;
+    const adminUsername = req.user?.username || req.user?.email || '';
+
+    if (!adminId) {
+      this.logger.warn('sendMessageToAudience called without adminId in JWT');
+    }
+    this.logger.log(`Send broadcast request from admin ${adminId} to ${body?.audience} via ${body?.channel}`);
+    return this.proxyService.forwardToAdmin('SendMessageToAudience', {
+      adminId,
+      adminUsername,
+      audience: body.audience,
+      channel: body.channel,
+      subject: body.subject,
+      body: body.body,
+      messageType: body.messageType,
+    });
+  }
+
   @Put('email')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update admin email' })

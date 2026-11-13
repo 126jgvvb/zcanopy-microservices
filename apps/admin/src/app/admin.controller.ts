@@ -206,6 +206,12 @@ export class AdminController {
     return this.adminService.sendMessage(dto);
   }
 
+  @GrpcMethod('AdminService', 'SendMessageToAudience')
+  async sendMessageToAudience(dto: {adminId,adminUsername,audience,channel,subject,body,messageType}) {
+    this.logger.log(`Received sendMessageToAudience request for ${dto.audience} via ${dto.channel}`);
+    return this.adminService.sendMessageToAudience(dto);
+  }
+
   @GrpcMethod('AdminService', 'Withdraw')
   async withdraw(dto: any) {
     this.logger.log(`Received admin withdraw request: amount=${dto.amount}, phone=${dto.phoneNumber}`);
