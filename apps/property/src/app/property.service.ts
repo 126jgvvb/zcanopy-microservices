@@ -19,6 +19,27 @@ import { CustomerRatingEntity } from './entity/customer-rating.entity';
  */
 const DEFAULT_ESCROW_DAYS = 1;
 
+export interface BrokerBookingRow {
+  id: string;
+  propertyId: string;
+  propertyTitle: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  date: Date | string;
+  status: string;
+  amount: number;
+  transactionCode: string;
+  // Escrow state, so the broker console can show what the held balance is
+  // made of and why it does (or does not) move.
+  bookingCode: string;
+  escrowEnabled: boolean;
+  escrowAmount: number;
+  fundsReleased: boolean;
+  fundsReversed: boolean;
+  escrowEndsAt: string;
+}
+
 export interface CreatePropertyDto {
   brokersUniqueCode: string;
   title?: string;
@@ -1412,13 +1433,13 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async getBrokerBookings(brokerCode: string): Promise<{ bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail: string; date: Date | string; status: string; amount: number; transactionCode: string }> }> {
+  async getBrokerBookings(brokerCode: string): Promise<{ bookings: Array<BrokerBookingRow> }> {
     try {
       const properties = await this.propertyRepo.find({
         where: { brokersUniqueCode: brokerCode },
       });
 
-            bookings: Array<{ id: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; customerEmail: string; date: Date | string; status: string; amount: number; transactionCode: string; bookingCode: string; escrowEnabled: boolean; escrowAmount: number; fundsReleased: boolean; fundsReversed: boolean; escrowEndsAt: string }>;
+      const bookings: Array<BrokerBookingRow> = [];
       for (const property of properties) {
         const viewers = property.allowedViewers || [];
         for (const viewer of viewers) {
