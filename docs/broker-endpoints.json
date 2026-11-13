@@ -1,0 +1,302 @@
+{
+  "name": "ZCanopy broker API - endpoints added to the broker web controller",
+  "version": "1.0.0",
+  "description": "The broker endpoints that were added to the web dashboard controller (web/broker/*) and mirrored into the mobile app controller (brokers/*). Every endpoint needs the broker bearer token; the broker code is taken from the token, so it is never sent in the body.",
+  "baseUrl": "https://api-gateway-production-f9cc.up.railway.app/api",
+  "auth": {
+    "type": "bearer",
+    "header": "Authorization",
+    "format": "Bearer <token>",
+    "note": "The token carries the broker identity (brokerCode). The gateway reads it from the token and injects it into the service call."
+  },
+  "endpoints": [
+    {
+      "id": "landlord-details.submit",
+      "group": "Landlord & title verification",
+      "method": "POST",
+      "path": "/web/broker/landlord-details",
+      "mobilePath": "/brokers/landlord-details",
+      "summary": "Submit landlord identity and property title details for the UgNLIS title search",
+      "body": {
+        "landlord.fullName": { "type": "string", "required": true, "description": "Landlord full name (also accepted as the top-level fullName)" },
+        "landlord.nin": { "type": "string", "required": true, "description": "Landlord national ID number (also accepted as nin)" },
+        "landlord.phoneNumber": { "type": "string", "required": true, "description": "Landlord phone number (also accepted as phoneNumber)" },
+        "landlord.email": { "type": "string", "required": false, "description": "Landlord email (also accepted as email)" },
+        "search.mzoDistrict": { "type": "string", "required": true, "description": "MZO district where the land sits (also accepted as mzoDistrict)" },
+        "search.tenureType": { "type": "string", "required": true, "description": "Tenure type, e.g. Freehold / Mailo / Leasehold (also accepted as tenureType)" },
+        "search.location.countyDivision": { "type": "string", "required": false, "description": "County division (also accepted as countyDivision)" },
+        "search.location.blockNumber": { "type": "string", "required": false, "description": "Block number (also accepted as blockNumber)" },
+        "search.location.plotNumber": { "type": "string", "required": false, "description": "Plot number (also accepted as plotNumber)" },
+        "search.location.volumeNumber": { "type": "string", "required": false, "description": "Volume number (also accepted as volumeNumber)" },
+        "search.location.folioNumber": { "type": "string", "required": false, "description": "Folio number (also accepted as folioNumber)" },
+        "search.location.leaseExpiryDate": { "type": "string", "required": false, "description": "Lease expiry date (also accepted as leaseExpiryDate)" },
+        "search.location.subCountyVillage": { "type": "string", "required": false, "description": "Sub county / village (also accepted as subCountyVillage)" },
+        "search.location.ccoRefNumber": { "type": "string", "required": false, "description": "CCO reference number (also accepted as ccoRefNumber)" },
+        "brokerConfirmations": { "type": "string[]", "required": false, "description": "Broker codes that confirmed the same landlord" }
+      },
+      "response": "{ success, message, status, verificationId }",
+      "notes": "When the landlord is already registered to another broker the response asks for a landlord authorisation instead of approving silently."
+    },
+    {
+      "id": "landlord-details.send-broker-otps",
+      "group": "Landlord & title verification",
+      "method": "POST",
+      "path": "/web/broker/landlord-details/send-broker-otps",
+      "mobilePath": "/brokers/landlord-details/send-broker-otps",
+      "summary": "Send confirmation OTPs to the other brokers linked to the same landlord",
+      "body": {
+        "fullName": { "type": "string", "required": true, "description": "Landlord full name" },
+        "nin": { "type": "string", "required": true, "description": "Landlord national ID number" },
+        "phoneNumber": { "type": "string", "required": true, "description": "Landlord phone number" }
+      },
+      "response": "{ success, message, sentCount }"
+    },
+    {
+      "id": "landlord-details.authorization-otp",
+      "group": "Landlord & title verification",
+      "method": "POST",
+      "path": "/web/broker/landlord-details/authorization-otp",
+      "mobilePath": "/brokers/landlord-details/authorization-otp",
+      "summary": "Send an authorisation OTP to a landlord who is already verified for another broker",
+      "body": {
+        "verificationId": { "type": "string", "required": true, "description": "The verification returned by the landlord-details submission" }
+      },
+      "response": "{ success, message }",
+      "notes": "The OTP goes to the landlord's own phone number, so it doubles as their consent."
+    },
+    {
+      "id": "landlord-details.verify-authorization",
+      "group": "Landlord & title verification",
+      "method": "POST",
+      "path": "/web/broker/landlord-details/verify-authorization",
+      "mobilePath": "/brokers/landlord-details/verify-authorization",
+      "summary": "Confirm the landlord authorisation OTP and the landlord NIN for the requesting broker",
+      "body": {
+        "verificationId": { "type": "string", "required": true, "description": "The verification the OTP was sent for" },
+        "otp": { "type": "string", "required": true, "description": "The 6-digit OTP the landlord received" },
+        "landlordNin": { "type": "string", "required": true, "description": "The landlord's NIN, used to prove it is the same person (also accepted as brokerNin)" }
+      },
+      "response": "{ success, message, status, instrumentNumber }",
+      "notes": "On success the landlord is approved for this broker too and the instrument number is returned."
+    },
+    {
+      "id": "landlord-details.status",
+      "group": "Landlord & title verification",
+      "method": "GET",
+      "path": "/web/broker/landlord-details/status",
+      "mobilePath": "/brokers/landlord-details/status",
+      "summary": "Get the landlord & title verification status of the authenticated broker",
+      "params": {},
+      "response": "{ status, instrumentNumber, rejectionReason, submittedAt, verificationId, needsLandlordAuthorization, landlordPhoneMasked, landlord: { fullName, nin, mzoDistrict, tenureType } }",
+      "notes": "status is one of unsubmitted | pending | approved | rejected."
+    },
+    {
+      "id": "verification.status",
+      "group": "Broker verification",
+      "method": "GET",
+      "path": "/web/broker/verification/status",
+      "mobilePath": "/brokers/verification/status",
+      "summary": "Get the broker's own verification status and uploaded documents",
+      "params": {},
+      "response": "{ isVerified, idFrontUrl, idBackUrl, verificationStatus }",
+      "notes": "verificationStatus is one of unsubmitted | pending | approved."
+    },
+    {
+      "id": "verification.documents",
+      "group": "Broker verification",
+      "method": "POST",
+      "path": "/web/broker/verification/documents",
+      "mobilePath": "/brokers/verification/documents",
+      "summary": "Submit the broker's ID documents for verification",
+      "body": {
+        "idFrontUrl": { "type": "string", "required": true, "description": "URL of the uploaded front ID image" },
+        "idBackUrl": { "type": "string", "required": true, "description": "URL of the uploaded back ID image" }
+      },
+      "response": "{ success, message }"
+    },
+    {
+      "id": "bookings.list",
+      "group": "Bookings",
+      "method": "GET",
+      "path": "/web/broker/bookings",
+      "mobilePath": "/brokers/bookings",
+      "summary": "List the bookings of the authenticated broker",
+      "params": {},
+      "response": "{ bookings: [...] }"
+    },
+    {
+      "id": "bookings.updateStatus",
+      "group": "Bookings",
+      "method": "PUT",
+      "path": "/web/broker/bookings/:id/status",
+      "mobilePath": "/brokers/bookings/:id/status",
+      "summary": "Approve or reject a booking",
+      "params": {
+        "id": { "in": "path", "type": "string", "required": true, "description": "The booking id" }
+      },
+      "body": {
+        "status": { "type": "string", "required": true, "description": "The new status, e.g. Approved or Rejected" }
+      },
+      "response": "{ success, message }"
+    },
+    {
+      "id": "wallet.get",
+      "group": "Wallet",
+      "method": "GET",
+      "path": "/web/broker/wallet",
+      "mobilePath": "/brokers/wallet",
+      "summary": "Get the wallet of the authenticated broker",
+      "params": {},
+      "response": "{ balance, heldBalance, currency, minimumWithdrawal, ... }"
+    },
+    {
+      "id": "wallet.transactions",
+      "group": "Wallet",
+      "method": "GET",
+      "path": "/web/broker/wallet/transactions",
+      "mobilePath": "/brokers/wallet/transactions",
+      "summary": "Get the wallet transactions of the authenticated broker",
+      "params": {
+        "page": { "in": "query", "type": "number", "required": false, "default": 1 },
+        "limit": { "in": "query", "type": "number", "required": false, "default": 20 }
+      },
+      "response": "{ transactions: [...], total }"
+    },
+    {
+      "id": "wallet.withdraw",
+      "group": "Wallet",
+      "method": "POST",
+      "path": "/web/broker/withdraw",
+      "mobilePath": "/brokers/withdraw",
+      "summary": "Withdraw wallet funds to mobile money (needs the landlord OTP)",
+      "body": {
+        "amount": { "type": "number", "required": true, "description": "Amount to withdraw in UGX" },
+        "phoneNumber": { "type": "string", "required": true, "description": "Mobile money number that receives the money" },
+        "provider": { "type": "string", "required": true, "description": "Mobile money provider, e.g. MTN" },
+        "payeeName": { "type": "string", "required": false, "description": "Name on the mobile money account" },
+        "otp": { "type": "string", "required": true, "description": "The OTP that was sent to the landlord" }
+      },
+      "response": "{ success, message, newBalance, transactionId, referenceNumber }"
+    },
+    {
+      "id": "wallet.withdraw.requestOtp",
+      "group": "Wallet",
+      "method": "POST",
+      "path": "/web/broker/withdraw/request-otp",
+      "mobilePath": "/brokers/withdraw/request-otp",
+      "summary": "Request the authorisation OTP that is sent to the landlord for a withdrawal",
+      "body": {},
+      "response": "{ success, message }",
+      "notes": "The OTP is emailed to the landlord, not to the broker, so only the landlord can authorise the payout."
+    },
+    {
+      "id": "messages.list",
+      "group": "Messages",
+      "method": "GET",
+      "path": "/web/broker/messages",
+      "mobilePath": "/brokers/messages",
+      "summary": "Get the messages of the authenticated broker",
+      "params": {},
+      "response": "{ messages: [...] }"
+    },
+    {
+      "id": "profile.get",
+      "group": "Profile & account",
+      "method": "GET",
+      "path": "/web/broker/profile",
+      "mobilePath": "/brokers/profile",
+      "summary": "Get the profile of the authenticated broker",
+      "params": {},
+      "response": "{ broker: { id, username, email, phoneNumber, brokerCode, location, isVerified, subscriptionTier, ... } }"
+    },
+    {
+      "id": "profile.update",
+      "group": "Profile & account",
+      "method": "POST",
+      "path": "/web/broker/profile",
+      "mobilePath": "/brokers/profile",
+      "summary": "Update the profile of the authenticated broker",
+      "body": {
+        "username": { "type": "string", "required": false, "description": "New display name" },
+        "email": { "type": "string", "required": false, "description": "New email address" },
+        "phoneNumber": { "type": "string", "required": false, "description": "New phone number" },
+        "location": { "type": "string", "required": false, "description": "New location" },
+        "brokerBrandName": { "type": "string", "required": false, "description": "New brand name shown on listings" }
+      },
+      "response": "{ success, message }"
+    },
+    {
+      "id": "account.changePassword",
+      "group": "Profile & account",
+      "method": "POST",
+      "path": "/web/broker/change-password",
+      "mobilePath": "/brokers/change-password",
+      "summary": "Change the broker password (requires the OTP sent to the broker's email)",
+      "body": {
+        "newPassword": { "type": "string", "required": true, "description": "The new password" },
+        "confirmPassword": { "type": "string", "required": true, "description": "Repeat of the new password" },
+        "emailOtp": { "type": "string", "required": true, "description": "The OTP that was emailed to the broker" }
+      },
+      "response": "{ success, message }"
+    },
+    {
+      "id": "account.changePassword.requestOtp",
+      "group": "Profile & account",
+      "method": "POST",
+      "path": "/web/broker/change-password/request-otp",
+      "mobilePath": "/brokers/change-password/request-otp",
+      "summary": "Request the OTP that authorises a password change",
+      "body": {},
+      "response": "{ success, message }"
+    },
+    {
+      "id": "account.help",
+      "group": "Profile & account",
+      "method": "POST",
+      "path": "/web/broker/help",
+      "mobilePath": "/brokers/help",
+      "summary": "Send a help request to the support team",
+      "body": {
+        "email": { "type": "string", "required": true, "description": "Where the reply should go" },
+        "phone": { "type": "string", "required": false, "description": "Phone number of the broker" },
+        "message": { "type": "string", "required": true, "description": "The message" }
+      },
+      "response": "{ success, message }"
+    },
+    {
+      "id": "account.delete",
+      "group": "Profile & account",
+      "method": "POST",
+      "path": "/web/broker/account/delete",
+      "mobilePath": "/brokers/account/delete",
+      "summary": "Delete the broker account (requires the OTP sent to the broker's email)",
+      "body": {
+        "sessionId": { "type": "string", "required": false, "description": "The session being closed" },
+        "emailOtp": { "type": "string", "required": true, "description": "The OTP that was emailed to the broker" }
+      },
+      "response": "{ success, message }"
+    },
+    {
+      "id": "account.delete.requestOtp",
+      "group": "Profile & account",
+      "method": "POST",
+      "path": "/web/broker/account/delete/request-otp",
+      "mobilePath": "/brokers/account/delete/request-otp",
+      "summary": "Request the OTP that confirms an account deletion",
+      "body": {},
+      "response": "{ success, message }"
+    },
+    {
+      "id": "account.logout",
+      "group": "Profile & account",
+      "method": "POST",
+      "path": "/web/broker/logout",
+      "mobilePath": "/brokers/logout",
+      "summary": "Log the broker out",
+      "body": {
+        "sessionId": { "type": "string", "required": false, "description": "The session to close" }
+      },
+      "response": "{ success, message }"
+    }
+  ]
+}

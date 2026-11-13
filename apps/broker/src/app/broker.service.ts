@@ -1712,14 +1712,14 @@ private getEmptyBroker(): any {
         switch (tier) {
             case 'fibrous':
                 return {
-                    maxProperties: 12,
+                    maxProperties: 8,
                     maxPhotosPerProperty: 25,
                     maxVideosPerProperty: 2,
                     maxVideoSizeMB: 12 * 1024,
                 };
             case 'buttress':
                 return {
-                    maxProperties: 16,
+                    maxProperties: 12,
                     maxPhotosPerProperty: 50,
                     maxVideosPerProperty: 4,
                     maxVideoSizeMB: 4 * 1024,
@@ -1727,7 +1727,7 @@ private getEmptyBroker(): any {
             case 'prop':
             default:
                 return {
-                    maxProperties: 5,
+                    maxProperties: 3,
                     maxPhotosPerProperty: 15,
                     maxVideosPerProperty: 1,
                     maxVideoSizeMB: 500,

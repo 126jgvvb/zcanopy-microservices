@@ -61,13 +61,13 @@ describe('BrokerService', () => {
   describe('getSubscriptionLimits', () => {
     it('returns per-tier limits and a safe default', () => {
       expect(service.getSubscriptionLimits('fibrous')).toMatchObject({
-        maxProperties: 12,
+        maxProperties: 8,
         maxPhotosPerProperty: 25,
         maxVideosPerProperty: 2,
       });
-      expect(service.getSubscriptionLimits('buttress')).toMatchObject({ maxProperties: 16 });
+      expect(service.getSubscriptionLimits('buttress')).toMatchObject({ maxProperties: 12 });
       expect(service.getSubscriptionLimits('nope')).toMatchObject({
-        maxProperties: 5,
+        maxProperties: 3,
         maxPhotosPerProperty: 15,
         maxVideosPerProperty: 1,
       });
