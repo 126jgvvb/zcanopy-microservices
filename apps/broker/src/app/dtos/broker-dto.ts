@@ -141,7 +141,9 @@ export class SendBrokerOtpDto {
 export class VerifyBrokerOtpDto {
   email!: string;
   phoneNumber!: string;
-  emailCode!: string;
+  // Optional: not required when the registration session was created via Google
+  // sign-up (Google verifies the email).
+  emailCode?: string;
   phoneCode!: string;
 }
 
