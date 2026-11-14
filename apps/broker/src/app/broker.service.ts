@@ -602,14 +602,9 @@ private getEmptyBroker(): any {
                 this.REGISTRATION_SESSION_TTL,
             );
 
-            // Brokers who signed up with Google already had their email verified
-            // by Google — only the phone number needs OTP verification.
-            const skipEmailOtp = !!dto.googleId;
-
+            // Both sign-up paths receive an email OTP and a phone OTP.
             let emailWait = 0;
-            if (!skipEmailOtp) {
-                emailWait = await this.otpStore.checkAndSetCooldown('email', dto.email);
-            }
+            emailWait = await this.otpStore.checkAndSetCooldown('email', dto.email);
             if (emailWait > 0) {
                 return {
                     success: false,
@@ -627,19 +622,17 @@ private getEmptyBroker(): any {
                 };
             }
 
-            const emailOtp = skipEmailOtp ? null : await this.otpStore.generateAndStore('email', dto.email);
+            const emailOtp = await this.otpStore.generateAndStore('email', dto.email);
             const phoneOtp = await this.otpStore.generateAndStore('phone', dto.phoneNumber);
 
-            if (emailOtp) {
-                this.redisClient.emit('send_email_otp', {
-                    otp: emailOtp,
-                    email: dto.email,
-                    username: dto.fullName,
-                    ttlSeconds: this.otpStore.ttlSeconds,
-                    purpose: 'broker-registration',
-                });
-                this.logger.log(`Emitted send_email_otp for ${dto.email}`);
-            }
+            this.redisClient.emit('send_email_otp', {
+                otp: emailOtp,
+                email: dto.email,
+                username: dto.fullName,
+                ttlSeconds: this.otpStore.ttlSeconds,
+                purpose: 'broker-registration',
+            });
+            this.logger.log(`Emitted send_email_otp for ${dto.email}`);
 
             this.redisClient.emit('send_sms_otp', {
                 otp: phoneOtp,
@@ -650,13 +643,11 @@ private getEmptyBroker(): any {
             });
             this.logger.log(`Emitted send_sms_otp for ${dto.phoneNumber}`);
 
-            this.logger.log(`Broker registration OTP for ${dto.email}: phone OTP sent (email OTP skipped=${skipEmailOtp})`);
+            this.logger.log(`Broker registration OTP for ${dto.email}: email and phone OTPs sent`);
 
             return {
                 success: true,
-                message: skipEmailOtp
-                    ? 'A verification code was sent to your phone number. Your email was verified by Google.'
-                    : 'OTP codes sent to the provided email and phone number',
+                message: 'OTP codes sent to the provided email and phone number',
                 expiresInSeconds: this.otpStore.ttlSeconds,
             };
         } catch (err) {
@@ -676,17 +667,7 @@ private getEmptyBroker(): any {
                 throw new BadRequestException('Registration session not found. Please start the registration flow again.');
             }
 
-            let skipEmailOtp = false;
-            try {
-                skipEmailOtp = !!JSON.parse(session)?.googleId;
-            } catch {
-                skipEmailOtp = false;
-            }
-
-            let emailWait = 0;
-            if (!skipEmailOtp) {
-                emailWait = await this.otpStore.checkAndSetCooldown('email', dto.email);
-            }
+            const emailWait = await this.otpStore.checkAndSetCooldown('email', dto.email);
             if (emailWait > 0) {
                 return {
                     success: false,
@@ -704,17 +685,15 @@ private getEmptyBroker(): any {
                 };
             }
 
-            const emailOtp = skipEmailOtp ? null : await this.otpStore.generateAndStore('email', dto.email);
+            const emailOtp = await this.otpStore.generateAndStore('email', dto.email);
             const phoneOtp = await this.otpStore.generateAndStore('phone', dto.phoneNumber);
 
-            if (emailOtp) {
-                this.redisClient.emit('send_email_otp', {
-                    otp: emailOtp,
-                    email: dto.email,
-                    ttlSeconds: this.otpStore.ttlSeconds,
-                    purpose: 'broker-registration',
-                });
-            }
+            this.redisClient.emit('send_email_otp', {
+                otp: emailOtp,
+                email: dto.email,
+                ttlSeconds: this.otpStore.ttlSeconds,
+                purpose: 'broker-registration',
+            });
 
             this.redisClient.emit('send_sms_otp', {
                 otp: phoneOtp,
@@ -725,9 +704,7 @@ private getEmptyBroker(): any {
 
             return {
                 success: true,
-                message: skipEmailOtp
-                    ? 'A verification code was sent to your phone number.'
-                    : 'OTP codes sent to the provided email and phone number',
+                message: 'OTP codes sent to the provided email and phone number',
                 expiresInSeconds: this.otpStore.ttlSeconds,
             };
         } catch (err) {
@@ -738,8 +715,18 @@ private getEmptyBroker(): any {
 
     async verifyBrokerOtp(dto: VerifyBrokerOtpDto) {
         try {
-            if (!dto.email || !dto.phoneNumber || !dto.phoneCode) {
-                throw new BadRequestException('email, phoneNumber and phoneCode are required');
+            if (!dto.email || !dto.phoneNumber || !dto.emailCode || !dto.phoneCode) {
+                throw new BadRequestException('email, phoneNumber, emailCode and phoneCode are required');
+            }
+
+            const isEmailValid = await this.otpStore.verify('email', dto.email, dto.emailCode);
+            if (!isEmailValid) {
+                throw new BadRequestException('Invalid or expired email OTP');
+            }
+
+            const isPhoneValid = await this.otpStore.verify('phone', dto.phoneNumber, dto.phoneCode);
+            if (!isPhoneValid) {
+                throw new BadRequestException('Invalid or expired phone OTP');
             }
 
             const sessionRaw = await this.redis.get(this.registrationSessionKey(dto.email));
@@ -748,24 +735,6 @@ private getEmptyBroker(): any {
             }
 
             const session = JSON.parse(sessionRaw);
-
-            // Google-signed-up brokers: email was verified by Google, so only
-            // the phone OTP is required.
-            const skipEmailOtp = !!session?.googleId;
-            if (!skipEmailOtp) {
-                if (!dto.emailCode) {
-                    throw new BadRequestException('emailCode is required');
-                }
-                const isEmailValid = await this.otpStore.verify('email', dto.email, dto.emailCode);
-                if (!isEmailValid) {
-                    throw new BadRequestException('Invalid or expired email OTP');
-                }
-            }
-
-            const isPhoneValid = await this.otpStore.verify('phone', dto.phoneNumber, dto.phoneCode);
-            if (!isPhoneValid) {
-                throw new BadRequestException('Invalid or expired phone OTP');
-            }
 
             const brokerCode = await this.generateUniqueBrokerCode();
             const id = await this.generateUniqueBrokerId();

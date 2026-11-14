@@ -341,6 +341,21 @@ export class BrokerController {
 
   /* ---- Withdrawals ---- */
 
+  @Post('withdraw')
+  @ApiOperation({ summary: 'Withdraw wallet funds to mobile money (needs the landlord OTP)' })
+  async withdraw(@Req() req: any, @Body() body: any) {
+    const brokerCode = this.getBrokerCode(req);
+    this.logger.log(`Withdraw request for ${brokerCode}, amount=${body.amount}`);
+    return this.proxyService.forwardToBroker('Withdraw', {
+      amount: Number(body.amount),
+      phoneNumber: body.phoneNumber,
+      provider: body.provider,
+      payeeName: body.payeeName,
+      otp: body.otp,
+      brokerCode,
+    });
+  }
+
   @Post('withdraw/request-otp')
   @ApiOperation({ summary: 'Request the authorisation OTP sent to the landlord for a withdrawal' })
   async requestWithdrawalOtp(@Req() req: any) {

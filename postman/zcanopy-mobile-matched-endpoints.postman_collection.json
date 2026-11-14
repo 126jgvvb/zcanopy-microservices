@@ -1309,12 +1309,12 @@
         {
           "name": "Register Broker",
           "request": {
-            "description": "Matches endpoints already called by both web clients: POST /broker/register (zcanopy-storefront registerBroker, zcanopy-dashboard webApi.registerBroker).",
+            "description": "Matches endpoints already called by both web clients: POST /broker/register (zcanopy-storefront registerBroker, zcanopy-dashboard webApi.registerBroker). googleId is a Google ID token and is verified server-side; it is never accepted as-is. Brokers who register via Google do not have ID documents verified at signup (the landlord integration handles verification) and only receive a phone OTP; email/password sign-ups receive an email OTP and a phone OTP.",
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Blue Peak Realty\",\n  \"email\": \"{{email}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"googleId\": \"{{googleId}}\",\n  \"idFrontUrl\": \"https://zcanopy-properties-media.fra1.digitaloceanspaces.com/broker-docs/id-front.jpg\",\n  \"idBackUrl\": \"https://zcanopy-properties-media.fra1.digitaloceanspaces.com/broker-docs/id-back.jpg\"\n}",
+              "raw": "{\n  \"fullName\": \"Blue Peak Realty\",\n  \"email\": \"{{email}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"googleId\": \"{{googleId}} (optional; Google ID token, verified server-side)\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {

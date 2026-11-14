@@ -1,7 +1,7 @@
 {
   "name": "ZCanopy broker API - endpoints added to the broker web controller",
-  "version": "1.0.0",
-  "description": "The broker endpoints that were added to the web dashboard controller (web/broker/*) and mirrored into the mobile app controller (brokers/*). Every endpoint needs the broker bearer token; the broker code is taken from the token, so it is never sent in the body.",
+  "version": "1.1.0",
+  "description": "The broker endpoints that were added to the web dashboard controller (web/broker/*) and mirrored into the mobile app controller (brokers/*). Every endpoint needs the broker bearer token; the broker code is taken from the token, so it is never sent in the body. Broker verification now happens through the landlord (UgNLIS) integration; the ID-document upload endpoints remain for backward compatibility only.",
   "baseUrl": "https://api-gateway-production-f9cc.up.railway.app/api",
   "auth": {
     "type": "bearer",
@@ -99,7 +99,7 @@
       "summary": "Get the broker's own verification status and uploaded documents",
       "params": {},
       "response": "{ isVerified, idFrontUrl, idBackUrl, verificationStatus }",
-      "notes": "verificationStatus is one of unsubmitted | pending | approved."
+      "notes": "verificationStatus is one of unsubmitted | pending | approved. Broker verification now happens through the landlord (UgNLIS) integration; this endpoint reports legacy ID-document status."
     },
     {
       "id": "verification.documents",
@@ -107,7 +107,7 @@
       "method": "POST",
       "path": "/web/broker/verification/documents",
       "mobilePath": "/brokers/verification/documents",
-      "summary": "Submit the broker's ID documents for verification",
+      "summary": "Submit the broker's ID documents for verification (legacy; the landlord integration is the primary verification path)",
       "body": {
         "idFrontUrl": { "type": "string", "required": true, "description": "URL of the uploaded front ID image" },
         "idBackUrl": { "type": "string", "required": true, "description": "URL of the uploaded back ID image" }
