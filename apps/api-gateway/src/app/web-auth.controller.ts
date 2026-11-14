@@ -152,6 +152,7 @@ export class WebAuthController {
     const authResponse = await this.proxyService.forwardToAuth('LoginBrokerGoogle', {
       googleId: googleProfile.sub,
       deviceId: body.deviceId || 'web-dashboard',
+      email: googleProfile.email || '',
     });
 
     const payload = {

@@ -22,9 +22,9 @@ export class AuthController {
   }
 
   @GrpcMethod('AuthService', 'LoginBrokerGoogle')
-  async LoginBrokerGoogle(dto: { googleId: string; deviceId?: string }): Promise<any> {
+  async LoginBrokerGoogle(dto: { googleId: string; deviceId?: string; email?: string }): Promise<any> {
     this.logger.log(`Broker Google login attempt for googleId ${dto.googleId?.substring(0, 20)}...`);
-    return this.authService.loginBroker({ brokerCode: '', googleId: dto.googleId, deviceId: dto.deviceId });
+    return this.authService.loginBroker({ brokerCode: '', googleId: dto.googleId, deviceId: dto.deviceId, email: dto.email });
   }
 
   @GrpcMethod('AuthService', 'SetupBroker')

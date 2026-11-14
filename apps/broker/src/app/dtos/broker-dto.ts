@@ -28,6 +28,7 @@ export class LoginBrokerDto {
     password?:string;
     deviceId?:string;
     googleId?:string;
+    email?:string;
 }
 
 export class CreateBrokerSessionDto {

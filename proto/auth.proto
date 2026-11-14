@@ -32,6 +32,7 @@ message LoginBrokerRequest {
   string password = 2;
   string deviceId = 3;
   string googleId = 4;
+  string email = 5;
 }
 
 message LoginBrokerResponse {

@@ -3861,15 +3861,41 @@ private getEmptyBroker(): any {
 
     async loginBroker(dto: LoginBrokerDto) {
         try {
-            const { brokerCode, password, deviceId, googleId } = dto;
+            const { brokerCode, password, deviceId, googleId, email } = dto;
 
             if (!brokerCode && !googleId) {
                 throw new BadRequestException('Either brokerCode or googleId is required');
             }
 
-            const broker = brokerCode
-                ? await this.findBrokerByNameOrCode(brokerCode)
-                : await this.brokerRepo.findOne({ where: { googleId } });
+            let broker;
+
+            if (brokerCode) {
+                broker = await this.findBrokerByNameOrCode(brokerCode) || undefined;
+            } else if (googleId) {
+                // Direct match on the linked Google account.
+                broker = await this.brokerRepo.findOne({ where: { googleId } }) || undefined;
+
+                // Google sign-in for an account that was created with a password
+                // but has no Google link yet: link it by the verified email.
+                if (!broker && email) {
+                    const normalizedEmail = email.trim().toLowerCase();
+                    const byEmail = (await this.brokerRepo.findOne({ where: { email: normalizedEmail } }))
+                        || (await this.brokerRepo.findOne({ where: { email: email.trim() } }))
+                        || undefined;
+
+                    if (byEmail) {
+                        if (byEmail.googleId && byEmail.googleId !== googleId) {
+                            throw new BadRequestException('This account already uses a different sign-in method.');
+                        }
+                        await this.brokerRepo.update(byEmail.id, {
+                            googleId,
+                            updatedAt: new Date(),
+                        });
+                        this.logger.log(`Linked Google account to broker ${byEmail.brokerCode}`);
+                        broker = (await this.brokerRepo.findOne({ where: { id: byEmail.id } })) || byEmail;
+                    }
+                }
+            }
             if (!broker) {
                 throw new NotFoundException('Broker not found');
             }

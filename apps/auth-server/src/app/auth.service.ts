@@ -104,7 +104,7 @@ interface AdminServiceClient {
 interface BrokerServiceClient {
   validateBroker(data: { email: string; password: string }): any;
   getBrokerById(data: { id: string }): any;
-  loginBroker(data: { brokerCode: string; password?: string; deviceId?: string; googleId?: string }): any;
+  loginBroker(data: { brokerCode: string; password?: string; deviceId?: string; googleId?: string; email?: string }): any;
   setupBrokerAccount(data: { brokerCode: string; password: string; deviceId: string; brokerBrandName?: string }): any;
   getBrokerDashboard(data: { brokerId: string }): any;
 }
@@ -240,7 +240,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async loginBroker(dto: { brokerCode: string; password?: string; deviceId?: string; googleId?: string }): Promise<any> {
+  async loginBroker(dto: { brokerCode: string; password?: string; deviceId?: string; googleId?: string; email?: string }): Promise<any> {
     try {
       const broker: any = await lastValueFrom(
         this.brokerServiceRpc.loginBroker({
@@ -248,6 +248,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
           password: dto.password,
           deviceId: dto.deviceId,
           googleId: dto.googleId,
+          email: dto.email,
         }),
       );
 
