@@ -2088,16 +2088,7 @@ private getEmptyBroker(): any {
             }));
             this.logger.log(`Mapped ${bookings.length} bookings for broker ${dto.brokerId}`);
 
-            let minimumWithdrawal = 10000;
-            try {
-              const commissions = await lastValueFrom(
-                this._adminClient.getService('AdminService').GetCommissions({}),
-              );
-              minimumWithdrawal = commissions.minimumWithdrawal ?? 10000;
-              this.logger.log(`Fetched minimum withdrawal for broker ${dto.brokerId}: ${minimumWithdrawal}`);
-            } catch (err) {
-              this.logger.warn(`Failed to fetch minimum withdrawal for broker ${dto.brokerId}: ${(err as Error).message}`);
-            }
+            const minimumWithdrawal = await this.getMinimumWithdrawal();
 
             const response = {
               success: true,
@@ -2284,6 +2275,13 @@ private getEmptyBroker(): any {
           throw new BadRequestException(`Insufficient wallet balance. Available: ${currentBalance}, requested: ${withdrawalAmount}`);
         }
 
+        const minimumWithdrawal = await this.getMinimumWithdrawal();
+        if (withdrawalAmount < minimumWithdrawal) {
+          throw new BadRequestException(
+            `Minimum withdrawal is ${minimumWithdrawal}. Requested: ${withdrawalAmount}`,
+          );
+        }
+
         this.logger.log(`Broker withdraw request: amount=${withdrawalAmount}, phone=${dto.phoneNumber}, broker=${brokerCode}, balanceBefore=${currentBalance}`);
 
         const result = await lastValueFrom(
@@ -2329,6 +2327,23 @@ private getEmptyBroker(): any {
         this.logger.error(`Failed to process broker withdrawal:`, err);
         throw err;
       }
+    }
+
+    /**
+     * The minimum withdrawal amount, configured admin-side (defaults to
+     * 10,000 UGX). Used by both the wallet view and the withdraw path so the
+     * floor is enforced server-side too, not only in the UI.
+     */
+    private async getMinimumWithdrawal(): Promise<number> {
+        try {
+            const commissions: any = await lastValueFrom(
+                this._adminClient.getService('AdminService').GetCommissions({}),
+            );
+            return Number(commissions?.minimumWithdrawal) || 10000;
+        } catch (err) {
+            this.logger.warn(`Failed to fetch minimum withdrawal: ${(err as Error).message}`);
+            return 10000;
+        }
     }
 
     private async findBrokerByNameOrCode(identifier: string): Promise<BrokerEntity | null> {
