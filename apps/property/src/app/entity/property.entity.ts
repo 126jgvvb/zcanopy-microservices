@@ -63,9 +63,11 @@ export class PropertyEntity {
   /**
    * Primary key. New properties get a random UUID; legacy rows keep their
    * original integer-as-text id (the column was an integer SERIAL before the
-   * UUID switch).
+   * UUID switch). The column type is pinned to `text` so TypeORM's schema
+   * sync sees an exact match with the live column and does not try to
+   * recreate it.
    */
-  @PrimaryColumn()
+  @PrimaryColumn({ type: 'text' })
   id!: string;
 
   @Column({default:''})
