@@ -1539,7 +1539,7 @@ private getEmptyBroker(): any {
                 username: broker.username,
                 title: data.title,
                 location: data.location,
-                propertyId: data.propertyId,
+                brokerCode: data.brokerCode,
             });
         } catch (err) {
             this.logger.error(`Failed to handle broker property created for ${data.brokerCode}:`, err);
@@ -1582,7 +1582,7 @@ private getEmptyBroker(): any {
                 username: broker.username,
                 title: data.title,
                 location: data.location,
-                propertyId: data.propertyId,
+                brokerCode: data.brokerCode,
             });
         } catch (err) {
             this.logger.error(`Failed to handle broker property updated for ${data.brokerCode}:`, err);
@@ -1611,14 +1611,14 @@ private getEmptyBroker(): any {
                 email: broker.email,
                 username: broker.username,
                 title: data.title,
-                propertyId: data.propertyId,
+                brokerCode: data.brokerCode,
             });
 
             this.redisClient.emit('send_property_deleted_sms', {
                 phoneNumber: broker.phoneNumber,
                 username: broker.username,
                 title: data.title,
-                propertyId: data.propertyId,
+                brokerCode: data.brokerCode,
             });
         } catch (err) {
             this.logger.error(`Failed to handle broker property deleted for ${data.brokerCode}:`, err);

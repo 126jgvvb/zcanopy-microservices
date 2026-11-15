@@ -68,7 +68,6 @@ describe('NotificationService', () => {
     const booking = {
       username: 'Jane',
       propertyTitle: 'Lakeview Apartment',
-      propertyId: 'prop-1',
       location: 'Entebbe',
       amount: 150000,
       transactionCode: 'TXN-123',

@@ -1,4 +1,5 @@
-import {Entity,Column,PrimaryGeneratedColumn} from 'typeorm';
+import {Entity,Column,PrimaryColumn} from 'typeorm';
+import { randomUUID } from 'crypto';
 
 export interface GeoSpatialField {
   lat: number;
@@ -59,7 +60,12 @@ export interface BookingState {
 
 @Entity()
 export class PropertyEntity {
-  @PrimaryGeneratedColumn()
+  /**
+   * Primary key. New properties get a random UUID; legacy rows keep their
+   * original integer-as-text id (the column was an integer SERIAL before the
+   * UUID switch).
+   */
+  @PrimaryColumn()
   id!: string;
 
   @Column({default:''})

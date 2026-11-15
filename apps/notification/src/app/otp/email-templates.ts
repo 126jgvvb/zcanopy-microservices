@@ -192,7 +192,7 @@ export function propertyPaymentConfirmationEmailHtml(payload: { username?: strin
   return baseTemplate('ZCanopy property payment confirmation', body);
 }
 
-export function bookingConfirmationEmailHtml(payload: { username?: string; email: string; propertyTitle: string; propertyId: string; location?: string; amount: number; transactionCode: string; bookingCode: string; date: string; status?: string; brokerPhone: string }): string {
+export function bookingConfirmationEmailHtml(payload: { username?: string; email: string; propertyTitle: string; location?: string; amount: number; transactionCode: string; bookingCode: string; date: string; status?: string; brokerPhone: string }): string {
   const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
   const statusText = payload.status === 'pending_payment' ? 'Your booking is pending payment confirmation.' : 'Your booking has been confirmed.';
 
@@ -201,7 +201,6 @@ export function bookingConfirmationEmailHtml(payload: { username?: string; email
     <div class="text">${title} ${statusText}</div>
     <div class="info-box">
       <div><span class="label">Property:</span> ${payload.propertyTitle}</div>
-      <div><span class="label">Property ID:</span> ${payload.propertyId}</div>
       ${payload.location ? `<div><span class="label">Location:</span> ${payload.location}</div>` : ''}
       <div><span class="label">Amount:</span> UGX ${payload.amount.toLocaleString()}</div>
       <div><span class="label">Transaction Code:</span> ${payload.transactionCode}</div>
@@ -265,15 +264,12 @@ export function propertyUpdatedEmailHtml(payload: { username?: string; email?: s
   return baseTemplate('Property updated', body);
 }
 
-export function propertyDeletedEmailHtml(payload: { username?: string; email: string; title: string; propertyId: string }): string {
+export function propertyDeletedEmailHtml(payload: { username?: string; email: string; title: string }): string {
   const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
 
   const body = `
     <div class="title">Property removed</div>
     <div class="text">${title} Your property <span class="label">${payload.title}</span> has been removed from ZCanopy.</div>
-    <div class="info-box">
-      <div><span class="label">Property ID:</span> ${payload.propertyId}</div>
-    </div>
     <div class="text">If this was not expected, please contact our support team for assistance.</div>
   `;
 

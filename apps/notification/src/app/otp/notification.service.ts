@@ -503,14 +503,14 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async sendPropertyCreatedSms(payload: { phoneNumber: string; username?: string; title: string; propertyId: string }) {
+  async sendPropertyCreatedSms(payload: { phoneNumber: string; username?: string; title: string; brokerCode?: string }) {
     try {
       if (!payload.phoneNumber) {
         throw new Error('Cannot send property created SMS: "phoneNumber" is missing from payload');
       }
       const body = this.buildPropertyMessage(payload, 'uploaded');
       const result = await this.dispatchSms(payload.phoneNumber, body);
-      await this.saveNotification({ type: 'property', channel: 'sms', title: 'Property uploaded', content: body, recipient: payload.phoneNumber, result, brokerCode: payload.propertyId });
+      await this.saveNotification({ type: 'property', channel: 'sms', title: 'Property uploaded', content: body, recipient: payload.phoneNumber, result, brokerCode: payload.brokerCode });
       return this.result('sms', payload.phoneNumber);
     } catch (err) {
       this.logger.error(`Failed to send property created SMS: ${(err as Error).message}`);
@@ -534,14 +534,14 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async sendPropertyUpdatedSms(payload: { phoneNumber: string; username?: string; title: string; propertyId: string }) {
+  async sendPropertyUpdatedSms(payload: { phoneNumber: string; username?: string; title: string; brokerCode?: string }) {
     try {
       if (!payload.phoneNumber) {
         throw new Error('Cannot send property updated SMS: "phoneNumber" is missing from payload');
       }
       const body = this.buildPropertyMessage(payload, 'updated');
       const result = await this.dispatchSms(payload.phoneNumber, body);
-      await this.saveNotification({ type: 'property', channel: 'sms', title: 'Property updated', content: body, recipient: payload.phoneNumber, result, brokerCode: payload.propertyId });
+      await this.saveNotification({ type: 'property', channel: 'sms', title: 'Property updated', content: body, recipient: payload.phoneNumber, result, brokerCode: payload.brokerCode });
       return this.result('sms', payload.phoneNumber);
     } catch (err) {
       this.logger.error(`Failed to send property updated SMS: ${(err as Error).message}`);
@@ -549,15 +549,15 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async sendPropertyDeletedEmail(payload: { email: string; username?: string; title: string; propertyId: string }) {
+  async sendPropertyDeletedEmail(payload: { email: string; username?: string; title: string; brokerCode?: string }) {
     try {
       if (!payload.email) {
         throw new Error('Cannot send property deleted email: "email" is missing from payload');
       }
       const subject = 'Property removed';
-      const body = propertyDeletedEmailHtml({ username: payload.username, email: payload.email, title: payload.title, propertyId: payload.propertyId });
+      const body = propertyDeletedEmailHtml({ username: payload.username, email: payload.email, title: payload.title });
       const result = await this.dispatchEmail(payload.email, subject, body);
-      await this.saveNotification({ type: 'property', channel: 'email', title: subject, content: body, recipient: payload.email, result, brokerCode: payload.propertyId });
+      await this.saveNotification({ type: 'property', channel: 'email', title: subject, content: body, recipient: payload.email, result, brokerCode: payload.brokerCode });
       return this.result('email', payload.email);
     } catch (err) {
       this.logger.error(`Failed to send property deleted email: ${(err as Error).message}`);
@@ -565,14 +565,14 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async sendPropertyDeletedSms(payload: { phoneNumber: string; username?: string; title: string; propertyId: string }) {
+  async sendPropertyDeletedSms(payload: { phoneNumber: string; username?: string; title: string; brokerCode?: string }) {
     try {
       if (!payload.phoneNumber) {
         throw new Error('Cannot send property deleted SMS: "phoneNumber" is missing from payload');
       }
       const body = this.buildPropertyMessage(payload, 'removed');
       const result = await this.dispatchSms(payload.phoneNumber, body);
-      await this.saveNotification({ type: 'property', channel: 'sms', title: 'Property removed', content: body, recipient: payload.phoneNumber, result, brokerCode: payload.propertyId });
+      await this.saveNotification({ type: 'property', channel: 'sms', title: 'Property removed', content: body, recipient: payload.phoneNumber, result, brokerCode: payload.brokerCode });
       return this.result('sms', payload.phoneNumber);
     } catch (err) {
       this.logger.error(`Failed to send property deleted SMS: ${(err as Error).message}`);
@@ -580,7 +580,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async sendBookingConfirmationEmail(payload: { email: string; username?: string; propertyTitle: string; propertyId: string; location?: string; amount: number; transactionCode: string; bookingCode: string; date: string; status?: string; brokerPhone: string }) {
+  async sendBookingConfirmationEmail(payload: { email: string; username?: string; propertyTitle: string; location?: string; amount: number; transactionCode: string; bookingCode: string; date: string; status?: string; brokerPhone: string }) {
     try {
       if (!payload.email) {
         throw new Error('Cannot send booking confirmation email: "email" is missing from payload');
@@ -589,7 +589,7 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
         throw new Error('Cannot send booking confirmation email: "brokerPhone" is missing from payload');
       }
       const subject = 'Booking confirmation';
-      const body = bookingConfirmationEmailHtml({ username: payload.username, email: payload.email, propertyTitle: payload.propertyTitle, propertyId: payload.propertyId, location: payload.location, amount: payload.amount, transactionCode: payload.transactionCode, bookingCode: payload.bookingCode, date: payload.date, status: payload.status, brokerPhone: payload.brokerPhone });
+      const body = bookingConfirmationEmailHtml({ username: payload.username, email: payload.email, propertyTitle: payload.propertyTitle, location: payload.location, amount: payload.amount, transactionCode: payload.transactionCode, bookingCode: payload.bookingCode, date: payload.date, status: payload.status, brokerPhone: payload.brokerPhone });
       const result = await this.dispatchEmail(payload.email, subject, body);
       await this.saveNotification({ type: 'booking', channel: 'email', title: subject, content: body, recipient: payload.email, result });
       return this.result('email', payload.email);
@@ -1225,9 +1225,9 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
     return `${greeting}Your property payment of UGX ${amount} was successful. Customer: ${customerName} (${customerPhone}), Recipient: ${recipientName} (${recipientPhone}), Code: ${transactionCode}, Date: ${date}`;
   }
 
-  private buildPropertyMessage(payload: { username?: string; title: string; propertyId: string }, action: 'uploaded' | 'updated' | 'removed'): string {
+  private buildPropertyMessage(payload: { username?: string; title: string }, action: 'uploaded' | 'updated' | 'removed'): string {
     const greeting = payload.username ? `Hi ${payload.username}, ` : '';
-    return `${greeting}Your property "${payload.title}" has been ${action}. Property ID: ${payload.propertyId}.`;
+    return `${greeting}Your property "${payload.title}" has been ${action}.`;
   }
 
   private result(channel: OtpChannel, destination: string) {

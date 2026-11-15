@@ -352,7 +352,6 @@ export class OtpNotificationController {
           email: payload.customerEmail,
           username: payload.customerName,
           propertyTitle: payload.propertyTitle,
-          propertyId: payload.propertyId,
           location: payload.location,
           amount: payload.amount,
           transactionCode: payload.transactionCode,

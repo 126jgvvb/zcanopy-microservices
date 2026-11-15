@@ -316,6 +316,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         : null;
 
       const property = this.propertyRepo.create({
+        id: randomUUID(),
         brokersUniqueCode: dto.brokersUniqueCode,
         title: dto.title ?? 'Default Property',
         description: dto.description ?? 'Auto-created property for verified broker',
