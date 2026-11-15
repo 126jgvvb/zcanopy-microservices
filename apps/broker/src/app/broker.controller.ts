@@ -172,9 +172,15 @@ export class BrokerController {
   }
 
   @GrpcMethod('BrokerService','RequestLandlordWithdrawalOtp')
-  async requestLandlordWithdrawalOtp(dto: { brokerCode: string }) {
+  async requestLandlordWithdrawalOtp(dto: { brokerCode: string; verificationId?: string }) {
     this.logger.log(`RequestLandlordWithdrawalOtp called for broker=${dto.brokerCode}`);
     return this.brokerService.requestLandlordWithdrawalOtp(dto);
+  }
+
+  @GrpcMethod('BrokerService','GetBrokerLandlords')
+  async getBrokerLandlords(dto: { brokerCode: string }) {
+    this.logger.log(`GetBrokerLandlords called for broker=${dto.brokerCode}`);
+    return this.brokerService.getBrokerLandlords(dto);
   }
 
   @GrpcMethod('BrokerService','ReleaseBookingEscrow')

@@ -62,6 +62,7 @@ service BrokerService{
   rpc ApproveLandlordVerification (ApproveLandlordVerificationRequest) returns (ApproveLandlordVerificationResponse);
   rpc RejectLandlordVerification (RejectLandlordVerificationRequest) returns (RejectLandlordVerificationResponse);
   rpc RequestLandlordWithdrawalOtp (RequestLandlordWithdrawalOtpRequest) returns (RequestLandlordWithdrawalOtpResponse);
+  rpc GetBrokerLandlords (GetBrokerLandlordsRequest) returns (GetBrokerLandlordsResponse);
   rpc ReleaseBookingEscrow (ReleaseBookingEscrowRequest) returns (ReleaseBookingEscrowResponse);
   rpc ReverseBookingEscrow (ReverseBookingEscrowRequest) returns (ReverseBookingEscrowResponse);
 }
@@ -977,6 +978,9 @@ message RejectLandlordVerificationResponse {
 
 message RequestLandlordWithdrawalOtpRequest {
   string brokerCode = 1;
+  // Which verified landlord should receive the OTP. When omitted the latest
+  // approved verification is used (backwards compatible).
+  string verificationId = 2;
 }
 
 message RequestLandlordWithdrawalOtpResponse {
@@ -984,4 +988,22 @@ message RequestLandlordWithdrawalOtpResponse {
   string message = 2;
   string channel = 3;
   string destination = 4;
+}
+
+message Landlord {
+  string verificationId = 1;
+  string fullName = 2;
+  string ninMasked = 3;
+  string mzoDistrict = 4;
+  string tenureType = 5;
+  string instrumentNumber = 6;
+  string verifiedAt = 7;
+}
+
+message GetBrokerLandlordsRequest {
+  string brokerCode = 1;
+}
+
+message GetBrokerLandlordsResponse {
+  repeated Landlord landlords = 1;
 }

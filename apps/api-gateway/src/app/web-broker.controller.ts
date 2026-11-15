@@ -201,10 +201,20 @@ export class WebBrokerController {
   }
 
   @Post('withdraw/request-otp')
-  @ApiOperation({ summary: 'Request an authorisation OTP sent to the landlord for a withdrawal' })
-  async requestWithdrawalOtp(@Req() req: any) {
-    this.logger.log(`Web broker withdrawal OTP request for ${this.getBrokerCode(req)}`);
+  @ApiOperation({ summary: 'Request an authorisation OTP sent to a verified landlord for a withdrawal' })
+  async requestWithdrawalOtp(@Req() req: any, @Body() body: any) {
+    this.logger.log(`Web broker withdrawal OTP request for ${this.getBrokerCode(req)} (landlord=${body?.verificationId || 'latest approved'})`);
     return this.proxyService.forwardToBroker('RequestLandlordWithdrawalOtp', {
+      brokerCode: this.getBrokerCode(req),
+      verificationId: body?.verificationId,
+    });
+  }
+
+  @Get('landlords')
+  @ApiOperation({ summary: "List the broker's verified landlords (used for withdrawal OTP selection)" })
+  async getLandlords(@Req() req: any) {
+    this.logger.log(`Web broker landlords request for ${this.getBrokerCode(req)}`);
+    return this.proxyService.forwardToBroker('GetBrokerLandlords', {
       brokerCode: this.getBrokerCode(req),
     });
   }

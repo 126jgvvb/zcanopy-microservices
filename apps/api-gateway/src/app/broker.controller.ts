@@ -358,10 +358,13 @@ export class BrokerController {
 
   @Post('withdraw/request-otp')
   @ApiOperation({ summary: 'Request the authorisation OTP sent to the landlord for a withdrawal' })
-  async requestWithdrawalOtp(@Req() req: any) {
+  async requestWithdrawalOtp(@Req() req: any, @Body() body: any) {
     const brokerCode = this.getBrokerCode(req);
     this.logger.log(`Withdrawal OTP request for ${brokerCode}`);
-    return this.proxyService.forwardToBroker('RequestLandlordWithdrawalOtp', { brokerCode });
+    return this.proxyService.forwardToBroker('RequestLandlordWithdrawalOtp', {
+      brokerCode,
+      verificationId: body?.verificationId,
+    });
   }
 
   /* ---- Profile & account ---- */

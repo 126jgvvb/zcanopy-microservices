@@ -3650,17 +3650,75 @@ private getEmptyBroker(): any {
         }
     }
 
-    async requestLandlordWithdrawalOtp(dto: { brokerCode: string }) {
+    /**
+     * The broker's verified landlords: every approved landlord identity the
+     * broker may legitimately represent. De-duplicated by NIN so re-submissions
+     * of the same landlord are not listed twice. This is what the console
+     * shows under "Your Landlords" and what the withdrawal OTP picker selects
+     * from — unverified submissions never appear.
+     */
+    async getBrokerLandlords(dto: { brokerCode: string }) {
         try {
             const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
             if (!broker) {
                 throw new NotFoundException(`Broker not found for name or code ${dto.brokerCode}`);
             }
 
-            const verification = await this.landlordVerificationRepo.findOne({
+            const rows = await this.landlordVerificationRepo.find({
                 where: { brokerId: broker.id, status: 'approved' },
-                order: { reviewedAt: 'DESC' },
+                order: { reviewedAt: 'DESC', createdAt: 'DESC' },
             });
+
+            const seen = new Set<string>();
+            const landlords: Array<Record<string, unknown>> = [];
+            for (const row of rows) {
+                const nin = this.normalizeLandlordNin(row.landlordNin);
+                if (!nin || seen.has(nin)) continue;
+                seen.add(nin);
+                landlords.push({
+                    verificationId: row.id,
+                    fullName: row.landlordFullName,
+                    ninMasked: this.maskContact(nin),
+                    mzoDistrict: row.mzoDistrict,
+                    tenureType: row.tenureType,
+                    instrumentNumber: row.instrumentNumber || '',
+                    verifiedAt: (row.reviewedAt || row.createdAt)?.toISOString?.() || '',
+                });
+            }
+
+            return { landlords };
+        } catch (err) {
+            this.logger.error(`Failed to get landlords for ${dto.brokerCode}:`, err);
+            throw err;
+        }
+    }
+
+    async requestLandlordWithdrawalOtp(dto: { brokerCode: string; verificationId?: string }) {
+        try {
+            const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
+            if (!broker) {
+                throw new NotFoundException(`Broker not found for name or code ${dto.brokerCode}`);
+            }
+
+            // When the broker picked a landlord, send the OTP to THAT landlord.
+            // The selection must belong to this broker and be approved, or the
+            // request is rejected rather than silently falling back.
+            const verificationId = (dto.verificationId || '').trim();
+            const verification = verificationId
+                ? await this.landlordVerificationRepo.findOne({
+                    where: { id: verificationId, brokerId: broker.id, status: 'approved' },
+                })
+                : await this.landlordVerificationRepo.findOne({
+                    where: { brokerId: broker.id, status: 'approved' },
+                    order: { reviewedAt: 'DESC' },
+                });
+
+            if (verificationId && !verification) {
+                return {
+                    success: false,
+                    message: 'Select one of your verified landlords to receive the withdrawal OTP.',
+                };
+            }
 
             if (!verification) {
                 return {
