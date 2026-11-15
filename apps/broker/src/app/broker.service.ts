@@ -3681,7 +3681,8 @@ private getEmptyBroker(): any {
                     ninMasked: this.maskContact(nin),
                     mzoDistrict: row.mzoDistrict,
                     tenureType: row.tenureType,
-                    instrumentNumber: row.instrumentNumber || '',
+                    // The Ministry instrument number is confidential admin-side
+                    // data; it is never handed to the broker.
                     verifiedAt: (row.reviewedAt || row.createdAt)?.toISOString?.() || '',
                 });
             }
