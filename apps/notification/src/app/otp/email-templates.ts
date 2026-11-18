@@ -151,6 +151,48 @@ export function brokerApprovalEmailHtml(payload: { username: string; email: stri
   return baseTemplate('ZCanopy broker approval', body);
 }
 
+export function brokerBookingDepositEmailHtml(payload: {
+  username?: string;
+  email: string;
+  propertyTitle: string;
+  customerName: string;
+  customerPhone?: string;
+  amount: number;
+  transactionCode: string;
+  bookingCode?: string;
+  date: string;
+}): string {
+  const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
+  const date = new Date(payload.date).toLocaleString();
+  const body = `
+    <div class="title">Booking deposit received</div>
+    <div class="text">${title} A customer has paid the booking fee for your property. The funds have been held in escrow until the customer approves the booking or the countdown expires.</div>
+    <div class="info-box">
+      <div><span class="label">Property:</span> ${payload.propertyTitle}</div>
+      ${payload.bookingCode ? `<div><span class="label">Booking code:</span> ${payload.bookingCode}</div>` : ''}
+      <div><span class="label">Amount received:</span> UGX ${payload.amount.toLocaleString()}</div>
+      <div><span class="label">Customer:</span> ${payload.customerName}${payload.customerPhone ? ` (${payload.customerPhone})` : ''}</div>
+      <div><span class="label">Transaction code:</span> ${payload.transactionCode}</div>
+      <div><span class="label">Date:</span> ${date}</div>
+    </div>
+    <div class="text">You can review this booking in your broker dashboard. If the customer approves, the funds are released to your wallet; if the countdown expires, they are returned to the customer.</div>
+  `;
+
+  return baseTemplate('Booking deposit received', body);
+}
+
+export function brokerBookingDepositSmsBody(payload: {
+  username?: string;
+  propertyTitle: string;
+  customerName: string;
+  amount: number;
+  transactionCode: string;
+  bookingCode?: string;
+}): string {
+  const greeting = payload.username ? `Hi ${payload.username}, ` : 'Hello, ';
+  return `${greeting}deposit received: UGX ${payload.amount} for property "${payload.propertyTitle}" from ${payload.customerName}. Held in escrow. Booking: ${payload.bookingCode || 'n/a'}. Txn: ${payload.transactionCode}.`;
+}
+
 export function paymentConfirmationEmailHtml(payload: { username?: string; email: string; invoice: { referenceNumber: string; transactionId: string; tier: string; amount: number; brokerCode: string; date: string; proofCode: string; }; }): string {
   const title = payload.username ? `Hi ${payload.username},` : 'Hello,';
   const { invoice } = payload;

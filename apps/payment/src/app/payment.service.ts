@@ -498,6 +498,7 @@ const commissions: any = await lastValueFrom(
 
       // Property check: if the property is already booked, reverse/disburse the collected amount to the customer.
       let propertyBooked = false;
+      let propertyTitle = '';
       try {
         if (dto.propertyId) {
           const propertyService = this.propertyClient.getService<any>('PropertyService');
@@ -506,6 +507,7 @@ const commissions: any = await lastValueFrom(
               timeout(8000),
             ),
           );
+          propertyTitle = property?.title || '';
           const bookedState = property?.bookingState;
           propertyBooked = bookedState?.isBooked === true || bookedState?.isBooked === 'true';
           if (propertyBooked) {
@@ -679,7 +681,7 @@ if (dto.reasonForPayment === 'booking' && (iotecStatus === 'Success' || iotecSta
       this.redisClient.emit('broker_booking_created', {
         brokerCode: dto.brokerCode,
         propertyId: dto.propertyId,
-        propertyTitle: '',
+        propertyTitle: propertyTitle || dto.propertyId,
         customerName: dto.customerName,
         customerPhone: dto.customerPhone,
         amount: dto.amount,

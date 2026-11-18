@@ -22,6 +22,8 @@ import {
   propertyPaymentConfirmationEmailHtml,
   bookingConfirmationEmailHtml,
   bookingConfirmationSmsBody,
+  brokerBookingDepositEmailHtml,
+  brokerBookingDepositSmsBody,
   propertyCreatedEmailHtml,
   propertyUpdatedEmailHtml,
   propertyDeletedEmailHtml,
@@ -183,6 +185,18 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       }
     });
 
+    this.subscriber.subscribe('send_broker_booking_created_email', (err) => {
+      if (err) {
+        console.error('Failed to subscribe to send_broker_booking_created_email', err);
+      }
+    });
+
+    this.subscriber.subscribe('send_broker_booking_created_sms', (err) => {
+      if (err) {
+        console.error('Failed to subscribe to send_broker_booking_created_sms', err);
+      }
+    });
+
     this.subscriber.subscribe('send_property_payment_invoice', (err) => {
       if (err) {
         console.error('Failed to subscribe to send_property_payment_invoice', err);
@@ -225,6 +239,22 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
           this.logger.log(`Responded to notifications request ${data.requestId || ''}`);
         } catch (error) {
           this.logger.error(`Failed to handle get_notifications: ${(error as Error).message}`);
+        }
+      } else if (channel === 'send_broker_booking_created_email') {
+        try {
+          const raw = JSON.parse(message);
+          const data = raw.data || raw;
+          await this.sendBrokerBookingCreatedEmail(data as any);
+        } catch (error) {
+          this.logger.error(`Failed to handle send_broker_booking_created_email: ${(error as Error).message}`);
+        }
+      } else if (channel === 'send_broker_booking_created_sms') {
+        try {
+          const raw = JSON.parse(message);
+          const data = raw.data || raw;
+          await this.sendBrokerBookingCreatedSms(data as any);
+        } catch (error) {
+          this.logger.error(`Failed to handle send_broker_booking_created_sms: ${(error as Error).message}`);
         }
       } else if (channel === 'send_broker_fcm_notification') {
         try {
@@ -514,6 +544,74 @@ export class NotificationService implements OnModuleInit, OnModuleDestroy {
       return this.result('sms', payload.phoneNumber);
     } catch (err) {
       this.logger.error(`Failed to send property created SMS: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async sendBrokerBookingCreatedEmail(payload: {
+    email: string;
+    username?: string;
+    propertyTitle: string;
+    customerName: string;
+    customerPhone?: string;
+    amount: number;
+    transactionCode: string;
+    bookingCode?: string;
+    date?: string;
+    brokerCode?: string;
+  }) {
+    try {
+      if (!payload.email) {
+        throw new Error('Cannot send booking created email: "email" is missing from payload');
+      }
+      const subject = 'Booking deposit received';
+      const body = brokerBookingDepositEmailHtml({
+        username: payload.username,
+        email: payload.email,
+        propertyTitle: payload.propertyTitle,
+        customerName: payload.customerName,
+        customerPhone: payload.customerPhone,
+        amount: payload.amount,
+        transactionCode: payload.transactionCode,
+        bookingCode: payload.bookingCode,
+        date: payload.date || new Date().toISOString(),
+      });
+      const result = await this.dispatchEmail(payload.email, subject, body);
+      await this.saveNotification({ type: 'booking', channel: 'email', title: subject, content: body, recipient: payload.email, result, brokerCode: payload.brokerCode });
+      return this.result('email', payload.email);
+    } catch (err) {
+      this.logger.error(`Failed to send booking created email: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  async sendBrokerBookingCreatedSms(payload: {
+    phoneNumber: string;
+    username?: string;
+    propertyTitle: string;
+    customerName: string;
+    amount: number;
+    transactionCode: string;
+    bookingCode?: string;
+    brokerCode?: string;
+  }) {
+    try {
+      if (!payload.phoneNumber) {
+        throw new Error('Cannot send booking created SMS: "phoneNumber" is missing from payload');
+      }
+      const body = brokerBookingDepositSmsBody({
+        username: payload.username,
+        propertyTitle: payload.propertyTitle,
+        customerName: payload.customerName,
+        amount: payload.amount,
+        transactionCode: payload.transactionCode,
+        bookingCode: payload.bookingCode,
+      });
+      const result = await this.dispatchSms(payload.phoneNumber, body);
+      await this.saveNotification({ type: 'booking', channel: 'sms', title: 'Booking deposit received', content: body, recipient: payload.phoneNumber, result, brokerCode: payload.brokerCode });
+      return this.result('sms', payload.phoneNumber);
+    } catch (err) {
+      this.logger.error(`Failed to send booking created SMS: ${(err as Error).message}`);
       throw err;
     }
   }

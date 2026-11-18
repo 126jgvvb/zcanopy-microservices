@@ -1887,7 +1887,7 @@ private getEmptyBroker(): any {
         }
     }
 
-    private async handleBrokerBookingCreated(data: { brokerCode: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; amount: number; transactionCode: string }) {
+    private async handleBrokerBookingCreated(data: { brokerCode: string; propertyId: string; propertyTitle: string; customerName: string; customerPhone: string; amount: number; transactionCode: string; bookingCode?: string }) {
         try {
             const broker = await this.brokerRepo.findOne({ where: { brokerCode: data.brokerCode } });
             if (!broker) {
@@ -1901,8 +1901,8 @@ private getEmptyBroker(): any {
 
             this.redisClient.emit(`broker:notifications:${data.brokerCode}`, {
                 type: 'BOOKING_CREATED',
-                title: 'New Booking Created',
-                message: `New booking for ${data.propertyTitle} by ${data.customerName}. Amount: UGX ${data.amount}.`,
+                title: 'Booking deposit received',
+                message: `Deposit for property "${data.propertyTitle || data.propertyId}" from ${data.customerName}. Amount: UGX ${data.amount}.`,
                 propertyId: data.propertyId,
                 propertyTitle: data.propertyTitle,
                 customerName: data.customerName,
@@ -1912,12 +1912,36 @@ private getEmptyBroker(): any {
                 timestamp: new Date().toISOString(),
             });
 
-            await this.sendFcmNotification(data.brokerCode, 'New Booking Created', `New booking for ${data.propertyTitle} by ${data.customerName}. Amount: UGX ${data.amount}.`, {
+            await this.sendFcmNotification(data.brokerCode, 'Booking deposit received', `Deposit for property "${data.propertyTitle || data.propertyId}" from ${data.customerName}. Amount: UGX ${data.amount}.`, {
                 type: 'BOOKING_CREATED',
                 propertyId: data.propertyId,
                 propertyTitle: data.propertyTitle,
                 amount: String(data.amount),
                 transactionCode: data.transactionCode,
+            });
+
+            // Email and SMS to the broker — these write rows into the
+            // notifications table that the web dashboard shows as "booking".
+            this.redisClient.emit('send_broker_booking_created_email', {
+                email: broker.email,
+                username: broker.username,
+                propertyTitle: data.propertyTitle,
+                customerName: data.customerName,
+                customerPhone: data.customerPhone,
+                amount: data.amount,
+                transactionCode: data.transactionCode,
+                bookingCode: data.bookingCode,
+                brokerCode: data.brokerCode,
+            });
+            this.redisClient.emit('send_broker_booking_created_sms', {
+                phoneNumber: broker.phoneNumber,
+                username: broker.username,
+                propertyTitle: data.propertyTitle,
+                customerName: data.customerName,
+                amount: data.amount,
+                transactionCode: data.transactionCode,
+                bookingCode: data.bookingCode,
+                brokerCode: data.brokerCode,
             });
         } catch (err) {
             this.logger.error(`Failed to handle broker booking created for ${data.brokerCode}:`, err);
