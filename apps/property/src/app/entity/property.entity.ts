@@ -91,6 +91,14 @@ export class PropertyEntity {
   @Column({default:false})
   isAvailable!: boolean;
 
+  /**
+   * When false the listing stays visible in the broker's console but is
+   * excluded from the public landing page, explorer, search, nearby,
+   * featured and filter-dropdown queries.
+   */
+  @Column({ default: true })
+  showOnLandingPage!: boolean;
+
   @Column({default:new Date()})
   createdAt!: Date;
 

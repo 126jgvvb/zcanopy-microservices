@@ -1054,7 +1054,10 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     try {
       const page = Number(query.page) || 1;
       const limit = Number(query.limit) || 10;
-      const where: any = query.brokerCode ? { brokersUniqueCode: query.brokerCode } : {};
+      const where: any = query.brokerCode
+        ? { brokersUniqueCode: query.brokerCode }
+        // Public listing: exclude broker-hidden listings.
+        : { showOnLandingPage: true };
 
       const qb = this.propertyRepo.createQueryBuilder('property').where(where);
 
@@ -1120,6 +1123,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
           location: p.location,
           brokersUniqueCode: p.brokersUniqueCode,
           isAvailable: p.isAvailable,
+          showOnLandingPage: p.showOnLandingPage ?? true,
           subCounty: p.subCounty ?? null,
           district: p.district ?? null,
           createdAt: p.createdAt,
@@ -1141,7 +1145,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  async updateProperty(id: string, dto: Partial<CreatePropertyDto> & { isAvailable?: boolean }): Promise<PropertyEntity> {
+  async updateProperty(id: string, dto: Partial<CreatePropertyDto> & { isAvailable?: boolean; showOnLandingPage?: boolean }): Promise<PropertyEntity> {
     try {
       const property = await this.propertyRepo.findOne({ where: { id } });
       if (!property) {
@@ -1179,6 +1183,10 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       // viewers are marked 'released' instead of deleted, so past bookings
       // remain visible on customer dashboards while the property becomes
       // bookable again.
+      if (dto.showOnLandingPage != null) {
+        // Nullish coalescing is right here: an explicit false must be kept.
+        updateData.showOnLandingPage = dto.showOnLandingPage;
+      }
       if (dto.isAvailable != null) {
         const wasAvailable = property.isAvailable;
         updateData.isAvailable = dto.isAvailable;
@@ -1218,6 +1226,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
         price: updated.price,
         brokerBookingFee: updated.brokerBookingFee,
         isAvailable: updated.isAvailable,
+        showOnLandingPage: updated.showOnLandingPage,
         imageUrl: updated.imageUrl?.[0] || null,
         lat: updated.postgis_spatial_field?.lat || null,
         lng: updated.postgis_spatial_field?.lng || null,
@@ -1396,6 +1405,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       subCounty: p.subCounty ?? null,
       district: p.district ?? null,
       isAvailable: p.isAvailable,
+      showOnLandingPage: p.showOnLandingPage ?? true,
       createdAt: p.createdAt,
       updatedAt: p.updatedAt,
       photoCount: p.photoCount,
@@ -1416,7 +1426,8 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
   async getPropertyLocations(): Promise<{ locations: Array<{ propertyId: string; title: string; location: string; postgisSpatialField: string | null; brokerCode: string; propertyType: string }> }> {
     try {
       const properties = await this.propertyRepo.find({
-        select: { id: true, title: true, location: true, postgis_spatial_field: true, brokersUniqueCode: true, propertyType: true } as FindOptionsSelect<PropertyEntity>,
+        where: { showOnLandingPage: true },
+        select: { id: true, title: true, location: true, postgis_spatial_field: true, brokersUniqueCode: true, propertyType: true, showOnLandingPage: true } as FindOptionsSelect<PropertyEntity>,
       });
 
       return {
@@ -1427,6 +1438,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
           postgisSpatialField: p.postgis_spatial_field ? JSON.stringify(p.postgis_spatial_field) : null,
           brokerCode: p.brokersUniqueCode,
           propertyType: p.propertyType,
+          showOnLandingPage: p.showOnLandingPage ?? true,
         })),
       };
     } catch (err) {
@@ -1509,7 +1521,9 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
 
       const query = this.propertyRepo
         .createQueryBuilder('property')
-        .where('property.isAvailable = :isAvailable', { isAvailable: true });
+        .where('property.isAvailable = :isAvailable', { isAvailable: true })
+        // Public surface: listings flagged hidden by the broker never appear.
+        .andWhere('property.showOnLandingPage = :showOnLandingPage', { showOnLandingPage: true });
 
       if (dto.propertyType) {
         query.andWhere('property.propertyType ILIKE :propertyType', { propertyType: dto.propertyType });
@@ -1552,6 +1566,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
             location: p.location,
             brokersUniqueCode: p.brokersUniqueCode,
             isAvailable: p.isAvailable,
+            showOnLandingPage: p.showOnLandingPage ?? true,
             createdAt: p.createdAt,
             photoCount: p.photoCount,
             videoCount: p.videoCount,
@@ -1576,7 +1591,9 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 12;
 
-      const qb = this.propertyRepo.createQueryBuilder('property').where('property.isAvailable = :isAvailable', { isAvailable: true });
+      const qb = this.propertyRepo.createQueryBuilder('property')
+        .where('property.isAvailable = :isAvailable', { isAvailable: true })
+        .andWhere('property.showOnLandingPage = :showOnLandingPage', { showOnLandingPage: true });
 
       if (dto.query) {
         qb.andWhere(
@@ -1658,6 +1675,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
             location: p.location,
             brokersUniqueCode: p.brokersUniqueCode,
             isAvailable: p.isAvailable,
+            showOnLandingPage: p.showOnLandingPage ?? true,
             subCounty: p.subCounty ?? null,
             district: p.district ?? null,
             createdAt: p.createdAt,
@@ -1740,7 +1758,9 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       const page = Number(dto.page) || 1;
       const limit = Number(dto.limit) || 10;
 
-      let query = this.propertyRepo.createQueryBuilder('property').where('property.isAvailable = :isAvailable', { isAvailable: true });
+      let query = this.propertyRepo.createQueryBuilder('property')
+        .where('property.isAvailable = :isAvailable', { isAvailable: true })
+        .andWhere('property.showOnLandingPage = :showOnLandingPage', { showOnLandingPage: true });
 
       if (dto.propertyType) {
         query = query.andWhere('property.propertyType ILIKE :propertyType', { propertyType: dto.propertyType });
@@ -2008,7 +2028,7 @@ export class PropertyService implements OnModuleInit, OnModuleDestroy {
       const limit = Number(dto.limit) || 10;
 
       const [properties, total] = await this.propertyRepo.findAndCount({
-        where: { brokersUniqueCode: dto.brokerCode },
+        where: { brokersUniqueCode: dto.brokerCode, showOnLandingPage: true },
         skip: (page - 1) * limit,
         take: limit,
         order: { createdAt: 'DESC' },
@@ -2294,6 +2314,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
 
       let query = this.propertyRepo.createQueryBuilder('property')
         .where('property.isAvailable = :isAvailable', { isAvailable: true })
+        .andWhere('property.showOnLandingPage = :showOnLandingPage', { showOnLandingPage: true })
         .andWhere('property.id != :id', { id: dto.propertyId })
         .andWhere('property.propertyType ILIKE :propertyType', { propertyType: property.propertyType });
 
@@ -2588,7 +2609,8 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
       const brokerCodes = (brokers.brokers || []).map((b: any) => b.brokerCode).filter(Boolean);
 
       let query = this.propertyRepo.createQueryBuilder('property')
-        .where('property.isAvailable = :isAvailable', { isAvailable: true });
+        .where('property.isAvailable = :isAvailable', { isAvailable: true })
+        .andWhere('property.showOnLandingPage = :showOnLandingPage', { showOnLandingPage: true });
 
       if (dto.query) {
         query = query.andWhere(
@@ -2729,6 +2751,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
   async getFeaturedProperties(limit = 6): Promise<{ properties: any[]; total: number }> {
     try {
       const properties = await this.propertyRepo.find({
+        where: { showOnLandingPage: true },
         order: { createdAt: 'DESC' },
         take: limit,
       });
@@ -2742,6 +2765,7 @@ async createCustomerBooking(dto: { customerId: string; propertyId: string; custo
           location: p.location,
           brokersUniqueCode: p.brokersUniqueCode,
           isAvailable: p.isAvailable,
+          showOnLandingPage: p.showOnLandingPage ?? true,
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
           photoCount: p.photoCount,

@@ -162,6 +162,7 @@ message UpdatePropertyRequest {
   bool isAvailable = 13;
   double price = 14;
   double brokerBookingFee = 15;
+  bool showOnLandingPage = 16;
 }
 
 message UpdatePropertyResponse {
@@ -220,6 +221,7 @@ message Property {
   int32 price = 18;
   double brokerBookingFee = 19;
   string brokerBrandName = 20;
+  bool showOnLandingPage = 21;
 }
 
 message GetPropertyLocationsRequest {}
@@ -297,6 +299,7 @@ message NearbyProperty {
   double distanceKm = 14;
   BookingState bookingState = 15;
   int32 totalBrokerProperties = 16;
+  bool showOnLandingPage = 17;
 }
 
 message TrackNearbyPropertiesRequest {
@@ -319,6 +322,7 @@ message PropertyLocation {
   string postgisSpatialField = 4;
   string brokerCode = 5;
   string propertyType = 6;
+  bool showOnLandingPage = 7;
 }
 
 message Booking {
