@@ -2901,27 +2901,26 @@ private getEmptyBroker(): any {
      * A landlord can legitimately be represented by several brokers, but a
      * new submission must be cross-confirmed via OTPs sent to those brokers.
      */
+    /**
+     * Match on the identifiers that cannot look alike: NIN and phone.
+     * The full-name field is deliberately ignored — people with similar
+     * names, families with shared phones, and common spellings mean a name
+     * match is not evidence that two records are the same landlord.
+     */
     private async findMatchingLandlordRecords(
         broker: BrokerEntity,
-        fullName: string,
+        _fullName: string,
         nin: string,
         phoneNumber: string,
     ): Promise<LandlordVerificationEntity[]> {
         const normalizedPhone = (phoneNumber || '').replace(/\s+/g, '');
         const normalizedNin = (nin || '').trim().toUpperCase();
-        const normalizedName = (fullName || '').trim().toLowerCase();
 
         const qb = this.landlordVerificationRepo
             .createQueryBuilder('lv')
             .where('lv.brokerCode != :brokerCode', { brokerCode: broker.brokerCode });
 
-        if (normalizedNin && normalizedPhone && normalizedName) {
-            qb.andWhere('(UPPER(lv.landlordNin) = :nin OR lv.landlordPhoneNumber = :phone OR LOWER(lv.landlordFullName) = :name)', {
-                nin: normalizedNin,
-                phone: normalizedPhone,
-                name: normalizedName,
-            });
-        } else if (normalizedNin && normalizedPhone) {
+        if (normalizedNin && normalizedPhone) {
             qb.andWhere('(UPPER(lv.landlordNin) = :nin OR lv.landlordPhoneNumber = :phone)', {
                 nin: normalizedNin,
                 phone: normalizedPhone,
@@ -2930,8 +2929,6 @@ private getEmptyBroker(): any {
             qb.andWhere('UPPER(lv.landlordNin) = :nin', { nin: normalizedNin });
         } else if (normalizedPhone) {
             qb.andWhere('lv.landlordPhoneNumber = :phone', { phone: normalizedPhone });
-        } else if (normalizedName) {
-            qb.andWhere('LOWER(lv.landlordFullName) = :name', { name: normalizedName });
         } else {
             return [];
         }
