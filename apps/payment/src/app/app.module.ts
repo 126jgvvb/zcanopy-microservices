@@ -15,20 +15,30 @@ import { join } from 'path';
     ConfigModule.forRoot({ isGlobal: true, envFilePath: join(process.cwd(), 'apps/payment/.env') }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST') || 'localhost',
-        port: parseInt(config.get<string>('DB_PORT') || '5432'),
-        username: config.get<string>('DB_USERNAME') || 'postgres',
-        password: config.get<string>('DB_PASSWORD') || 'password',
-        database: config.get<string>('DB_DATABASE') || 'payment_server',
-        extra: config.get<string>('DB_HOST') !== 'localhost'
-          ? { ssl: { rejectUnauthorized: false } }
-          : {},
-        entities: [TransactionEntity],
-        synchronize: true,
-        logging: true,
-      }),
+      useFactory: (config: ConfigService) => {
+        const host = config.get<string>('DB_HOST') || 'localhost';
+        return {
+          type: 'postgres' as const,
+          host,
+          port: parseInt(config.get<string>('DB_PORT') || '5432'),
+          username: config.get<string>('DB_USERNAME') || 'postgres',
+          password: config.get<string>('DB_PASSWORD') || 'password',
+          database: config.get<string>('DB_DATABASE') || 'payment_server',
+          extra: {
+            ...(host !== 'localhost' ? { ssl: { rejectUnauthorized: false } } : {}),
+            // Keep the pool small: every connection costs memory on the
+            // database server, and Railway Postgres has a hard connection cap.
+            max: Number(config.get<string>('DB_POOL_MAX') || '5'),
+            idleTimeoutMillis: 30_000,
+            connectionTimeoutMillis: 15_000,
+          },
+          entities: [TransactionEntity],
+          synchronize: config.get<string>('DB_SYNCHRONIZE') !== 'false',
+          // Query logging allocates a string per statement and floods Railway's
+          // log pipeline; enable it with DB_LOGGING=true only while debugging.
+          logging: config.get<string>('DB_LOGGING') === 'true',
+        };
+      },
     }),
     TypeOrmModule.forFeature([TransactionEntity]),
     HttpModule,

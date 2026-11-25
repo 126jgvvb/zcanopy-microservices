@@ -28,18 +28,26 @@ import { join } from 'path';
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST') || 'localhost',
-        port: parseInt(config.get<string>('DB_PORT') || '5432'),
-        username: config.get<string>('DB_USERNAME') || 'postgres',
-        password: config.get<string>('DB_PASSWORD') || 'password',
-        database: config.get<string>('DB_DATABASE') || 'customer_db',
-        extra: config.get<string>('DB_HOST') !== 'localhost' ? { ssl: { rejectUnauthorized: false } } : {},
-        entities: [CustomerEntity, CustomerOtpEntity, CustomerMessageEntity, CustomerNotificationEntity, CustomerSearchEntity],
-        synchronize: true,
-        logging: true,
-      }),
+      useFactory: (config: ConfigService) => {
+        const host = config.get<string>('DB_HOST') || 'localhost';
+        return {
+          type: 'postgres' as const,
+          host,
+          port: parseInt(config.get<string>('DB_PORT') || '5432'),
+          username: config.get<string>('DB_USERNAME') || 'postgres',
+          password: config.get<string>('DB_PASSWORD') || 'password',
+          database: config.get<string>('DB_DATABASE') || 'customer_db',
+          extra: {
+            ...(host !== 'localhost' ? { ssl: { rejectUnauthorized: false } } : {}),
+            max: Number(config.get<string>('DB_POOL_MAX') || '5'),
+            idleTimeoutMillis: 30_000,
+            connectionTimeoutMillis: 15_000,
+          },
+          entities: [CustomerEntity, CustomerOtpEntity, CustomerMessageEntity, CustomerNotificationEntity, CustomerSearchEntity],
+          synchronize: config.get<string>('DB_SYNCHRONIZE') !== 'false',
+          logging: config.get<string>('DB_LOGGING') === 'true',
+        };
+      },
     }),
     TypeOrmModule.forFeature([CustomerEntity, CustomerOtpEntity, CustomerMessageEntity, CustomerNotificationEntity, CustomerSearchEntity]),
     ClientsModule.registerAsync([

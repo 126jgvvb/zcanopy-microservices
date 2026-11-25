@@ -33,6 +33,11 @@ const projectRoot = resolve(__dirname, '../..', '..', '..', '..');
         password: config.get<string>('DB_PASSWORD') || 'password',
         database: config.get<string>('DB_DATABASE') || 'broker_db',
         entities: [BrokerEntity, PayoutsEntity, BrokerWalletTransactionEntity, BrokerFeedbackEntity, BrokerFcmTokenEntity, LandlordVerificationEntity, LandlordRegistryEntity, LandlordRegistryPhoneEntity],
+        extra: {
+          max: Number(config.get<string>('DB_POOL_MAX') || '5'),
+          idleTimeoutMillis: 30_000,
+          connectionTimeoutMillis: 15_000,
+        },
         synchronize: config.get<string>('DB_SYNCHRONIZE') !== 'false',
         logging: config.get<string>('DB_LOGGING') === 'true',
       }),

@@ -72,6 +72,7 @@ export class VideoTranscodeService implements OnModuleDestroy {
   private readonly preset: string;
   private readonly maxRate: string;
   private readonly bufferSize: string;
+  private readonly threads: number;
   private active = 0;
   private ffmpegPath: string | null = null;
   private disposed = false;
@@ -97,6 +98,10 @@ export class VideoTranscodeService implements OnModuleDestroy {
       this.configService.get<string>('VIDEO_TRANSCODE_MAX_RATE') || '3000k';
     this.bufferSize =
       this.configService.get<string>('VIDEO_TRANSCODE_BUFFER_SIZE') || '6000k';
+    // x264 allocates per-thread frame buffers; on a small Railway container a
+    // default thread count can add hundreds of MB. Two threads keeps memory
+    // predictable while still encoding meaningfully faster than one.
+    this.threads = this.positiveInt('VIDEO_TRANSCODE_THREADS', 2, 1);
   }
 
   onModuleDestroy() {
@@ -280,6 +285,10 @@ export class VideoTranscodeService implements OnModuleDestroy {
       'libx264',
       '-preset',
       this.preset,
+      '-threads',
+      String(this.threads),
+      '-filter_threads',
+      '1',
       '-crf',
       '23',
       '-maxrate',

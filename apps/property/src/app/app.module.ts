@@ -21,16 +21,29 @@ import { join } from 'path';
     ConfigModule.forRoot({ isGlobal: true, envFilePath: 'apps/property/.env' }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST') || 'localhost',
-        port: parseInt(config.get<string>('DB_PORT') || '5432'),
-        username: config.get<string>('DB_USERNAME') || 'rental',
-        password: config.get<string>('DB_PASSWORD') || 'rental123',
-        database: config.get<string>('DB_DATABASE') || 'rentaldb',
-        entities: [PropertyEntity, CustomerSearchEntity, CustomerPropertyAccessEntity, CustomerFavoriteEntity, CustomerCommentEntity, CustomerRatingEntity],
-        synchronize: true,
-      }),
+      useFactory: (config: ConfigService) => {
+        const host = config.get<string>('DB_HOST') || 'localhost';
+        return {
+          type: 'postgres' as const,
+          host,
+          port: parseInt(config.get<string>('DB_PORT') || '5432'),
+          username: config.get<string>('DB_USERNAME') || 'rental',
+          password: config.get<string>('DB_PASSWORD') || 'rental123',
+          database: config.get<string>('DB_DATABASE') || 'rentaldb',
+          extra: {
+            max: Number(config.get<string>('DB_POOL_MAX') || '5'),
+            idleTimeoutMillis: 30_000,
+            connectionTimeoutMillis: 15_000,
+          },
+          entities: [PropertyEntity, CustomerSearchEntity, CustomerPropertyAccessEntity, CustomerFavoriteEntity, CustomerCommentEntity, CustomerRatingEntity],
+          // synchronize introspects the whole schema on every boot and issues
+          // DDL itself. That is slow, memory-hungry on a large schema, and can
+          // silently alter columns. Keep it opt-out via env so it can be
+          // turned off without a code deploy once migrations exist.
+          synchronize: config.get<string>('DB_SYNCHRONIZE') !== 'false',
+          logging: config.get<string>('DB_LOGGING') === 'true',
+        };
+      },
     }),
     TypeOrmModule.forFeature([PropertyEntity, CustomerSearchEntity, CustomerPropertyAccessEntity, CustomerFavoriteEntity, CustomerCommentEntity, CustomerRatingEntity]),
     

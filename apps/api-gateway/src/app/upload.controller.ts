@@ -46,7 +46,17 @@ export class UploadController {
     summary:
       'Upload a file through the API gateway when CORS blocks direct Spaces uploads',
   })
-  @UseInterceptors(FileInterceptor('file'))
+  // Multer's default storage keeps the whole upload in the process heap. Without
+  // a size limit a single large video can push the gateway past its container
+  // memory and take every API route down with it, so cap it here.
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: {
+        fileSize: Number(process.env.UPLOAD_MAX_BYTES) || 64 * 1024 * 1024,
+        files: 1,
+      },
+    }),
+  )
   async proxy(
     @UploadedFile() file: Express.Multer.File,
     @Query('folder') folder?: string,
