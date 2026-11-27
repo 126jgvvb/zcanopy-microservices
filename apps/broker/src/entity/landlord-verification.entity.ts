@@ -70,6 +70,15 @@ export class LandlordVerificationEntity {
   @Column({ nullable: true })
   ccoRefNumber?: string;
 
+  /**
+   * True when the broker submitted a title that normally carries block/plot
+   * numbers (Mailo, Freehold, Leasehold) without them. The submission is still
+   * accepted — the withdrawal OTP to the landlord is what protects the payout —
+   * but the gap is surfaced to admins as a risk signal.
+   */
+  @Column({ default: false })
+  titleParticularsIncomplete!: boolean;
+
   /* ---- Admin review ---- */
   /** Ministry instrument number recorded by the admin on approval. */
   @Column({ nullable: true })

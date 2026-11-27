@@ -2497,6 +2497,32 @@ private getEmptyBroker(): any {
         return `****${digits.slice(-2)}`;
     }
 
+    /**
+     * Title numbers are typed by humans ("Block 216", "Plot no. 1408").
+     * Keep only the digits so matching and display are predictable.
+     */
+    private sanitizeTitleNumber(value?: string): string | undefined {
+        const digits = (value || '').replace(/\D/g, '');
+        return digits || undefined;
+    }
+
+    /**
+     * Mailo, Freehold and Leasehold titles normally carry a block and plot
+     * number. A broker who cannot access the deed may leave them out: the
+     * submission is still accepted, but it is flagged so admins can weigh the
+     * risk. Withdrawals always require an OTP to the landlord's registered
+     * phone, which is what actually protects the payout.
+     */
+    private isTitleParticularsIncomplete(
+        tenureType: string,
+        blockNumber?: string,
+        plotNumber?: string,
+    ): boolean {
+        const tenure = (tenureType || '').toLowerCase();
+        if (!['mailo', 'freehold', 'leasehold'].includes(tenure)) return false;
+        return !blockNumber || !plotNumber;
+    }
+
     private buildLandlordVerification(
         broker: BrokerEntity,
         dto: any,
@@ -2505,6 +2531,9 @@ private getEmptyBroker(): any {
         phoneNumber: string,
         requiresLandlordAuthorization = false,
     ) {
+        const blockNumber = this.sanitizeTitleNumber(dto.blockNumber);
+        const plotNumber = this.sanitizeTitleNumber(dto.plotNumber);
+
         return this.landlordVerificationRepo.create({
             brokerId: broker.id,
             brokerCode: broker.brokerCode,
@@ -2515,13 +2544,14 @@ private getEmptyBroker(): any {
             mzoDistrict: dto.mzoDistrict,
             tenureType: dto.tenureType,
             countyDivision: dto.countyDivision || undefined,
-            blockNumber: dto.blockNumber || undefined,
-            plotNumber: dto.plotNumber || undefined,
+            blockNumber,
+            plotNumber,
             volumeNumber: dto.volumeNumber || undefined,
             folioNumber: dto.folioNumber || undefined,
             leaseExpiryDate: dto.leaseExpiryDate || undefined,
             subCountyVillage: dto.subCountyVillage || undefined,
             ccoRefNumber: dto.ccoRefNumber || undefined,
+            titleParticularsIncomplete: this.isTitleParticularsIncomplete(dto.tenureType, blockNumber, plotNumber),
             status: 'pending',
             requiresLandlordAuthorization,
         });
@@ -3164,6 +3194,9 @@ private getEmptyBroker(): any {
                 body:
                     `Broker ${broker.username} (${broker.brokerCode}) submitted landlord details for ` +
                     `${fullName} (NIN ${nin}, ${dto.mzoDistrict}, ${dto.tenureType}). ` +
+                    (saved.titleParticularsIncomplete
+                        ? 'Title particulars are incomplete (block/plot missing) — treat as a fraud-risk submission and confirm the deed before approving. '
+                        : '') +
                     `Review it in the admin console and record the instrument number to approve.`,
             });
 
@@ -3484,6 +3517,7 @@ private getEmptyBroker(): any {
                 nin: latest.landlordNin,
                 mzoDistrict: latest.mzoDistrict,
                 tenureType: latest.tenureType,
+                titleParticularsIncomplete: !!latest.titleParticularsIncomplete,
                 verificationId: latest.id,
                 needsLandlordAuthorization:
                     latest.status === 'pending' && !!latest.requiresLandlordAuthorization && !!registry,
@@ -3569,6 +3603,7 @@ private getEmptyBroker(): any {
                         leaseExpiryDate: v.leaseExpiryDate || '',
                         subCountyVillage: v.subCountyVillage || '',
                         ccoRefNumber: v.ccoRefNumber || '',
+                        titleParticularsIncomplete: !!v.titleParticularsIncomplete,
                         instrumentNumber: v.instrumentNumber || '',
                         rejectionReason: v.rejectionReason || '',
                         status: v.status,

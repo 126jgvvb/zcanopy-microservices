@@ -875,6 +875,8 @@ message LandlordVerification {
   bool requiresLandlordAuthorization = 25;
   repeated LandlordPhone landlordPhones = 26;
   string selectedPhoneNumber = 27;
+  /* True when block/plot numbers were not provided; a risk signal for admins. */
+  bool titleParticularsIncomplete = 28;
 }
 
 /* A phone number registered against a landlord on the landlord registry. */
