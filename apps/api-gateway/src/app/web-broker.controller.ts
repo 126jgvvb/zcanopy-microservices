@@ -242,6 +242,7 @@ export class WebBrokerController {
       subCountyVillage: body.search?.location?.subCountyVillage ?? body.subCountyVillage,
       ccoRefNumber: body.search?.location?.ccoRefNumber ?? body.ccoRefNumber,
       brokerConfirmations: body.brokerConfirmations || [],
+      titleDetailsUnavailable: !!body.titleDetailsUnavailable,
     });
   }
 

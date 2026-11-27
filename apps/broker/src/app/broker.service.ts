@@ -2530,9 +2530,12 @@ private getEmptyBroker(): any {
         nin: string,
         phoneNumber: string,
         requiresLandlordAuthorization = false,
+        titleDetailsUnavailable = false,
     ) {
         const blockNumber = this.sanitizeTitleNumber(dto.blockNumber);
         const plotNumber = this.sanitizeTitleNumber(dto.plotNumber);
+        const tenureType = titleDetailsUnavailable ? '' : (dto.tenureType || '');
+        const mzoDistrict = titleDetailsUnavailable ? '' : (dto.mzoDistrict || '');
 
         return this.landlordVerificationRepo.create({
             brokerId: broker.id,
@@ -2541,17 +2544,19 @@ private getEmptyBroker(): any {
             landlordNin: nin,
             landlordPhoneNumber: phoneNumber,
             landlordEmail: dto.email || undefined,
-            mzoDistrict: dto.mzoDistrict,
-            tenureType: dto.tenureType,
-            countyDivision: dto.countyDivision || undefined,
-            blockNumber,
-            plotNumber,
-            volumeNumber: dto.volumeNumber || undefined,
-            folioNumber: dto.folioNumber || undefined,
-            leaseExpiryDate: dto.leaseExpiryDate || undefined,
-            subCountyVillage: dto.subCountyVillage || undefined,
-            ccoRefNumber: dto.ccoRefNumber || undefined,
-            titleParticularsIncomplete: this.isTitleParticularsIncomplete(dto.tenureType, blockNumber, plotNumber),
+            mzoDistrict,
+            tenureType,
+            countyDivision: titleDetailsUnavailable ? undefined : (dto.countyDivision || undefined),
+            blockNumber: titleDetailsUnavailable ? undefined : blockNumber,
+            plotNumber: titleDetailsUnavailable ? undefined : plotNumber,
+            volumeNumber: titleDetailsUnavailable ? undefined : (dto.volumeNumber || undefined),
+            folioNumber: titleDetailsUnavailable ? undefined : (dto.folioNumber || undefined),
+            leaseExpiryDate: titleDetailsUnavailable ? undefined : (dto.leaseExpiryDate || undefined),
+            subCountyVillage: titleDetailsUnavailable ? undefined : (dto.subCountyVillage || undefined),
+            ccoRefNumber: titleDetailsUnavailable ? undefined : (dto.ccoRefNumber || undefined),
+            titleParticularsIncomplete:
+                titleDetailsUnavailable || this.isTitleParticularsIncomplete(tenureType, blockNumber, plotNumber),
+            titleDetailsUnavailable,
             status: 'pending',
             requiresLandlordAuthorization,
         });
@@ -2996,8 +3001,8 @@ private getEmptyBroker(): any {
         nin: string;
         phoneNumber: string;
         email?: string;
-        mzoDistrict: string;
-        tenureType: string;
+        mzoDistrict?: string;
+        tenureType?: string;
         countyDivision?: string;
         blockNumber?: string;
         plotNumber?: string;
@@ -3007,6 +3012,7 @@ private getEmptyBroker(): any {
         subCountyVillage?: string;
         ccoRefNumber?: string;
         brokerConfirmations?: Array<{ brokerCode: string; otp: string }>;
+        titleDetailsUnavailable?: boolean;
     }) {
         try {
             const broker = await this.findBrokerByNameOrCode(dto.brokerCode);
@@ -3017,9 +3023,17 @@ private getEmptyBroker(): any {
             const fullName = (dto.fullName || '').trim();
             const nin = (dto.nin || '').trim().toUpperCase();
             const phoneNumber = (dto.phoneNumber || '').trim();
+            const titleDetailsUnavailable = !!dto.titleDetailsUnavailable;
 
-            if (!fullName || !nin || !phoneNumber || !dto.mzoDistrict || !dto.tenureType) {
-                return { success: false, message: 'Landlord full name, NIN, phone number, MZO district and tenure type are required' };
+            if (!fullName || !nin || !phoneNumber) {
+                return { success: false, message: 'Landlord full name, NIN and phone number are required' };
+            }
+            if (!titleDetailsUnavailable && (!dto.mzoDistrict || !dto.tenureType)) {
+                return {
+                    success: false,
+                    message:
+                        'MZO district and tenure type are required unless you indicate the title details are unavailable.',
+                };
             }
 
             if (!/^C[FM][0-9A-Z]{12}$/.test(nin)) {
@@ -3068,7 +3082,7 @@ private getEmptyBroker(): any {
             // records for the landlord, the landlord has to confirm directly.
             if (registryMatch && matchedBrokers.length === 0) {
                 const saved = await this.landlordVerificationRepo.save(
-                    this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber, true),
+                    this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber, true, titleDetailsUnavailable),
                 );
 
                 this.logger.log(
@@ -3096,7 +3110,7 @@ private getEmptyBroker(): any {
                 // authorisation (OTP + NIN) alternative.
                 const pending = registryMatch
                     ? await this.landlordVerificationRepo.save(
-                          this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber, true),
+                          this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber, true, titleDetailsUnavailable),
                       )
                     : null;
 
@@ -3173,12 +3187,12 @@ private getEmptyBroker(): any {
                 });
                 if (!saved) {
                     saved = await this.landlordVerificationRepo.save(
-                        this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber),
+                        this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber, false, titleDetailsUnavailable),
                     );
                 }
             } else {
                 saved = await this.landlordVerificationRepo.save(
-                    this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber),
+                    this.buildLandlordVerification(broker, dto, fullName, nin, phoneNumber, false, titleDetailsUnavailable),
                 );
             }
 
@@ -3193,10 +3207,16 @@ private getEmptyBroker(): any {
                 subject: 'New landlord & title verification submitted',
                 body:
                     `Broker ${broker.username} (${broker.brokerCode}) submitted landlord details for ` +
-                    `${fullName} (NIN ${nin}, ${dto.mzoDistrict}, ${dto.tenureType}). ` +
-                    (saved.titleParticularsIncomplete
-                        ? 'Title particulars are incomplete (block/plot missing) — treat as a fraud-risk submission and confirm the deed before approving. '
-                        : '') +
+                    `${fullName} (NIN ${nin}` +
+                    (saved.titleDetailsUnavailable
+                        ? ', title details unavailable'
+                        : `, ${dto.mzoDistrict}, ${dto.tenureType}`) +
+                    `). ` +
+                    (saved.titleDetailsUnavailable
+                        ? 'The broker could not provide MZO/tenure/block/plot details — identity-only submission. Treat as high fraud risk and confirm the deed before approving. '
+                        : saved.titleParticularsIncomplete
+                            ? 'Title particulars are incomplete (block/plot missing) — treat as a fraud-risk submission and confirm the deed before approving. '
+                            : '') +
                     `Review it in the admin console and record the instrument number to approve.`,
             });
 
@@ -3518,6 +3538,7 @@ private getEmptyBroker(): any {
                 mzoDistrict: latest.mzoDistrict,
                 tenureType: latest.tenureType,
                 titleParticularsIncomplete: !!latest.titleParticularsIncomplete,
+                titleDetailsUnavailable: !!latest.titleDetailsUnavailable,
                 verificationId: latest.id,
                 needsLandlordAuthorization:
                     latest.status === 'pending' && !!latest.requiresLandlordAuthorization && !!registry,
@@ -3604,6 +3625,7 @@ private getEmptyBroker(): any {
                         subCountyVillage: v.subCountyVillage || '',
                         ccoRefNumber: v.ccoRefNumber || '',
                         titleParticularsIncomplete: !!v.titleParticularsIncomplete,
+                        titleDetailsUnavailable: !!v.titleDetailsUnavailable,
                         instrumentNumber: v.instrumentNumber || '',
                         rejectionReason: v.rejectionReason || '',
                         status: v.status,

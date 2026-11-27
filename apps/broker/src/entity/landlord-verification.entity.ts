@@ -79,6 +79,15 @@ export class LandlordVerificationEntity {
   @Column({ default: false })
   titleParticularsIncomplete!: boolean;
 
+  /**
+   * The broker indicated they cannot obtain the title particulars right now
+   * (MZO, tenure, block/plot). The submission is accepted with identity only;
+   * withdrawals remain protected by the landlord OTP, but admins must treat
+   * the record as high-risk until particulars are supplied.
+   */
+  @Column({ default: false })
+  titleDetailsUnavailable!: boolean;
+
   /* ---- Admin review ---- */
   /** Ministry instrument number recorded by the admin on approval. */
   @Column({ nullable: true })
